@@ -8,7 +8,7 @@ Complete LiveWhale modules meant to be installed within /livewhale/client.
 
 2) livewhale-private-scripts
 
-Standalone executable scripts meant to be stored inside /public_html/livewhale/private and run by an admin in a web browser.
+Standalone executable scripts meant to be stored inside /public_html/livewhale/private and run by a logged-in user in a web browser.
 
 3) livewhale-tools
 
