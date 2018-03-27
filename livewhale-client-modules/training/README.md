@@ -1,0 +1,1 @@
+This module allows configuration of users on a password-based instance with dummy passwords, and requires that they reset their passwords after their training login to their own chosen password.
