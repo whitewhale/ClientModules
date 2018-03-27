@@ -1,0 +1,15 @@
+<h3>Results: <xphp var="form_grader_form_name"/></h3>
+<ul>
+	<li>
+		<div class="question"><xphp var="form_grader_question"/></div>
+		<div class="answer">Your answer: <strong><xphp var="form_grader_actual_answer"/></strong></div>
+		<div class="correct_answer">Correct answer: <strong><xphp var="form_grader_correct_answer"/></strong></div>
+		<div class="message_correct"><xphp var="form_grader_answer_message_correct"/></div> 
+		<div class="message_incorrect"><xphp var="form_grader_answer_message_incorrect"/></div> 
+	</li>
+</ul>
+<h6>Your score:</h6>
+<p><span class="score_correct"><xphp var="form_grader_number_correct"/></span> correct answers out of <span class="score_total"><xphp var="form_grader_number_scored"/></span></p>
+<p>Percentage score: <span class="score_percentage"><xphp var="form_grader_score"/>%</span></p>
+<div class="score_message_pass"><xphp var="form_grader_score_message_pass"/></div>
+<div class="score_message_fail"><xphp var="form_grader_score_message_fail"/></div>
