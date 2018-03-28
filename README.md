@@ -19,5 +19,3 @@ Standalone tools indepedent of the CMS.
 All content is designed by White Whale Web Services, or contributed by clients using the LiveWhale or LiveWhale Calendar CMS. Please reference the readme for each item for complete system requirements and instructions on how to configure and use each item.
 
 Feedback / questions / bugs can be reported to White Whale via the support line: support@livewhale.com
-
-Another commit hook test
