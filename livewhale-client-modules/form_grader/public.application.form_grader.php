@@ -2,7 +2,7 @@
 
 $_LW->REGISTERED_APPS['form_grader']=array(
 	'title'=>'Form Grader',
-	'handlers'=>array('onLoad', 'onFormsSuccess')
+	'handlers'=>array('onLoad', 'onFormsSuccess', 'onFormSubmissionEmailFormat', 'onFormsOutput')
 ); // configure this module
 
 class LiveWhaleApplicationFormGrader {
@@ -21,10 +21,58 @@ if (!empty($_LW->_POST['lw_form_id'])) { // if this is a posted form
 };
 }
 
+public function onFormsOutput($buffer, $id) {
+global $_LW;
+if ($forms=$buffer->query('//form')) { // add class to form and each graded fieldset
+	foreach($forms as $form) {
+		if ($form->hasAttribute('id')) {
+			$id=$form->getAttribute('id');
+			if (preg_match('~^lw_form_[0-9]+$~', $id)) {
+				$id=substr($id, 8);
+				if ($fields=$_LW->getCustomFields('forms', $id)) { // get custom fields
+					if (!empty($fields['is_graded']) && !empty($fields['correct_answer'])) { // if this is a graded form
+						$class=$form->hasAttribute('class') ? $form->getAttribute('class') : '';
+						$class=(!empty($class) ? $class.' ' : '').'graded_quiz';
+						$form->setAttribute('class', $class);
+						foreach($fields['correct_answer'] as $key=>$val) {
+							if (!empty($val)) {
+								if ($fieldsets=$buffer->query('//fieldset[contains(@class, "lw_forms_field_'.$id.'_'.$key.'")]')) {
+									foreach($fieldsets as $fieldset) {
+										$class=$fieldset->hasAttribute('class') ? $fieldset->getAttribute('class') : '';
+										$class=(!empty($class) ? $class.' ' : '').'graded';
+										$fieldset->setAttribute('class', $class);
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+return $buffer;
+}
+
 public function onFormsSuccess($buffer, $form_id) {
 global $_LW;
 if (!empty($_LW->_POST['lw_form_id'])) { // if this is a posted form
 	if ($fields=$_LW->getCustomFields('forms', $_LW->_POST['lw_form_id'])) { // get custom fields
+		if (!empty($fields['is_graded']) && !empty($fields['correct_answer'])) { // if this is a graded form
+			if ($template=$this->getTemplate()) { // get the template for the score
+				$score=$this->getScore($fields, $template); // get the score
+				$buffer.=$score; // add it to success message
+			};
+		};
+	};
+};
+return $buffer;
+}
+
+public function onFormSubmissionEmailFormat($form_id, $buffer) {
+global $_LW;
+if (!empty($_LW->_POST['lw_form_id']) && $form_id==$_LW->_POST['lw_form_id']) { // if we have the submission
+	if ($fields=$_LW->getCustomFields('forms', $form_id)) { // get custom fields
 		if (!empty($fields['is_graded']) && !empty($fields['correct_answer'])) { // if this is a graded form
 			if ($template=$this->getTemplate()) { // get the template for the score
 				$score=$this->getScore($fields, $template); // get the score
