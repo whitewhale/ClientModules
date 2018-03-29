@@ -1,0 +1,1 @@
+This module creates a new field called "Short Name" in the Locations editor. Anytime a feed imports an event, it checks the feed location against the location names and short names you've saved. The first one that matches, it applies that saved location to the event.
