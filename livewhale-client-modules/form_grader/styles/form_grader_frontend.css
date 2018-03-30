@@ -1,0 +1,7 @@
+.lw_forms_form.graded_quiz {
+    visibility: hidden;
+}
+
+.lw_forms_form.graded_quiz.visible {
+     visibility: visible;
+}
