@@ -1,6 +1,3 @@
 .type_horizontal_line .element_correctanswer, .type_header .element_correctanswer, .type_paragraph .element_correctanswer {
 	display:none;
 }
-#score_pass {
-	width:56px;
-}

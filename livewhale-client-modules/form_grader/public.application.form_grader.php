@@ -127,8 +127,8 @@ if ($form=$_LW->dbo->query('select', 'title, structure', 'livewhale_forms', 'id=
 					$GLOBALS['form_grader_question']=$_LW->setFormatClean($form['structure']['header'][$key]); // set values for result
 					$GLOBALS['form_grader_actual_answer']=$_LW->setFormatClean($question['actual_answer']);
 					$GLOBALS['form_grader_correct_answer']=$_LW->setFormatClean($question['correct_answer']);
-					$GLOBALS['form_grader_answer_message_correct']=!empty($question['is_correct']) ? $_LW->setFormatClean(@$fields['answer_message_correct'][$key]) : '';
-					$GLOBALS['form_grader_answer_message_incorrect']=empty($question['is_correct']) ? $_LW->setFormatClean(@$fields['answer_message_incorrect'][$key]) : '';
+					$GLOBALS['form_grader_answer_message_correct']=!empty($question['is_correct']) ? @$fields['answer_message_correct'][$key] : '';
+					$GLOBALS['form_grader_answer_message_incorrect']=empty($question['is_correct']) ? @$fields['answer_message_incorrect'][$key] : '';
 					$question['li']=$_LW->xphp->parseString($li); // create result for question
 					$questions[]=$question; // record scored question
 				};
@@ -144,7 +144,7 @@ if ($form=$_LW->dbo->query('select', 'title, structure', 'livewhale_forms', 'id=
 				$GLOBALS['form_grader_score']=round($GLOBALS['form_grader_number_correct']/$GLOBALS['form_grader_number_scored']*100); // set value for score
 				$GLOBALS['form_grader_score_message_pass']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? @$fields['score_message_pass'] : ''; // set value for pass message
 				$GLOBALS['form_grader_score_message_fail']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']<$fields['score_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
-				$GLOBALS['form_grader_required_score']=$fields['score_pass']; // add value for a required score
+				$GLOBALS['form_grader_required_score']=@$fields['score_pass']; // add value for a required score
 				$GLOBALS['form_grader_score_passed']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? 1 : ''; // set flag for score pass
 				return $_LW->xphp->parseString($template); // return score
 			};

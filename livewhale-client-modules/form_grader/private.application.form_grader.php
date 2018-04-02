@@ -13,6 +13,10 @@ global $_LW;
 if ($_LW->page=='forms_edit') { // if on forms editor
 	$_LW->REGISTERED_CSS[]=$_LW->CONFIG['LIVE_URL'].'/resource/css/form_grader%5Cform_grader.css'; // add stylesheet
 	$_LW->REGISTERED_JS[]=$_LW->CONFIG['LIVE_URL'].'/resource/js/form_grader%5Cform_grader.js'; // add script
+	$_LW->ENV->input_filter['forms_edit']['answer_message_correct']=array('tags'=>'*', 'wysiwyg'=>1); // allow HTML in these fields
+	$_LW->ENV->input_filter['forms_edit']['answer_message_incorrect']=array('tags'=>'*', 'wysiwyg'=>1);
+	$_LW->ENV->input_filter['forms_edit']['score_message_pass']=array('tags'=>'*', 'wysiwyg'=>1);
+	$_LW->ENV->input_filter['forms_edit']['score_message_fail']=array('tags'=>'*', 'wysiwyg'=>1);
 };
 }
 
@@ -67,9 +71,9 @@ if ($_LW->page=='forms_edit') { // if on forms editor
 						<label class="header">Messages</label>
 						<fieldset id="score_message_pass">
 							<label>Message if correct:</label>
-							<textarea class="form-control" rows="8" id="score_message_pass" name="score_message_pass">'.$_LW->setFormatClean(@$_LW->_POST['score_message_pass']).'</textarea>
+							<textarea class="form-control" rows="8" id="forms_score_message_pass" name="score_message_pass">'.$_LW->setFormatClean(@$_LW->_POST['score_message_pass']).'</textarea>
 							<label>Message if incorrect:</label>
-							<textarea class="form-control" rows="8" id="score_message_fail" name="score_message_fail">'.$_LW->setFormatClean(@$_LW->_POST['score_message_fail']).'</textarea>
+							<textarea class="form-control" rows="8" id="forms_score_message_fail" name="score_message_fail">'.$_LW->setFormatClean(@$_LW->_POST['score_message_fail']).'</textarea>
 						</fieldset>
 					</div>
 				</div>
@@ -113,11 +117,11 @@ if ($type=='forms' && $_LW->page=='forms_edit') { // if saving a form from the e
 		$fields=array(
 			'is_graded'=>@$_LW->_POST['is_graded'],
 			'correct_answer'=>$_LW->setFormatSanitize(@$_LW->_POST['correct_answer']),
-			'answer_message_correct'=>$_LW->setFormatSanitize(@$_LW->_POST['answer_message_correct']),
-			'answer_message_incorrect'=>$_LW->setFormatSanitize(@$_LW->_POST['answer_message_incorrect']),
+			'answer_message_correct'=>$_LW->setFormatSanitize(@$_POST['answer_message_correct']),
+			'answer_message_incorrect'=>$_LW->setFormatSanitize(@$_POST['answer_message_incorrect']),
 			'score_pass'=>(int)@$_LW->_POST['score_pass'],
-			'score_message_pass'=>$_LW->setFormatSanitize(@$_LW->_POST['score_message_pass']),
-			'score_message_fail'=>$_LW->setFormatSanitize(@$_LW->_POST['score_message_fail'])
+			'score_message_pass'=>$_LW->setFormatSanitize(@$_POST['score_message_pass']),
+			'score_message_fail'=>$_LW->setFormatSanitize(@$_POST['score_message_fail'])
 		);
 	}
 	else {
