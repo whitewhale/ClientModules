@@ -1,0 +1,19 @@
+<div class="row">
+	<div class="main no-sidebar">
+		<!-- START HEADER -->
+		<h1>Appointment Slots
+			<a class="addnew btn btn-primary btn-sm" href="#"><i class="fa fa-plus fa-fw"></i> Add a new appointment slot</a>
+        </h1>
+		<!-- END HEADER -->
+		<form id="manager" name="manager" method="post" action="<xphp var="REQUEST_URI"/>" autocomplete="off">
+			<div class="with_checked">
+				<xphp var="dropdown_checked"/> 
+				<input class="btn btn-default btn-sm" type="submit" value="Go" /> 
+				<xphp var="manager_select_all"/>
+			</div>
+			<div id="manager_content">
+				<xphp var="manager_appointments"/>
+			</div>
+		</form>
+	</div>
+</div>
