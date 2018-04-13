@@ -87,7 +87,7 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 					if (@is_dir('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME)) {
 						if (@is_dir('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_WWW)) {
 							echo '<tr><td class="success">SUCCESS</td><td>SSH2/SFTP Access</td><td></td></tr>';
-							$has_ssh_access=true;
+							$has_sftp_access=true;
 						}
 						else {
 							echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access</td><td>Access successful, but cannot locate '.$SFTP_PATH_WWW.'.</td></tr>';
@@ -117,7 +117,7 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 
 	// SSH2/SFTP Write Access
 
-	if (!empty($has_ssh_access)) {
+	if (!empty($has_sftp_access)) {
 		if ($contents=@file_get_contents('./file.html')) {
 			if ($stream=@fopen('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME.'/file2.html', 'w')) {
 				for ($written=0, $max=strlen($contents);$written<$max;$written+=$fwrite) {
@@ -145,13 +145,11 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 					};
 					@unlink('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME.'/file2.html');
 					@ssh2_exec($ssh, 'echo hello > '.$SFTP_PATH_HOME.'/file2.html');
-					sleep(1);
-					$list=@shell_exec('ls -l '.$SFTP_PATH_HOME);
-					if (empty($list) || strpos($list, 'file2.html')===false) {
-						echo '<tr><td class="warning">WARNING</td><td>SSH2/SFTP Exec Access</td><td>There is no exec/shell access with this server. While this is not required, some additional functionality may be limited. Providing shell access is recommended for White Whale to provide full diagnostics/support for your installation.</td></tr>';
+					if (!file_exists('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME.'/file2.html')) {
+						echo '<tr><td class="warning">WARNING</td><td>SSH2 Shell Exec</td><td>There is no SSH2 shell access with this server. While this is not required, some additional functionality may be limited. Providing shell access is recommended for White Whale to provide full diagnostics/support for your installation.</td></tr>';
 					}
 					else {
-						echo '<tr><td class="success">SUCCESS</td><td>SSH2/SFTP Exec Access</td><td>There is exec/shell access with this server.</td></tr>';
+						echo '<tr><td class="success">SUCCESS</td><td>SSH2 Shell Exec Access</td><td></td></tr>';
 					};
 					@unlink('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME.'/file2.html');
 				}
@@ -173,7 +171,7 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 
 	//SSH2/SFTP Group Write
 
-	if (!empty($has_ssh_access)) {
+	if (!empty($has_sftp_access)) {
 	
 	}
 	else {
@@ -233,9 +231,19 @@ else {
 	echo '<tr><td class="success">SUCCESS</td><td>PHP Extensions</td><td>'.(!$has_apc ? '<br/><br/>Though not required, we suggest installing and enabling APCu.' : '').(!$has_ssh2 ? '<br/><br/>Though not required, we suggest installing and enabling SSH2 for SFTP support.' : '').'</td></tr>';
 };
 
+// Shell Access
+
+$ts=@shell_exec('echo "'.time().'"');
+if (!preg_match('~^[0-9]+$~', $ts)) {
+	echo '<tr><td class="failure">FAIL</td><td>Shell Exec</td><td>Local shell access is disabled on this server. Ability to use the shell_exec() function is critical for a number of tasks, such as performing database backups.</td></tr>';
+}
+else {
+	echo '<tr><td class="success">SUCCESS</td><td>Shell Exec</td><td></td></tr>';
+};
+
 // PHP CLI Execution
 
-$cli_check=shell_exec('php -v');
+$cli_check=@shell_exec('php -v');
 if (strpos($cli_check, 'Zend')===false) {
 	echo '<tr><td class="failure">FAIL</td><td>PHP CLI Execution</td><td>The web server cannot run command line PHP commands.</td></tr>';
 }
