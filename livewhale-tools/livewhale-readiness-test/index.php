@@ -276,10 +276,9 @@ $post_max_size=intval(ini_get('post_max_size'));
 if ($post_max_size<=$upload_max_filesize) {
 	$settings[]='PHP\'s post_max_size size must be larger than PHP\'s upload_max_filesize ('.$upload_max_filesize.')';
 };
-$has_low_max_input_vars=false;
 $max_input_vars=ini_get('max_input_vars');
 if ($max_input_vars<5000) {
-	$has_low_max_input_vars=true;
+	$settings[]='Though not required, we suggest raising max_input_vars to a recommended limit of 5000.';
 };
 if ($has_apc) {
 	$apc_shm_size=intval(ini_get('apc.shm_size'));
@@ -312,11 +311,15 @@ if (!empty($disable_functions)) {
 		$settings[]='Remove the following functions from disable_functions: '.implode(', ', $disabled);
 	};
 };
+$php_version=phpversion();
+if (version_compare($php_version, '5.5.0', '<')) {
+	$settings[]='The PHP version now required for new LiveWhale installs is: 5.5 - 7.1. <em>(PHP 7.2+ support is expected to begin in LiveWhale 1.7.)</em>';
+};
 if (!empty($settings)) {
-	echo '<tr><td class="failure">FAIL</td><td>PHP Configuration Settings</td><td>PHP Version: '.phpversion().'<br/>Timezone: '.(ini_get('date.timezone')=='' ? 'blank' : ini_get('date.timezone')).'<br/><br/>The following PHP settings should be corrected:<br/><br/>'.implode('<br/><br/>',$settings).(($has_low_max_input_vars && version_compare(phpversion(), '5.3.9', '>=')) ? '<br/><br/>Though not required, we suggest raising max_input_vars to a recommended limit of 5000.' : '').'</td></tr>';
+	echo '<tr><td class="failure">FAIL</td><td>PHP Configuration Settings</td><td>PHP Version: '.$php_version.'<br/>Timezone: '.(ini_get('date.timezone')=='' ? 'blank' : ini_get('date.timezone')).'<br/><br/>The following PHP settings should be corrected:<br/><br/>'.implode('<br/><br/>',$settings).'</td></tr>';
 }
 else {
-	echo '<tr><td class="success">SUCCESS</td><td>PHP Configuration Settings</td><td>PHP Version: '.phpversion().'<br/>Timezone: '.ini_get('date.timezone').(($has_low_max_input_vars && version_compare(phpversion(), '5.3.9', '>=')) ? '<br/><br/>Though not required, we suggest raising max_input_vars to a recommended limit of 5000.' : '').'</td></tr>';
+	echo '<tr><td class="success">SUCCESS</td><td>PHP Configuration Settings</td><td>PHP Version: '.$php_version.'<br/>Timezone: '.ini_get('date.timezone').'</td></tr>';
 };
 
 
@@ -658,17 +661,15 @@ else {
 
 # Zend OPCache Installed/Compatible
 
-if (version_compare(phpversion(), '5.5', '>=')) {
-	$has_zend_opcache=@ini_get('opcache.enable');
-	if (!empty($has_zend_opcache)) {
-		$freq=ini_get('opcache.revalidate_freq');
-		if ((int)$freq!==0) {
-			echo '<tr><td class="warning">WARNING</td><td>Zend OPCache configuration</td><td>Incompatible Zend OPCache setting. opcache.revalidate_freq must be set to 0. It is currently set to '.(int)$freq.'.</td></tr>';
-		};
-	}
-	else {
-		echo '<tr><td class="warning">WARNING</td><td>Zend OPCache Installed</td><td>The OPCache extension is not enabled. While not required, we recommend enabling this extension for significant performance improvements on your server. Be sure to set opcache.revalidate_freq = 0 in your php.ini for compatibility with LiveWhale.</td></tr>';
+$has_zend_opcache=@ini_get('opcache.enable');
+if (!empty($has_zend_opcache)) {
+	$freq=ini_get('opcache.revalidate_freq');
+	if ((int)$freq!==0) {
+		echo '<tr><td class="warning">WARNING</td><td>Zend OPCache configuration</td><td>Incompatible Zend OPCache setting. opcache.revalidate_freq must be set to 0. It is currently set to '.(int)$freq.'.</td></tr>';
 	};
+}
+else {
+	echo '<tr><td class="warning">WARNING</td><td>Zend OPCache Installed</td><td>The OPCache extension is not enabled. While not required, we recommend enabling this extension for significant performance improvements on your server. Be sure to set opcache.revalidate_freq = 0 in your php.ini for compatibility with LiveWhale.</td></tr>';
 };
 
 # Write Permissions
