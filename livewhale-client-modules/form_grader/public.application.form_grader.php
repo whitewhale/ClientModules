@@ -103,52 +103,52 @@ protected function getScore($fields, $template) {
 global $_LW;
 if ($form=$_LW->dbo->query('select', 'title, structure', 'livewhale_forms', 'id='.(int)$_LW->_POST['lw_form_id'])->firstRow()->run()) { // get the form details
 	if ($form['structure']=@unserialize($form['structure'])) { // decode form structure
+		$li='';
 		$matches=array();
-		preg_match_all('~<li[^>]*?>.+?</li>~s', $template, $matches);
+		preg_match_all('~<li[^>]*?>(?:(?!</li>).)*?</li>~s', $template, $matches);
 		if (!empty($matches[0]) && sizeof($matches[0])===1) { // get <li> from template
 			$li=$matches[0][0];
 			$template=str_replace($li, '<xphp var="form_grader_results"/>', $template); // swap variable in for li
-			$questions=array();
-			$count_correct=0;
-			foreach($fields['correct_answer'] as $key=>$val) {
-				if (!empty($val) && $form['structure']['header'][$key]) { // if there is a correct answer configured and this is an actual question element
-					$question=array();
-					$question['correct_answer']=$val; // get correct answer
-					$question['actual_answer']=@$_LW->_POST['lw_form_'.$_LW->_POST['lw_form_id'].'_'.$key]; // get actual answer
-					if (is_array($question['actual_answer'])) {
-						$question['actual_answer']=implode('', $question['actual_answer']);
-					};
-					$question['correct_answer_comp']=strtolower(preg_replace('~[^a-zA-Z0-9]~', '', $question['correct_answer'])); // format correct answer for comparison
-					$question['actual_answer_comp']=strtolower(preg_replace('~[^a-zA-Z0-9]~', '', $question['actual_answer'])); // format actual answer for comparison
-					$question['is_correct']=($question['actual_answer_comp']==$question['correct_answer_comp']); // check if answer was correct
-					if (!empty($question['is_correct'])) { // if answer was correct
-						$count_correct++; // increment correct answers count
-					};
-					$GLOBALS['form_grader_question']=$_LW->setFormatClean($form['structure']['header'][$key]); // set values for result
-					$GLOBALS['form_grader_actual_answer']=$_LW->setFormatClean($question['actual_answer']);
-					$GLOBALS['form_grader_correct_answer']=$_LW->setFormatClean($question['correct_answer']);
-					$GLOBALS['form_grader_answer_message_correct']=!empty($question['is_correct']) ? @$fields['answer_message_correct'][$key] : '';
-					$GLOBALS['form_grader_answer_message_incorrect']=empty($question['is_correct']) ? @$fields['answer_message_incorrect'][$key] : '';
-					$question['li']=$_LW->xphp->parseString($li); // create result for question
-					$questions[]=$question; // record scored question
+		};
+		$questions=array();
+		$count_correct=0;
+		foreach($fields['correct_answer'] as $key=>$val) {
+			if (!empty($val) && $form['structure']['header'][$key]) { // if there is a correct answer configured and this is an actual question element
+				$question=array();
+				$question['correct_answer']=$val; // get correct answer
+				$question['actual_answer']=@$_LW->_POST['lw_form_'.$_LW->_POST['lw_form_id'].'_'.$key]; // get actual answer
+				if (is_array($question['actual_answer'])) {
+					$question['actual_answer']=implode('', $question['actual_answer']);
 				};
-			};
-			if (!empty($questions)) { // if there were scored questions
-				$GLOBALS['form_grader_results']='';
-				foreach($questions as $question) { // set value for all results
-					$GLOBALS['form_grader_results'].=$question['li']."\n";
+				$question['correct_answer_comp']=strtolower(preg_replace('~[^a-zA-Z0-9]~', '', $question['correct_answer'])); // format correct answer for comparison
+				$question['actual_answer_comp']=strtolower(preg_replace('~[^a-zA-Z0-9]~', '', $question['actual_answer'])); // format actual answer for comparison
+				$question['is_correct']=($question['actual_answer_comp']==$question['correct_answer_comp']); // check if answer was correct
+				if (!empty($question['is_correct'])) { // if answer was correct
+					$count_correct++; // increment correct answers count
 				};
-				$GLOBALS['form_grader_form_name']=$form['title']; // set form name
-				$GLOBALS['form_grader_number_correct']=$count_correct; // set count for correct answers
-				$GLOBALS['form_grader_number_scored']=sizeof($questions); // set count of scored answers
-				$GLOBALS['form_grader_score']=round($GLOBALS['form_grader_number_correct']/$GLOBALS['form_grader_number_scored']*100); // set value for score
-				$GLOBALS['form_grader_score_message_pass']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? @$fields['score_message_pass'] : ''; // set value for pass message
-				$GLOBALS['form_grader_score_message_fail']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']<$fields['score_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
-				$GLOBALS['form_grader_required_score']=@$fields['score_pass']; // add value for a required score
-				$GLOBALS['form_grader_score_passed']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? 1 : ''; // set flag for score pass
-				return $_LW->xphp->parseString($template); // return score
+				$GLOBALS['form_grader_question']=$_LW->setFormatClean($form['structure']['header'][$key]); // set values for result
+				$GLOBALS['form_grader_actual_answer']=$_LW->setFormatClean($question['actual_answer']);
+				$GLOBALS['form_grader_correct_answer']=$_LW->setFormatClean($question['correct_answer']);
+				$GLOBALS['form_grader_answer_message_correct']=!empty($question['is_correct']) ? @$fields['answer_message_correct'][$key] : '';
+				$GLOBALS['form_grader_answer_message_incorrect']=empty($question['is_correct']) ? @$fields['answer_message_incorrect'][$key] : '';
+				$question['li']=!empty($li) ? $_LW->xphp->parseString($li) : ''; // create result for question
+				$questions[]=$question; // record scored question
 			};
-	
+		};
+		if (!empty($questions)) { // if there were scored questions
+			$GLOBALS['form_grader_results']='';
+			foreach($questions as $question) { // set value for all results
+				$GLOBALS['form_grader_results'].=$question['li']."\n";
+			};
+			$GLOBALS['form_grader_form_name']=$form['title']; // set form name
+			$GLOBALS['form_grader_number_correct']=$count_correct; // set count for correct answers
+			$GLOBALS['form_grader_number_scored']=sizeof($questions); // set count of scored answers
+			$GLOBALS['form_grader_score']=round($GLOBALS['form_grader_number_correct']/$GLOBALS['form_grader_number_scored']*100); // set value for score
+			$GLOBALS['form_grader_score_message_pass']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? @$fields['score_message_pass'] : ''; // set value for pass message
+			$GLOBALS['form_grader_score_message_fail']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']<$fields['score_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
+			$GLOBALS['form_grader_required_score']=@$fields['score_pass']; // add value for a required score
+			$GLOBALS['form_grader_score_passed']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? 1 : ''; // set flag for score pass
+			return $_LW->xphp->parseString($template); // return score
 		};
 	};
 };
