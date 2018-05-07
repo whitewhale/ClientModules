@@ -1,7 +1,7 @@
 (function($) {
 
-  // randomize graded fields
-  $('body').find('.lw_forms_form.graded_quiz').each(function() {
+  // randomize graded fields (wrap your quiz with a .lw_forms_randomized_quiz container)
+  $('body').find('.lw_forms_randomized_quiz .lw_forms_form.graded_quiz').each(function() {
     var $this = $(this);
     var $fields = $this.find('fieldset.graded');
     var $prev = $fields.eq(0).prev();
