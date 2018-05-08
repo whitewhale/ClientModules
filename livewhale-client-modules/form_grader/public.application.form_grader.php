@@ -48,7 +48,7 @@ if ($forms=$buffer->query('//form')) { // add class to form and each graded fiel
 						if (!isset($_LW->d_widgets)) {
 							$_LW->initModule('data', 'widgets');
 						};
-						$form->insert($buffer->xhtml('<div class="lw_widget_metadata lw_hidden"><a href="/live/resource/js/form_grader%5Cform_grader_frontend.js" class="lw_widget_resources_js" rel="nofollow"></a><a href="/live/resource/css/form_grader%5Cform_grader_frontend.css" class="lw_widget_resources_css" rel="nofollow"></a></div>')); // add frontend JS/CSS
+						$form->insert($buffer->xhtml('<div class="lw_widget_metadata lw_hidden" aria-hidden="true"><span data-href="/live/resource/js/form_grader%5Cform_grader_frontend.js" class="lw_widget_resources_js"></span><span data-href="/live/resource/css/form_grader%5Cform_grader_frontend.css" class="lw_widget_resources_css"></span></div>')); // add frontend JS/CSS
 					};
 				};
 			};
