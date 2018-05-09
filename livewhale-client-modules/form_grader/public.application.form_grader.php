@@ -80,7 +80,7 @@ if (!empty($_LW->_POST['lw_form_id']) && $form_id==$_LW->_POST['lw_form_id']) { 
 		if (!empty($fields['is_graded']) && !empty($fields['correct_answer'])) { // if this is a graded form
 			if ($template=$this->getTemplate()) { // get the template for the score
 				$score=$this->getScore($fields, $template); // get the score
-				$buffer=str_replace(array('<p><strong>Submitted data:</strong></p>', '{submission}'), array('', $score), $buffer); // add it to email body
+				$buffer=str_replace(array('<p><strong>Submitted data:</strong></p>', '<strong>Submitted data:</strong><br/><br/>', '{submission}'), array('', '', $score), $buffer); // add it to email body
 			};
 		};
 	};
