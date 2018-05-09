@@ -148,7 +148,7 @@ if ($form=$_LW->dbo->query('select', 'title, structure', 'livewhale_forms', 'id=
 			$GLOBALS['form_grader_score_message_fail']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']<$fields['score_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
 			$GLOBALS['form_grader_required_score']=@$fields['score_pass']; // add value for a required score
 			$GLOBALS['form_grader_score_passed']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? 1 : ''; // set flag for score pass
-			return $_LW->xphp->parseString($template); // return score
+			return $_LW->xphp->parseString($_LW->applyPageAndGroupVars($template)); // return score
 		};
 	};
 };
