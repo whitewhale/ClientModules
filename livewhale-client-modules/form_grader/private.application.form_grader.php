@@ -2,7 +2,7 @@
 
 $_LW->REGISTERED_APPS['form_grader']=array(
 	'title'=>'Form Grader',
-	'handlers'=>array('onLoad', 'onBeforeEditor', 'onOutput', 'onFormsShowElement', 'onAfterEdit', 'onSaveSuccess'),
+	'handlers'=>array('onLoad', 'onBeforeEditor', 'onOutput', 'onFormsShowElement', 'onAfterEdit', 'onSaveSuccess', 'onBeforeValidate'),
 	'flags'=>array('no_autoload')
 ); // configure this module
 
@@ -37,6 +37,28 @@ if ($page=='forms_edit') { // if on forms editor
 };
 }
 
+public function onBeforeValidate($type, $id) { // when validating an item of any data type
+global $_LW;
+if ($type=='forms') {
+	if (!empty($_LW->_POST['score_pass']) || !empty($_LW->_POST['correct_answers_pass'])) {
+		if (!empty($_LW->_POST['score_pass'])) {
+			$_LW->_POST['score_pass']=str_replace('%', '', $_LW->_POST['score_pass']);
+			if (!preg_match('~^[0-9]+$~', $_LW->_POST['score_pass'])) {
+				$_LW->REGISTERED_MESSAGES['failure'][]='Passing score as a percentage must be a numeric value.';
+			};
+		};
+		if (!empty($_LW->_POST['correct_answers_pass'])) {
+			if (!preg_match('~^[0-9]+$~', $_LW->_POST['correct_answers_pass'])) {
+				$_LW->REGISTERED_MESSAGES['failure'][]='Passing score as a minimum of correct answers must be a numeric value.';
+			};
+		};
+		if (!empty($_LW->_POST['score_pass']) && !empty($_LW->_POST['correct_answers_pass'])) {
+			$_LW->REGISTERED_MESSAGES['failure'][]='Passing score must be indicated as a minimum of correct answers or a percentage, but not both.';
+		};
+	};
+};
+}
+
 public function onOutput($buffer) {
 global $_LW;
 if ($_LW->page=='forms_edit') { // if on forms editor
@@ -61,7 +83,8 @@ if ($_LW->page=='forms_edit') { // if on forms editor
 						<label class="header" for="score_pass">Passing score</label>
 						<fieldset>
 							<div class="form-inline">
-								<input type="text" class="form-control" id="score_pass" name="score_pass" value="'.(int)@$_LW->_POST['score_pass'].'"/> out of correct answers to pass
+								<p><input type="text" class="form-control" id="correct_answers_pass" name="correct_answers_pass" value="'.@$_LW->_POST['correct_answers_pass'].'"/> out of correct answers to pass <em>—or—</p>
+								<p><input type="text" class="form-control" id="score_pass" name="score_pass" value="'.@$_LW->_POST['score_pass'].'"/> % of answers correct to pass</em></p>
 							</div>
 						</fieldset>
 					</div>
@@ -120,6 +143,7 @@ if ($type=='forms' && $_LW->page=='forms_edit') { // if saving a form from the e
 			'answer_message_correct'=>$_LW->setFormatSanitize(@$_POST['answer_message_correct']),
 			'answer_message_incorrect'=>$_LW->setFormatSanitize(@$_POST['answer_message_incorrect']),
 			'score_pass'=>(int)@$_LW->_POST['score_pass'],
+			'correct_answers_pass'=>(int)@$_LW->_POST['correct_answers_pass'],
 			'score_message_pass'=>$_LW->setFormatSanitize(@$_POST['score_message_pass']),
 			'score_message_fail'=>$_LW->setFormatSanitize(@$_POST['score_message_fail'])
 		);
@@ -131,6 +155,7 @@ if ($type=='forms' && $_LW->page=='forms_edit') { // if saving a form from the e
 			'answer_message_correct'=>'',
 			'answer_message_incorrect'=>'',
 			'score_pass'=>'',
+			'correct_answers_pass'=>'',
 			'score_message_pass'=>'',
 			'score_message_fail'=>''
 		);

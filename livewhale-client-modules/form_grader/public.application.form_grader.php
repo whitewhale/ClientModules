@@ -144,10 +144,18 @@ if ($form=$_LW->dbo->query('select', 'title, structure', 'livewhale_forms', 'id=
 			$GLOBALS['form_grader_number_correct']=$count_correct; // set count for correct answers
 			$GLOBALS['form_grader_number_scored']=sizeof($questions); // set count of scored answers
 			$GLOBALS['form_grader_score']=round($GLOBALS['form_grader_number_correct']/$GLOBALS['form_grader_number_scored']*100); // set value for score
-			$GLOBALS['form_grader_score_message_pass']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? @$fields['score_message_pass'] : ''; // set value for pass message
-			$GLOBALS['form_grader_score_message_fail']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']<$fields['score_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
-			$GLOBALS['form_grader_required_score']=@$fields['score_pass']; // add value for a required score
-			$GLOBALS['form_grader_score_passed']=(!empty($fields['score_pass']) && $GLOBALS['form_grader_score']>=$fields['score_pass']) ? 1 : ''; // set flag for score pass
+			if (!empty($fields['score_pass'])) { // if there is a percentage-based passing score requirement
+				$GLOBALS['form_grader_score_message_pass']=($GLOBALS['form_grader_score']>=$fields['score_pass']) ? @$fields['score_message_pass'] : ''; // set value for pass message
+				$GLOBALS['form_grader_score_message_fail']=($GLOBALS['form_grader_score']<$fields['score_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
+				$GLOBALS['form_grader_required_score']=$fields['score_pass']; // add value for a required score
+				$GLOBALS['form_grader_score_passed']=($GLOBALS['form_grader_score']>=$fields['score_pass']) ? 1 : ''; // set flag for score pass
+			}
+			else if (!empty($fields['correct_answers_pass'])) { // else if there is a correct-answers-based passing score requirement
+				$GLOBALS['form_grader_score_message_pass']=($count_correct>=$fields['correct_answers_pass']) ? @$fields['score_message_pass'] : ''; // set value for pass message
+				$GLOBALS['form_grader_score_message_fail']=($count_correct<$fields['correct_answers_pass']) ? @$fields['score_message_fail'] : ''; // set value for fail message
+				$GLOBALS['form_grader_required_score']=$fields['correct_answers_pass']; // add value for a required score
+				$GLOBALS['form_grader_score_passed']=($count_correct>=$fields['correct_answers_pass']) ? 1 : ''; // set flag for score pass
+			};
 			return $_LW->xphp->parseString($_LW->applyPageAndGroupVars($template)); // return score
 		};
 	};

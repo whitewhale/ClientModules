@@ -1,3 +1,7 @@
-.type_horizontal_line .element_correctanswer, .type_header .element_correctanswer, .type_paragraph .element_correctanswer {
+#forms_edit .type_horizontal_line .element_correctanswer, #forms_edit .type_header .element_correctanswer, #forms_edit .type_paragraph .element_correctanswer {
 	display:none;
+}
+
+#forms_edit #score_pass, #forms_edit #correct_answers_pass {
+	width:50px;
 }
