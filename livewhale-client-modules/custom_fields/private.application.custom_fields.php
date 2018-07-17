@@ -11,7 +11,7 @@ class LiveWhaleApplicationCustomFields {
 
 public function onLoad() {
 global $_LW;
-if ($_LW->page=='events_edit') { // if on the events editor page
+if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the events editor page
 	//$_LW->REGISTERED_CSS[]='/path/to/custom/stylesheet.css'; // load in some custom CSS for styling the new field (optional)
 	$_LW->ENV->input_filter['events_edit']['sample_textarea']=array('tags'=>'*', 'wysiwyg'=>1); // configure the input filter to present the textarea custom field as a WYSIWYG field (omit this line entirely for no HTML allowed, or change "wysiwyg" to "wysiwyg_limited" for the limited set of toolbar options)
 };
@@ -21,7 +21,7 @@ if ($_LW->page=='events_edit') { // if on the events editor page
 
 public function onAfterValidate() {
 global $_LW;
-if ($_LW->page=='events_edit') { // if saving from the events editor page
+if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if saving from the events editor page
 	/*
 	if (!empty($_LW->_POST['sample_textarea']) && stripos($_LW->_POST['sample_textarea'], 'supercalifragilisticexpialidocious') !== false) { // optionally disallow the word "supercalifragilisticexpialidocious" from this custom field
 		$_LW->REGISTERED_MESSAGES['failure'][] = 'Custom Field (Textarea) cannot contain the word supercalifragilisticexpialidocious.'; // register error
@@ -34,7 +34,7 @@ if ($_LW->page=='events_edit') { // if saving from the events editor page
 
 public function onAfterEdit($type, $page, $id) {
 global $_LW;
-if ($page=='events_edit') { // if loading data for the events editor form
+if ($page=='events_edit' || $_LW->page=='events_sub_edit') { // if loading data for the events editor form
 	if (!empty($_LW->is_first_load) && !empty($id)) { // if loading the editor for the first time for an existing item
 		if ($fields=$_LW->getCustomFields($type, $id)) { // getCustomFields($type, $id) gets any previously saved custom data for the item of this $type and $id
 			foreach($fields as $key=>$val) { // add previously saved data to POST data so it prepopulates in the editor form
@@ -67,7 +67,7 @@ if ($type=='events') { // if saving an event
 
 public function onOutput($buffer) {
 global $_LW;
-if ($_LW->page=='events_edit') { // if on the events editor page
+if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the events editor page
 	$new_field=$_LW->displayCustomField('textarea', 'sample_textarea', @$_LW->_POST['sample_textarea'], false); // create the new element (type, element id, preset value, options - for multivalue fields)
 	// use <!-- START or END ELEMENT --> comments in template to position and inject your new field:
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
