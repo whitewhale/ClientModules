@@ -595,7 +595,7 @@ if (!empty($response) && strpos($response, 'node-sass:')===0 && trim($response)!
 	echo '<tr><td class="success">SUCCESS</td><td>SASS Installed</td><td>'.$response.'</td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>SASS Installed</td><td>This server lacks support for the SASS compiler (command line "node-sass"). SASS and/or LESS support is highly encouraged. (sudo npm install -g node-sass)</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>SASS Installed</td><td>This server lacks support for the SASS compiler (command line "node-sass"). SASS and/or LESS support is highly encouraged. (sudo npm install --unsafe-perm -g node-sass)</td></tr>';
 };
 
 # Coffee Installed
