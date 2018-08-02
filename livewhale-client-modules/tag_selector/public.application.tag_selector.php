@@ -10,9 +10,7 @@ class LiveWhaleApplicationTagSelector {
 public function onLoad() { // on frontend request
 global $_LW;
 if ($_LW->page=='/submit/index.php') { // if on public submissions page
-	if ($_LW->page=='/submit/index.php') { // if on public submissions page
-		$GLOBALS['global_tags']=$this->getGlobalTagSelector(); // Populate $GLOBALS['global_tags'] with form elements.
-	};
+	$GLOBALS['global_tags']=$this->getGlobalTagSelector(); // Populate $GLOBALS['global_tags'] with form elements.
 };
 }
 
