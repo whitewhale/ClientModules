@@ -1,0 +1,1 @@
+This module creates a new XPHP variable global_tags for use on the public submission form. That variable generates a checklist of global tags (just like event types) that submitters can check off, and then the module applies those tags to the submitted event.
