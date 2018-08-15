@@ -7,6 +7,7 @@ $_LW->REGISTERED_APPS['ems']=array(
 	'commands'=>array('ems-debug'=>'debug'),
 	'custom'=>array( // these settings should all be set in global.config.php, not here
 		'wsdl'=>'', // url to EMS WSDL (i.e. https://####.emscloudservice.com/emsapi/service.asmx?wsdl)
+		'rest'=>'', // url to EMS REST (i.e. https://####/EmsPlatform/api/v1)
 		'username'=>'', // EMS username
 		'password'=>'', // EMS password
 		'event_types_map'=>array(), // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type'
@@ -21,43 +22,51 @@ $_LW->REGISTERED_APPS['ems']=array(
 class LiveWhaleApplicationEms { // implements EMS-related functionality in LiveWhale
 protected $client; // the EMS client
 
-public function initEMS() { // initializes EMS via SOAP
+public function initEMS() { // initializes EMS (via SOAP or REST)
 global $_LW;
-if (!extension_loaded('soap')) { // require SOAP
-	$_LW->logDebug('soap extention not loaded');
+if (!empty($_LW->REGISTERED_APPS['ems']['custom']['wsdl']) && !extension_loaded('soap')) { // require SOAP if using WSDL url
+	$_LW->logError('EMS: SOAP extention not loaded', false, true);
 	return false;
 };
 if (!isset($this->client)) { // if client not yet created
 	$_LW->REGISTERED_APPS['ems']['custom']['username']=@$_LW->CONFIG['CREDENTIALS']['EMS']['username']; // get EMS username
 	$_LW->REGISTERED_APPS['ems']['custom']['password']=@$_LW->CONFIG['CREDENTIALS']['EMS']['password']; // get EMS password
-	if (!class_exists('EMSSoapClient')) { // load the EMS class
-		require $_LW->INCLUDES_DIR_PATH.'/client/modules/ems/includes/class.ems_soap.php';
-	};
-	$opts=array( // set default opts
-		'soap_version'=>SOAP_1_2
-	);
-	if (!empty($_LW->REGISTERED_APPS['ems']['custom']['cafile']) || !empty($_LW->REGISTERED_APPS['ems']['custom']['capath'])) { // enable SSL verification if certificate is specified
-		//$opts['cache_wsdl']=WSDL_CACHE_NONE; // uncomment if required by EMS server
-		$opts['stream_context']=stream_context_create(
-			array(
-				'ssl'=>array(
-					'verify_peer'=>true,
-					'verify_peer_name'=>false,
-					'allow_self_signed'=>false,
-					'cafile'=>!empty($_LW->REGISTERED_APPS['ems']['custom']['cafile']) ? $_LW->REGISTERED_APPS['ems']['custom']['cafile'] : false,
-					'SNI_enabled'=>true,
-					'disable_compression'=>true,
-					'capath'=>!empty($_LW->REGISTERED_APPS['ems']['custom']['capath']) ? $_LW->REGISTERED_APPS['ems']['custom']['capath'] : false
-				)
-			)
+	if (!empty($_LW->REGISTERED_APPS['ems']['custom']['wsdl'])) { // if running in SOAP mode
+		if (!class_exists('EMSSoapClient')) { // load the EMS class
+			require $_LW->INCLUDES_DIR_PATH.'/client/modules/ems/includes/class.ems_soap.php';
+		};
+		$opts=array( // set default opts
+			'soap_version'=>SOAP_1_2
 		);
+		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['cafile']) || !empty($_LW->REGISTERED_APPS['ems']['custom']['capath'])) { // enable SSL verification if certificate is specified
+			//$opts['cache_wsdl']=WSDL_CACHE_NONE; // uncomment if required by EMS server
+			$opts['stream_context']=stream_context_create(
+				array(
+					'ssl'=>array(
+						'verify_peer'=>true,
+						'verify_peer_name'=>false,
+						'allow_self_signed'=>false,
+						'cafile'=>!empty($_LW->REGISTERED_APPS['ems']['custom']['cafile']) ? $_LW->REGISTERED_APPS['ems']['custom']['cafile'] : false,
+						'SNI_enabled'=>true,
+						'disable_compression'=>true,
+						'capath'=>!empty($_LW->REGISTERED_APPS['ems']['custom']['capath']) ? $_LW->REGISTERED_APPS['ems']['custom']['capath'] : false
+					)
+				)
+			);
+		};
+		try {
+			$this->client=new EMSSoapClient($_LW->REGISTERED_APPS['ems']['custom']['wsdl'], $opts); // create client
+		}
+		catch (Exception $e) {
+			$_LW->logError('EMS: '.$e->getMessage(), false, true);
+		}
+	}
+	else if (!empty($_LW->REGISTERED_APPS['ems']['custom']['rest'])) { // else if running in REST mode
+		if (!class_exists('EMSRESTClient')) { // load the EMS class
+			require $_LW->INCLUDES_DIR_PATH.'/client/modules/ems/includes/class.ems_rest.php';
+		};
+		$this->client=new EMSRESTClient($_LW->REGISTERED_APPS['ems']['custom']['rest']); // create client
 	};
-	try {
-		$this->client=new EMSSoapClient($_LW->REGISTERED_APPS['ems']['custom']['wsdl'], $opts); // create client
-	}
-	catch (Exception $e) {
-		
-	}
 };
 return (isset($this->client) && $this->client!==false);
 }
@@ -74,8 +83,9 @@ if ($this->initEMS()) { // if EMS loaded
 	echo '<h3>Groups:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($this->client->groups, true).'</pre></div>'; // display the groups
 	$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS event types
 	echo '<h3>Event Types:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($this->client->event_types, true).'</pre></div>'; // display the event types
-	if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('12-01-2015')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-07-2016')), false, false, array(1, 7), false, false, 14)) { // if there are bookings (status = 1/7, group id = 14)
+	//if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('12-01-2015')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-07-2016')), false, false, array(1, 7), false, false, 14)) { // if there are bookings (status = 1/7, group id = 14)
 	//if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('04-01-2016')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-30-2016')), false, false, array(1, 7), false, false, 364)) { // if there are bookings (status = 1/7, group id = 364)
+	if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('01-04-2016')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-30-2016')), false, false, array(1), false, false, 85)) { // if there are bookings (status = 1, group id = 85)
 		echo '<h3>Bookings:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($bookings, true).'</pre></div>'; // display the events
 	}
 	else { // else display any errors
@@ -85,19 +95,13 @@ if ($this->initEMS()) { // if EMS loaded
 exit;
 }
 
-public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // accesses the EMS API GetBookings or GetGroupBookings SOAP call
+public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // accesses the EMS API GetBookings or GetGroupBookings API call
 global $_LW;
 if (!isset($this->client)) { // require the client
 	return false;
 };
 if (empty($statuses)) { // use default statuses if none specified
 	$statuses=$_LW->REGISTERED_APPS['ems']['custom']['default_statuses'];
-	/*
-	if ($group_id==364) {
-		$statuses=array(1, 7, 5, 17);
-		$_LW->logDebug('Refreshing feed from EMS group 364, using statuses: '.implode(', ', $statuses));
-	};
-	*/
 };
 if (empty($group_types)) { // use default group types if none specified
 	$group_types=$_LW->REGISTERED_APPS['ems']['custom']['default_group_types'];
@@ -105,14 +109,14 @@ if (empty($group_types)) { // use default group types if none specified
 if (empty($event_types)) { // use default event types if none specified
 	$event_types=$_LW->REGISTERED_APPS['ems']['custom']['default_event_types'];
 };
-return $this->client->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id); // perform the SOAP call
+return $this->client->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id); // perform the API call
 }
 
 public function getBookingsAsICAL($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
 global $_LW;
 $feed=$_LW->getNew('feed'); // get a feed object
 $ical=$feed->createFeed(array('title'=>'EMS Events'), 'ical'); // create new feed
-$hostname=@parse_url($_LW->REGISTERED_APPS['ems']['custom']['wsdl'], PHP_URL_HOST);
+$hostname=@parse_url((!empty($_LW->REGISTERED_APPS['ems']['custom']['wsdl']) ? $_LW->REGISTERED_APPS['ems']['custom']['wsdl'] : (!empty($_LW->REGISTERED_APPS['ems']['custom']['rest']) ? $_LW->REGISTERED_APPS['ems']['custom']['rest'] : '')), PHP_URL_HOST);
 if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id)) { // if bookings obtained
 	foreach($bookings as $booking) { // for each booking
 		$arr=array( // format the event
@@ -245,7 +249,7 @@ if ($_LW->page=='groups_edit') { // if on the group editor page
 	if ($this->initEMS()) { // if EMS loaded
 		$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get groups
 		if (!empty($this->client->groups)) { // if groups obtained
-			$group_selector='<!-- START EMS GROUP --><div class="fields ems"><label class="header" for="groups_ems_group" id="groups_ems_group_label">EMS Group</label><fieldset><select name="ems_group"><option></option>'; // format group selector
+			$group_selector='<!-- START EMS GROUP --><div id="groups_ems_wrap" class="fields ems"><label class="header" for="groups_ems_group" id="groups_ems_group_label">EMS Group</label><fieldset><select name="ems_group"><option></option>'; // format group selector
 			foreach($this->client->groups as $group) {
 				$group_selector.='<option value="'.$group['id'].'"'.(@$_LW->_POST['ems_group']==$group['id'] ? ' selected="selected"' : '').'>'.$group['title'].' ('.$group['id'].')</option>';
 			};

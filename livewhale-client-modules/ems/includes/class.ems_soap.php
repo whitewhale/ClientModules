@@ -2,7 +2,6 @@
 
 class EMSSoapClient extends SoapClient { // SOAP client for EMS
 public $ems_errors=array();
-public $result_xml;
 
 function __construct($wsdl, $options) { // creates a new SOAP server client
 global $_LW;
@@ -88,7 +87,7 @@ try {
 	$res=@$this->__soapCall($call, array('message'=>$opts)); // perform SOAP call
 }
 catch (Exception $e) {
-	
+	$_LW->logError('EMS: '.$e->getMessage());
 }
 if (!empty($res)) { // if there was a valid response
 	if ($res2=$this->getResponse($call, $res)) { // if the response parses
@@ -146,7 +145,7 @@ if (!empty($res)) { // if there was a valid response
 							case 'TimeZone':
 								$item['timezone']=$node->nodeValue=='ET' ? 'America/New_York' : ($node->nodeValue=='PT' ? 'America/Los_Angeles' : ($node->nodeValue=='MT' ? 'America/Denver' : ($node->nodeValue=='CT' ? 'America/Chicago' : $_LW->getTimezoneForAbbreviation($node->nodeValue))));
 								if (empty($item['timezone'])) {
-									$item['timezone']='America/New_York';
+									$item['timezone']=!empty($_LW->CONFIG['TIMEZONE']) ? $_LW->CONFIG['TIMEZONE'] : 'America/New_York';
 								};
 								break;
 							case 'StatusID':
@@ -238,7 +237,7 @@ if (empty($this->statuses)) { // if cached statuses not available
 		$res=@$this->__soapCall('GetStatuses', array('message'=>$opts)); // perform SOAP call
 	}
 	catch (Exception $e) {
-	
+		$_LW->logError('EMS: '.$e->getMessage());
 	}
 	if (!empty($res)) { // if there was a valid response
 		if ($res2=$this->getResponse('GetStatuses', $res)) { // if the response parses
@@ -306,7 +305,7 @@ if (empty($this->groups)) { // if cached groups not available
 		$res=@$this->__soapCall('GetGroups', array('message'=>$opts)); // perform SOAP call
 	}
 	catch (Exception $e) {
-	
+		$_LW->logError('EMS: '.$e->getMessage());
 	}
 	if (!empty($res)) { // if there was a valid response
 		if ($res2=$this->getResponse('GetGroups', $res)) { // if the response parses
@@ -365,7 +364,7 @@ if (empty($this->group_types)) { // if cached group types not available
 		$res=@$this->__soapCall('GetGroupTypes', array('message'=>$opts)); // perform SOAP call
 	}
 	catch (Exception $e) {
-	
+		$_LW->logError('EMS: '.$e->getMessage());
 	}
 	if (!empty($res)) { // if there was a valid response
 		if ($res2=$this->getResponse('GetGroupTypes', $res)) { // if the response parses
@@ -416,7 +415,7 @@ if (empty($this->event_types)) { // if cached event types not available
 		$res=@$this->__soapCall('GetEventTypes', array('message'=>$opts)); // perform SOAP call
 	}
 	catch (Exception $e) {
-	
+		$_LW->logError('EMS: '.$e->getMessage());
 	}
 	if (!empty($res)) { // if there was a valid response
 		if ($res2=$this->getResponse('GetEventTypes', $res)) { // if the response parses

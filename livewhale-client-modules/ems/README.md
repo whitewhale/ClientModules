@@ -2,18 +2,20 @@ This module provides EMS integration for LiveWhale and LiveWhale calendar.
 
 Features:
 
-- Automatic syncing of EMS events into LiveWhale.
+- Automatic syncing of EMS events into LiveWhale (via SOAP or REST).
 - Configurable syncing rules to restrict by status, group type, and event type.
 - Mapping of EMS event types to corresponding LiveWhale event types.
 
 Configuration:
 
 - Open your global.config.php.
-- Add the WSDL url for your EMS installation.
+- Add the WSDL url for your EMS installation (for SOAP API).
 	$_LW->REGISTERED_APPS['ems']['custom']['wsdl']='https://yourschool.emscloudservice.com/emsapi/service.asmx?wsdl';
-- Configure the system path to the .pem file to enable SSL validation. This can be tested with: curl -v --cacert file.pem --capath /path/to/certs "https://<server>.emscloudservice.com/"
+- Add the REST url for your EMS installation (for REST API).
+	$_LW->REGISTERED_APPS['ems']['custom']['rest']='https://yourschool/EmsPlatform/api/v1';
+- Configure the system path to the .pem file to enable optional SSL validation (SOAP). This can be tested with: curl -v --cacert file.pem --capath /path/to/certs "https://<server>.emscloudservice.com/"
 	$_LW->REGISTERED_APPS['ems']['custom']['cafile']='/path/to/DigiCertSHA2SecureServerCA.pem';
-- Configure the system path to the server's certificate directory for additional certs in the chain.
+- Configure the system path to the server's certificate directory for additional certs in the chain (SOAP).
 	$_LW->REGISTERED_APPS['ems']['custom']['capath']='/etc/ssl/certs';
 - Optionally add each EMS event type that should be mapped to a corresponding LiveWhale event type:
 	$_LW->REGISTERED_APPS['ems']['custom']['event_types_map']=array(
@@ -40,7 +42,7 @@ Configuration:
 	);
 
 - Open your config.php.
-- Add an entry to the CREDENTIALS array for your EMS credentials:
+- Add an entry to the CREDENTIALS array for your EMS credentials (username/password or client ID /secret):
 	'EMS'=>array(
 		'username'=>'myuser',
 		'password'=>'mypassword'
@@ -55,7 +57,7 @@ Instructions:
 
 Requirements:
 
-- PHP SOAP extension.
+- PHP SOAP extension (if using SOAP API).
 
 Note:
 
