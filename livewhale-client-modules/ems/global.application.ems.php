@@ -254,7 +254,8 @@ if ($_LW->page=='groups_edit') { // if on the group editor page
 				$group_selector.='<option value="'.$group['id'].'"'.(@$_LW->_POST['ems_group']==$group['id'] ? ' selected="selected"' : '').'>'.$group['title'].' ('.$group['id'].')</option>';
 			};
 			$group_selector.='</select></fieldset></div><!-- END EMS GROUP -->';
-			$buffer=str_replace('<!-- START METADATA -->', $group_selector.'<!-- START METADATA -->', $buffer); // inject the group selector
+			$pos=strpos($buffer, '<!-- START METADATA -->')!==false ? 'METADATA' : 'STATUS';
+			$buffer=str_replace('<!-- START '.$pos.' -->', $group_selector.'<!-- START '.$pos.' -->', $buffer); // inject the group selector
 		};
 	};
 }
