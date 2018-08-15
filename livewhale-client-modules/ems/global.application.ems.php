@@ -251,7 +251,7 @@ if ($_LW->page=='groups_edit') { // if on the group editor page
 		if (!empty($this->client->groups)) { // if groups obtained
 			$group_selector='<!-- START EMS GROUP --><div id="groups_ems_wrap" class="fields ems"><label class="header" for="groups_ems_group" id="groups_ems_group_label">EMS Group</label><fieldset><select name="ems_group"><option></option>'; // format group selector
 			foreach($this->client->groups as $group) {
-				$group_selector.='<option value="'.$group['id'].'"'.(@$_LW->_POST['ems_group']==$group['id'] ? ' selected="selected"' : '').'>'.$group['title'].' ('.$group['id'].')</option>';
+				$group_selector.='<option value="'.$group['id'].'"'.(@$_LW->_POST['ems_group']==$group['id'] ? ' selected="selected"' : '').'>'.$group['title'].' (ID: '.$group['id'].')</option>';
 			};
 			$group_selector.='</select></fieldset></div><!-- END EMS GROUP -->';
 			$pos=strpos($buffer, '<!-- START METADATA -->')!==false ? 'METADATA' : 'STATUS';
