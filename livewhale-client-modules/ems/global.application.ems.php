@@ -15,7 +15,8 @@ $_LW->REGISTERED_APPS['ems']=array(
 		'default_group_types'=>array(), // default group types (if none specified)
 		'default_event_types'=>array(), // default event types (if none specified)
 		'cafile'=>'', // specify path to .pem file to enable SSL validation (test with curl -v --cacert file.pem --capath /path/to/certs "https://<server>.emscloudservice.com/")
-		'capath'=>'' // specify path to the server's certificate directory for additional certifications in the chain
+		'capath'=>'', // specify path to the server's certificate directory for additional certifications in the chain
+		'hidden_by_default'=>false // default to importing live events
 	)
 ); // configure this module
 
@@ -135,6 +136,9 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		);
 		if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
 			$arr['X-LIVEWHALE-SKIP-SYNC']=1;
+		};
+		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['hidden_by_default'])) { // if importing hidden events, flag them
+			$arr['X-LIVEWHALE-HIDDEN']=1;
 		};
 		foreach($arr as $key=>$val) { // clear empty entries
 			if (empty($val)) {

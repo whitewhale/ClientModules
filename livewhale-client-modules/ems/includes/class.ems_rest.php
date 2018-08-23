@@ -270,7 +270,9 @@ if (isset($this->groups)) { // return cached response if possible
 $this->groups=$_LW->getVariable('ems_groups'); // fetch groups from cache
 if (empty($this->groups)) { // if cached groups not available
 	$this->groups=array();
-	if ($response=$this->getResponse('/groups')) { // get the response
+	$params=array();
+	$params['pageSize']=2000;
+	if ($response=$this->getResponse('/groups', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
 			foreach($response['results'] as $group) {
 				if (!empty($group)) { // sanitize result data
@@ -337,7 +339,9 @@ if (isset($this->event_types)) { // return cached response if possible
 $this->event_types=$_LW->getVariable('ems_event_types'); // fetch event types from cache
 if (empty($this->event_types)) { // if cached event types not available
 	$this->event_types=array();
-	if ($response=$this->getResponse('/eventtypes')) { // get the response
+	$params=array();
+	$params['pageSize']=2000;
+	if ($response=$this->getResponse('/eventtypes', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
 			foreach($response['results'] as $event_type) {
 				if (!empty($event_type)) { // sanitize result data

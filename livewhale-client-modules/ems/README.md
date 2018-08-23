@@ -40,6 +40,8 @@ Configuration:
 		2,
 		3
 	);
+- Optionally configure EMS to import new events as hidden instead of live:
+	$_LW->REGISTERED_APPS['ems']['custom']['hidden_by_default']=true;
 
 - Open your config.php.
 - Add an entry to the CREDENTIALS array for your EMS credentials (username/password or client ID /secret):
