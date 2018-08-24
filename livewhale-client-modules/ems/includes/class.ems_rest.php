@@ -282,7 +282,7 @@ if (empty($this->groups)) { // if cached groups not available
 						};
 					};
 				};
-				if (!empty($group['name']) && !empty($group['id'])) { // if each result is valid
+				if (!empty($group['name']) && !empty($group['id']) && !empty($group['active'])) { // if each result is valid
 					$group['title']=$group['name'];
 					unset($group['name']);
 					$this->groups[$group['id']]=$group; // add it to the results to return
