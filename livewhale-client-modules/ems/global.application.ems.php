@@ -284,6 +284,15 @@ else if ($_LW->page=='events_subscriptions_edit') { // if on the linked calendar
 return $buffer;
 }
 
+public function getGroups($username, $password) { // accesses the EMS API groups API call
+global $_LW;
+if (!isset($this->client)) { // require the client
+	return false;
+};
+$this->client->getGroups($username, $password); // perform the API call
+return @$this->client->groups;
+}
+
 }
 
 ?>
