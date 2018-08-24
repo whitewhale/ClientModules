@@ -278,7 +278,7 @@ if (empty($this->groups)) { // if cached groups not available
 				if (!empty($group)) { // sanitize result data
 					foreach($group as $key=>$val) {
 						if (!is_array($val)) {
-							$group[$key]=$_LW->setFormatSanitize($val);
+							$group[$key]=str_replace('’', '\'', $_LW->setFormatSanitize($val));
 						};
 					};
 				};
