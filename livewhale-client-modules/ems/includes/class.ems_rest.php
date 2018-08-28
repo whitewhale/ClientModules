@@ -171,6 +171,15 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 								$booking['canceled']=1;
 							};
 							break;
+						case 'reservation':
+							if (!empty($val['webUserId']) && !empty($val['contactName']) && !empty($_GET['test'])) {
+								if ($web_user=$this->getWebUserByID($val['webUserId'])) {
+									if (!empty($web_user['emailAddress'])) {
+										$booking['contact_info']=$val['contactName'].' (<a href="mailto:'.$_LW->setFormatClean($web_user['emailAddress']).'">'.$_LW->setFormatClean($web_user['emailAddress']).'</a>)';
+									};
+								};
+							};
+							break;
 					};
 				};
 			};
@@ -364,6 +373,29 @@ if (empty($this->event_types)) { // if cached event types not available
 	};
 	$_LW->setVariable('ems_event_types', $this->event_types, 3600); // cache the event_types
 };
+}
+
+public function getWebUserById($id) { // fetches a web user's info
+global $_LW;
+static $map;
+if (!isset($map)) {
+	$map=array();
+};
+if (isset($map[$id])) { // return cached response if possible
+	return $map[$id];
+};
+$web_user=$_LW->getVariable('ems_web_user_'.$id); // fetch web user from cache
+if (empty($web_user)) { // if cached event types not available
+	$web_user=array();
+	if ($response=$this->getResponse('/webusers/'.$id)) { // get the response
+		if (!empty($response['id'])) { // fetch result
+			$web_user=$response;
+		};
+	};
+	$_LW->setVariable('ems_web_user_'.$id, $web_user, 86400); // cache the web user
+	$map[$id]=$web_user;
+};
+return $web_user;
 }
 
 }
