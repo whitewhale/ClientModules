@@ -172,7 +172,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							};
 							break;
 						case 'reservation':
-							if (!empty($val['webUserId']) && !empty($val['contactName']) && !empty($_GET['test'])) {
+							if (!empty($val['webUserId']) && !empty($val['contactName'])) {
 								if ($web_user=$this->getWebUserByID($val['webUserId'])) {
 									if (!empty($web_user['emailAddress'])) {
 										$booking['contact_info']=$val['contactName'].' (<a href="mailto:'.$_LW->setFormatClean($web_user['emailAddress']).'">'.$_LW->setFormatClean($web_user['emailAddress']).'</a>)';
