@@ -331,6 +331,9 @@ if (!empty($has_db)) {
 	if ($res=$db->query('SHOW VARIABLES LIKE "version";')) {
 		if ($res2=$res->fetch_assoc()) {
 			$version=$res2['Value'];
+			if (version_compare($version, '5.1.0', '<')) {
+				$settings[]='The minimum version required is 5.1.';
+			};
 		};
 		$res->close();
 	};
