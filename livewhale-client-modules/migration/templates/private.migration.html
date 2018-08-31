@@ -1,0 +1,14 @@
+<h1>Migration</h1>
+<form method="post" id="migration_form">
+<p><input type="radio" name="mode" value="stage"/> <strong>Stage</strong> <span class="note">Stage content by syncing with remote hosts.</span></p>
+<p><input type="radio" name="mode" value="migrate"/> <strong>Migrate</strong> <span class="note">Migrates staged pages.</span></p>
+<p><input type="radio" name="mode" value="live"/> <strong>Live</strong> <span class="note">Take migrated content live on this site.</span></p>
+<p><input type="radio" name="mode" value="clean"/> <strong>Clean</strong> <span class="note">Removes all staged and migrated content.</span></p>
+<p><input type="submit" id="migration_submit" value="Run"/></p>
+</form>
+<div id="migration_status">
+	<xphp var="status"/>
+</div>
+<div id="migration_config">
+	<xphp var="summary"/>
+</div>

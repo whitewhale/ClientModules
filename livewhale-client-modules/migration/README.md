@@ -1,0 +1,1 @@
+This module was previous a core part of LiveWhale and used to facilitate in-place migrations of web sites that are being converted to LiveWhale. It has been deprecated in favor of newer workflows, but can be resurrected as needed.
