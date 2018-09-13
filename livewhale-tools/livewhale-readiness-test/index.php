@@ -586,9 +586,26 @@ else {
 $response=shell_exec('whereis lessc');
 if (!empty($response) && strpos($response, 'lessc:')===0 && trim($response)!='lessc:') {
 	echo '<tr><td class="success">SUCCESS</td><td>Less Installed</td><td>'.$response.'</td></tr>';
+	if ($less_version=shell_exec('lessc -v')) {
+		if ($node_version=shell_exec('node -v')) {
+			$matches=array();
+			preg_match('~([0-9]+?\.[0-9]+?\.[0-9]+?)~', $less_version, $matches);
+			if (!empty($matches[1])) {
+				$less_version=$matches[1];
+				$matches=array();
+				preg_match('~([0-9]+?\.[0-9]+?\.[0-9]+?)~', $node_version, $matches);
+				if (!empty($matches[1])) {
+					$node_version=$matches[1];
+					if ($node_version[0]=='0' && (int)$less_version[0]>2) {
+						$output[]=['problem'=>'<tr><td class="warning">WARNING</td><td>Node.js Installed</td><td>Your version of LESS ('.$less_version.') is not compatible with your version of node ('.$node_version.'). Please ensure that LESS v2.x is paired with node 0.x. LESS 3+ should only be used with node > 0.x. Please consult the <a href="https://docs.livewhale.com/">LiveWhale documentation</a> on how to install recommended software such as LESS and node.</td></tr>'];
+					};
+				};
+			};
+		};
+	};
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>LESS Installed</td><td>This server lacks support for the LESS compiler (command line "lessc"). LESS and/or SASS support is highly encouraged. (sudo npm install -g less)</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>LESS Installed</td><td>This server lacks support for the LESS compiler (command line "lessc"). LESS and/or SASS support is highly encouraged. Please consult the <a href="https://docs.livewhale.com/">LiveWhale documentation</a> on how to install recommended software such as LESS.</td></tr>';
 };
 
 # SASS Installed
@@ -598,7 +615,7 @@ if (!empty($response) && strpos($response, 'node-sass:')===0 && trim($response)!
 	echo '<tr><td class="success">SUCCESS</td><td>SASS Installed</td><td>'.$response.'</td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>SASS Installed</td><td>This server lacks support for the SASS compiler (command line "node-sass"). SASS and/or LESS support is highly encouraged. (sudo npm install --unsafe-perm -g node-sass)</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>SASS Installed</td><td>This server lacks support for the SASS compiler (command line "node-sass"). SASS and/or LESS support is highly encouraged. Please consult the <a href="https://docs.livewhale.com/">LiveWhale documentation</a> on how to install recommended software such as SASS.</td></tr>';
 };
 
 # Coffee Installed
@@ -608,7 +625,7 @@ if (!empty($response) && strpos($response, 'coffee:')===0) {
 	echo '<tr><td class="success">SUCCESS</td><td>Coffee Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>Coffee Installed</td><td>This server lacks (optional) support for the coffee compiler. LiveWhale has built-in support for coffee, and this should be installed if your developers intend to use it. (sudo npm install -g coffee-script)</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>Coffee Installed</td><td>This server lacks (optional) support for the coffee compiler. LiveWhale has built-in support for coffee, and this should be installed if your developers intend to use it. Please consult the <a href="https://docs.livewhale.com/">LiveWhale documentation</a> on how to install recommended software such as coffee.</td></tr>';
 };
 
 # Jshint Installed
@@ -628,7 +645,7 @@ if (!empty($response) && strpos($response, 'uglifyjs:')===0) {
 	echo '<tr><td class="success">SUCCESS</td><td>Uglifyjs Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>Uglifyjs Installed</td><td>This server lacks support for the "uglify" minify feature. Installing uglify is highly encouraged for the most reliable minified scripts. (sudo npm install -g uglify-js)</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>Uglifyjs Installed</td><td>This server lacks support for the "uglify" minify feature. Installing uglify is highly encouraged for the most reliable minified scripts. Please consult the <a href="https://docs.livewhale.com/">LiveWhale documentation</a> on how to install recommended software such as uglifyjs.</td></tr>';
 };
 
 # Cleancss Installed
@@ -638,7 +655,7 @@ if (!empty($response) && strpos($response, 'cleancss:')===0) {
 	echo '<tr><td class="success">SUCCESS</td><td>Cleancss Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>Cleancss Installed</td><td>This server lacks support for the "cleancss" minify feature. Installing cleancss is highly encouraged for the most reliable minified stylesheets. (sudo npm install -g clean-css-cli)</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>Cleancss Installed</td><td>This server lacks support for the "cleancss" minify feature. Installing cleancss is highly encouraged for the most reliable minified stylesheets. Please consult the <a href="https://docs.livewhale.com/">LiveWhale documentation</a> on how to install recommended software such as cleancss.</td></tr>';
 };
 
 # LDAP Installed
