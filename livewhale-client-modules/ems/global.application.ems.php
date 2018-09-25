@@ -2,7 +2,7 @@
 
 $_LW->REGISTERED_APPS['ems']=array(
 	'title'=>'EMS',
-	'handlers'=>array('onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter'),
+	'handlers'=>array('onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost'),
 	'flags'=>array('no_autoload'),
 	'commands'=>array('ems-debug'=>'debug'),
 	'custom'=>array( // these settings should all be set in global.config.php, not here
@@ -269,7 +269,7 @@ else if ($_LW->page=='events_subscriptions_edit') { // if on the linked calendar
 		if (!empty($ems_group)) { // get the EMS groups
 			$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']);
 		};
-		$ems_url='<!-- START EMS URL --><div class="fields ems"><label class="header" for="groups_ems_url" id="groups_ems_url_label">EMS URL</label><fieldset>'.(!empty($ems_group) ? 'To import events from EMS'.(!empty($this->client->groups[$ems_group]) ? ' ('.$this->client->groups[$ems_group]['title'].')' : '').', you may use the following url:<br/><br/><strong id="ems_url">http://'.$_LW->CONFIG['HTTP_HOST'].$_LW->CONFIG['LIVE_URL'].'/ems/events/group/'.rawurlencode($_SESSION['livewhale']['manage']['grouptitle']).'</strong> <span style="font-size:0.8em;">(<a href="#" id="ems_use_feed">Use this feed</a>)</span><br/><br/><span class="note">To customize your EMS feed, such as pulling from specific event types only, please contact an administrator for assistance.</span>' : 'Your calendar group has not yet been assigned to an EMS group. Please contact an administrator for assistance.').'</fieldset></div><!-- END EMS URL -->';
+		$ems_url='<!-- START EMS URL --><div class="fields ems"><label class="header" for="groups_ems_url" id="groups_ems_url_label">EMS URL</label><fieldset>'.(!empty($ems_group) ? 'To import events from EMS'.(!empty($this->client->groups[$ems_group]) ? ' ('.$this->client->groups[$ems_group]['title'].')' : '').', you may use the following url:<br/><br/><strong id="ems_url">http'.($_LW->hasSSL() ? 's' : '').'://'.$_LW->CONFIG['HTTP_HOST'].$_LW->CONFIG['LIVE_URL'].'/ems/events/group/'.rawurlencode($_SESSION['livewhale']['manage']['grouptitle']).'</strong> <span style="font-size:0.8em;">(<a href="#" id="ems_use_feed">Use this feed</a>)</span><br/><br/><span class="note">To customize your EMS feed, such as pulling from specific event types only, please contact an administrator for assistance.</span>' : 'Your calendar group has not yet been assigned to an EMS group. Please contact an administrator for assistance.').'</fieldset></div><!-- END EMS URL -->';
 		$buffer=str_replace('<!-- START CATEGORIES -->', $ems_url.'<!-- START CATEGORIES -->', $buffer); // inject the EMS url
 		$buffer=str_replace('<!-- END FOOTER SCRIPTS -->', '<script type="text/javascript">
 			$(function() { // on DOM ready
@@ -291,6 +291,11 @@ if (!isset($this->client)) { // require the client
 };
 $this->client->getGroups($username, $password); // perform the API call
 return @$this->client->groups;
+}
+
+public function onChangeDatabaseHost($before_host, $after_host) { // switches hostname for EMS calendars
+global $_LW;
+$_LW->dbo->sql('UPDATE livewhale_events_subscriptions SET url=REPLACE(url, '.$_LW->escape('://'.$before_host.'/').', '.$_LW->escape('://'.$after_host.'/').') WHERE url LIKE "%/ems/events/%";');
 }
 
 }

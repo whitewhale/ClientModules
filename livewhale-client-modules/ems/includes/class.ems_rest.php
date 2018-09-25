@@ -172,10 +172,10 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							};
 							break;
 						case 'reservation':
-							if (!empty($val['webUserId']) && !empty($val['contactName'])) {
-								if ($web_user=$this->getWebUserByID($val['webUserId'])) {
-									if (!empty($web_user['emailAddress'])) {
-										$booking['contact_info']=$val['contactName'].' (<a href="mailto:'.$_LW->setFormatClean($web_user['emailAddress']).'">'.$_LW->setFormatClean($web_user['emailAddress']).'</a>)';
+							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName']) && !empty($_GET['test'])) {
+								if ($reservation=$this->getReservationByID($val['id'], $val['webUserId'].'-'.$val['contactName'])) {
+									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
+										$booking['contact_info']=$reservation['contact']['name'].' (<a href="mailto:'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'">'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'</a>)';
 									};
 								};
 							};
@@ -375,7 +375,7 @@ if (empty($this->event_types)) { // if cached event types not available
 };
 }
 
-public function getWebUserById($id) { // fetches a web user's info
+public function getReservationById($id, $cache_key) { // fetches a reservation's info
 global $_LW;
 static $map;
 if (!isset($map)) {
@@ -384,18 +384,35 @@ if (!isset($map)) {
 if (isset($map[$id])) { // return cached response if possible
 	return $map[$id];
 };
-$web_user=$_LW->getVariable('ems_web_user_'.$id); // fetch web user from cache
-if (empty($web_user)) { // if cached event types not available
-	$web_user=array();
-	if ($response=$this->getResponse('/webusers/'.$id)) { // get the response
-		if (!empty($response['id'])) { // fetch result
-			$web_user=$response;
+$cache_key=hash('md5', $cache_key); // hash the cache key
+$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
+if (@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400) { // return cached response if possible
+	if ($reservation=@file_get_contents($cache_path)) {
+		if ($reservation=@unserialize($reservation)) {
+			$map[$id]=$reservation;
+			return $reservation;
 		};
 	};
-	$_LW->setVariable('ems_web_user_'.$id, $web_user, 86400); // cache the web user
-	$map[$id]=$web_user;
 };
-return $web_user;
+$reservation=@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400 ? @unserialize(file_get_contents($cache_path)) : array(); // fetch reservation from cache
+if (empty($reservation)) { // if cached reservation not available
+	$reservation=array();
+	if ($response=$this->getResponse('/reservations/'.$id)) { // get the response
+		if (!empty($response['id'])) { // fetch result
+			$reservation=$response;
+		};
+	};
+	foreach(array($_LW->INCLUDES_DIR_PATH.'/data/ems', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1]) as $dir) {
+		if (!is_dir($dir)) {
+			@mkdir($dir);
+		};
+	};
+	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1])) {
+		@file_put_contents($cache_path, serialize($reservation), LOCK_EX); // file cache the reservation
+	};
+	$map[$id]=$reservation; // static cache the reservation
+};
+return $reservation;
 }
 
 }
