@@ -172,7 +172,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							};
 							break;
 						case 'reservation':
-							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName']) && !empty($_GET['test'])) {
+							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
 								if ($reservation=$this->getReservationByID($val['id'], $val['webUserId'].'-'.$val['contactName'])) {
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 										$booking['contact_info']=$reservation['contact']['name'].' (<a href="mailto:'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'">'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'</a>)';
