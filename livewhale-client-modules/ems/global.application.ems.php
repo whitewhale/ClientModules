@@ -296,6 +296,7 @@ return @$this->client->groups;
 public function onChangeDatabaseHost($before_host, $after_host) { // switches hostname for EMS calendars
 global $_LW;
 $_LW->dbo->sql('UPDATE livewhale_events_subscriptions SET url=REPLACE(url, '.$_LW->escape('://'.$before_host.'/').', '.$_LW->escape('://'.$after_host.'/').') WHERE url LIKE "%/ems/events/%";');
+$_LW->dbo->sql('UPDATE livewhale_events SET subscription_id=REPLACE(subscription_id, '.$_LW->escape('@'.$before_host).', '.$_LW->escape('@'.$after_host).') WHERE subscription_id LIKE '.$_LW->escape('%@'.$before_host).';');
 }
 
 public function onBeforeLogin() { // on before login
