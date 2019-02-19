@@ -6,7 +6,8 @@ $_LW->REGISTERED_APPS['lockout']=array(
 	'custom'=>array(
 		'is_enabled'=>false, // toggle this lockout on/off
 		'other_ips'=>array(), // add any manually whitelisted IPs that can access the site
-		'relocate_unknown_users'=>true // set to true to redirect authenticated users with no LiveWhale user to the homepage
+		'relocate_unknown_users'=>true, // set to true to redirect authenticated users with no LiveWhale user to the homepage
+		'allowable_urls'=>array('/index.php') // relative paths to urls that should uniquely not trigger a login prompt
 	)
 );
 
@@ -34,6 +35,9 @@ else { // else if on frontend
 			return true;
 			break;
 		case strpos(@$_SERVER['HTTP_USER_AGENT'], 'White Whale')!==false: // allow White Whale monitor requests
+			return true;
+			break;
+		case in_array($_LW->page, $_LW->REGISTERED_APPS['lockout']['custom']['allowable_urls']): // allow allowable_urls
 			return true;
 			break;
 		case $this->isLocalIP($_SERVER['REMOTE_ADDR']): // allow requests from localhost or White Whale servers
