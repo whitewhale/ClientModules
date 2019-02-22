@@ -1,4 +1,4 @@
-This module is designed to demonstrate how to add an additional custom field to a backend editor. It adds several custom fields (one for each type) to the event editor for demonstration purposes.
+This private module is designed to demonstrate how to add an additional custom field to a backend editor. It adds several custom fields (one for each type) to the event editor for demonstration purposes.
 
 Instructions:
 
@@ -8,3 +8,7 @@ Instructions:
 Requires: 1.6.1+
 
 Note: Functionality expected to be incorporated into LiveWhale core in a future version of the CMS.
+
+***
+
+The public module is optional and demonstrates how you might also want to expose custom fields to a static web page according to some logic. In this example, custom template variables are set according to the group owner of a particular page.
