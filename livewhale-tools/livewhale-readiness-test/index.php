@@ -312,7 +312,7 @@ if (!empty($disable_functions)) {
 	};
 };
 $php_version=phpversion();
-if (version_compare($php_version, '5.5.0', '<') || version_compare($php_version, '7.2.0', '>')) {
+if (version_compare($php_version, '5.5.0', '<') || version_compare($php_version, '7.3.0', '>=')) {
 	$settings[]='The PHP version now required for new LiveWhale installs is: 5.5 - 7.2.';
 };
 if (!empty($settings)) {
