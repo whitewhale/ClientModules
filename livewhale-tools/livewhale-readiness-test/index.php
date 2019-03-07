@@ -343,7 +343,7 @@ if (!empty($has_db)) {
 			$res->close();
 			$res2['Value']=$res2['Value']/1024/1024;
 			if ($res2['Value']<256) {
-				$settings[]='innodb_buffer_pool_size should be at least 256MB, it is currently '.(!empty($res2['Value']) ? $res2['Value'] : 'blank');
+				$settings[]='The innodb_buffer_pool_size setting should be at least 256MB - although RAM permitting, something higher such as 1G is recommended. It is currently '.(!empty($res2['Value']) ? $res2['Value'] : 'blank').'.';
 			};
 		};
 	};
