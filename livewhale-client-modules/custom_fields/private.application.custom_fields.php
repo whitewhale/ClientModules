@@ -34,7 +34,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if saving f
 
 public function onAfterEdit($type, $page, $id) {
 global $_LW;
-if ($page=='events_edit' || $_LW->page=='events_sub_edit') { // if loading data for the events editor form
+if ($page=='events_edit' || $page=='events_sub_edit') { // if loading data for the events editor form
 	if (!empty($_LW->is_first_load) && !empty($id)) { // if loading the editor for the first time for an existing item
 		if ($fields=$_LW->getCustomFields($type, $id)) { // getCustomFields($type, $id) gets any previously saved custom data for the item of this $type and $id
 			foreach($fields as $key=>$val) { // add previously saved data to POST data so it prepopulates in the editor form
@@ -42,6 +42,9 @@ if ($page=='events_edit' || $_LW->page=='events_sub_edit') { // if loading data 
 			};
 		};
 	};
+};
+if ($page=='profiles_edit' && $_LW->_GET['tid']==1) { // if loading the profiles editor, but only for profile type with ID = 1
+	// do something for this type only
 };
 }
 
