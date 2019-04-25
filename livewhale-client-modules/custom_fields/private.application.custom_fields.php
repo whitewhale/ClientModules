@@ -76,7 +76,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_TEXTAREA -->
 		<div class="fields sample_textarea">
-			<label class="header">Custom Field (sample_textarea)</label>
+			<label class="header" for="sample_textarea">Custom Field (sample_textarea)</label>
 			<fieldset>
 				'.$new_field.'
 			</fieldset>
@@ -87,7 +87,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_TEXT -->
 		<div class="fields sample_text">
-			<label class="header">Custom Field (sample_text)</label>
+			<label class="header" for="sample_text">Custom Field (sample_text)</label>
 			<fieldset>
 				'.$new_field.'
 			</fieldset>
@@ -98,7 +98,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_SELECT -->
 		<div class="fields sample_select">
-			<label class="header">Custom Field (sample_select)</label>
+			<label class="header" for="sample_select">Custom Field (sample_select)</label>
 			<fieldset>
 				'.$new_field.'
 			</fieldset>
@@ -109,7 +109,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_CHECKBOX -->
 		<div class="fields sample_checkbox">
-			<label class="header">Custom Field (sample_checkbox)</label>
+			<label class="header" for="sample_checkbox">Custom Field (sample_checkbox)</label>
 			<fieldset>
 				'.$new_field.'
 			</fieldset>
@@ -120,7 +120,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_RADIO -->
 		<div class="fields sample_radio">
-			<label class="header">Custom Field (sample_radio)</label>
+			<label class="header" for="sample_radio">Custom Field (sample_radio)</label>
 			<fieldset>
 				'.$new_field.'
 			</fieldset>
