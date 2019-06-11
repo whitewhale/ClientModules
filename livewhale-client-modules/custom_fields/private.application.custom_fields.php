@@ -52,7 +52,7 @@ if ($page=='profiles_edit' && $_LW->_GET['tid']==1) { // if loading the profiles
 
 public function onSaveSuccess($type, $id) {
 global $_LW;
-if ($type=='events') { // if saving an event
+if ($type=='events' && ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit')) { // if saving an event from the editor
 	$_LW->setCustomFields($type, $id, array('sample_textarea'=>@$_LW->_POST['sample_textarea']), array()); // store the value entered for sample_textarea, allowing the sample_textarea field full visibility (on details pages, in widget results, and /live/* requests such as /live/json)
 	/*
 	Note:
