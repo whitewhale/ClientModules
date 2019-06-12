@@ -32,11 +32,11 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if saving f
 
 /* The onAfterEdit() handler allows you to load additional custom data from the database after the default editor data is loaded in. */
 
-public function onAfterEdit($type, $page, $id) {
+public function onAfterEdit($module, $page, $id) {
 global $_LW;
 if ($page=='events_edit' || $page=='events_sub_edit') { // if loading data for the events editor form
 	if (!empty($_LW->is_first_load) && !empty($id)) { // if loading the editor for the first time for an existing item
-		if ($fields=$_LW->getCustomFields($type, $id)) { // getCustomFields($type, $id) gets any previously saved custom data for the item of this $type and $id
+		if ($fields=$_LW->getCustomFields($module, $id)) { // getCustomFields($module, $id) gets any previously saved custom data for the item of this $module and $id
 			foreach($fields as $key=>$val) { // add previously saved data to POST data so it prepopulates in the editor form
 				$_LW->_POST[$key]=$val;
 			};
