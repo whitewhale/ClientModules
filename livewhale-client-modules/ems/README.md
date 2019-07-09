@@ -42,6 +42,10 @@ Configuration:
 	);
 - Optionally configure EMS to import new events as hidden instead of live:
 	$_LW->REGISTERED_APPS['ems']['custom']['hidden_by_default']=true;
+- Optionally configure EMS to import UDFs:
+	$_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']=true;
+- Optionally configure EMS to define a UDF as the source of tags to import and assign to LiveWhale events:
+	$_LW->REGISTERED_APPS['ems']['custom']['udf_tags']='My UDF Title';
 
 - Open your config.php.
 - Add an entry to the CREDENTIALS array for your EMS credentials (username/password or client ID /secret):

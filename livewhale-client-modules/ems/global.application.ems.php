@@ -16,7 +16,9 @@ $_LW->REGISTERED_APPS['ems']=array(
 		'default_event_types'=>array(), // default event types (if none specified)
 		'cafile'=>'', // specify path to .pem file to enable SSL validation (test with curl -v --cacert file.pem --capath /path/to/certs "https://<server>.emscloudservice.com/")
 		'capath'=>'', // specify path to the server's certificate directory for additional certifications in the chain
-		'hidden_by_default'=>false // default to importing live events
+		'hidden_by_default'=>false, // default to importing live events
+		'enable_udfs'=>false, // set to true to capture UDFs on events
+		'udf_tags'=>'' // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
 	)
 ); // configure this module
 
@@ -139,6 +141,9 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		};
 		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['hidden_by_default'])) { // if importing hidden events, flag them
 			$arr['X-LIVEWHALE-HIDDEN']=1;
+		};
+		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_tags']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_tags']])) { // if assigning UDF values as event tags
+			$arr['X-LIVEWHALE-TAGS']=implode('|', $booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_tags']]); // add them to output
 		};
 		foreach($arr as $key=>$val) { // clear empty entries
 			if (empty($val)) {

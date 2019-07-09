@@ -181,6 +181,9 @@ if (!empty($res)) { // if there was a valid response
 						if (!empty($item['room'])) {
 							unset($item['room']);
 						};
+						if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($item['booking_id'])) {
+							$item['udfs']=$this->getUDFs($username, $password, $item['booking_id'], -42);
+						};
 						foreach($item as $key=>$val) { // sanitize result data
 							$item[$key]=$_LW->setFormatSanitize($val);
 						};
@@ -448,6 +451,51 @@ if (empty($this->event_types)) { // if cached event types not available
 	};
 	$_LW->setVariable('ems_event_types', $this->event_types, 3600); // cache the event_types
 };
+}
+
+public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs for a booking
+global $_LW;
+$output=array();
+$opts=array( // set default parameters
+	'UserName'=>$username,
+	'Password'=>$password,
+	'ParentID'=>$parent_id,
+	'ParentType'=>$parent_type
+);
+try {
+	$res=@$this->__soapCall('GetUDFs', array('message'=>$opts)); // perform SOAP call
+}
+catch (Exception $e) {
+	$_LW->logError('EMS: '.$e->getMessage());
+}
+if (!empty($res)) { // if there was a valid response
+	if ($res2=$this->getResponse('GetUDFs', $res)) { // if the response parses
+		if ($udfs=$res2->query('/UDFs/Data')) { // fetch and format results
+			foreach($udfs as $udf) {
+				if ($udf->hasChildNodes()) {
+					$item=array();
+					$current_field='';
+					foreach($udf->childNodes as $node) {
+						switch($node->nodeName) {
+							case 'Field':
+								$current_field=$_LW->setFormatClean($node->nodeValue);
+								break;
+							case 'Value':
+								if (!empty($current_field)) {
+									if (!isset($output[$current_field])) {
+										$output[$current_field]=array();
+									};
+									$output[$current_field][]=$_LW->setFormatClean($node->nodeValue);
+								};
+								break;
+						};
+					};
+				};
+			};
+		};
+	};
+};
+return $output;
 }
 
 }
