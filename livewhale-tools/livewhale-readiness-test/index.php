@@ -573,14 +573,12 @@ else {
 
 # mod_rewrite Installed
 
-if (!function_exists('apache_get_modules')) {
-	echo '<tr><td class="warning">WARNING</td><td>mod_rewrite Installed</td><td>Cannot check for mod_rewrite support because Apache is not available.</td></tr>';
-}
-else if (in_array('mod_rewrite', apache_get_modules())) {
+$response=shell_exec('curl -I -L http://'.$HTTP_HOST.'/livewhale-readiness-test/mod_rewrite/');
+if (!empty($response) && strpos($response, 'google.com')!==false) {
 	echo '<tr><td class="success">SUCCESS</td><td>mod_rewrite Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>mod_rewrite Installed</td><td>The Apache mod_rewrite extension is not installed. Please enable it for certain built-in LiveWhale services.</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>mod_rewrite Installed</td><td>The Apache mod_rewrite extension is not installed or enabled. Please enable it for certain built-in LiveWhale services.</td></tr>';
 };
 
 # Zend OPCache Installed/Compatible
