@@ -104,7 +104,7 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 			else {
 				$ssh_auth_methods=ssh2_auth_none($ssh, $SFTP_USER);
 				$has_password_auth=@in_array('password', $ssh_auth_methods);
-				echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access</td><td>Cannot authenticate with credentials provided.'.(!$has_password_auth ? ' Note that "password" authentication scheme not enabled in sshd_config.' : '').'</td></tr>';
+				echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access</td><td>Cannot authenticate with credentials provided.'.((!$has_password_auth && empty($SFTP_PUBLIC_KEY_PATH)) ? ' Note that "password" authentication scheme not enabled in sshd_config.' : '').'</td></tr>';
 			};
 		}
 		else {
