@@ -222,7 +222,7 @@ foreach(array('SimpleXML', 'dom', 'tidy', 'ftp', 'json', 'mysqli', 'gd', 'curl',
 		$missing[]=$extension;
 	};
 };
-$has_apc=extension_loaded('apc');
+$has_apc=extension_loaded('apcu') ? true : extension_loaded('apc');
 $has_ssh2=extension_loaded('ssh2');
 if (!empty($missing)) {
 	echo '<tr><td class="failure">FAIL</td><td>PHP Extensions</td><td>The following required PHP extensions are missing: '.implode(', ',$missing).'.'.(!$has_apc ? '<br/><br/>Though not required, we suggest installing and enabling APCu.' : '').(!$has_ssh2 ? '<br/><br/>Though not required, we <strong>strongly</strong> suggest installing and enabling SSH2 for SFTP support.' : '').'</td></tr>';
