@@ -274,7 +274,7 @@ if ($upload_max_filesize<10) {
 };
 $post_max_size=intval(ini_get('post_max_size'));
 if ($post_max_size<=$upload_max_filesize) {
-	$settings[]='PHP\'s post_max_size size must be larger than PHP\'s upload_max_filesize ('.$upload_max_filesize.')';
+	$settings[]='PHP\'s post_max_size ('.$post_max_size.') size must be larger than PHP\'s upload_max_filesize ('.$upload_max_filesize.')';
 };
 $max_input_vars=ini_get('max_input_vars');
 if ($max_input_vars<5000) {
@@ -375,7 +375,7 @@ if (!empty($has_db)) {
 				$upload_max_filesize=(int)substr($upload_max_filesize, 0, -1)*1024*1024;
 			};
 			if (!empty($max_allowed_packet) && !empty($upload_max_filesize)) {
-				if ($max_allowed_packet<$upload_max_filesize) {
+				if ($max_allowed_packet/1e+6<$upload_max_filesize/1024/1024) {
 					$settings[]='MySQL\'s max_allowed_packet size ('.$max_allowed_packet.') must be at least as big as PHP\'s upload_max_filesize ('.$upload_max_filesize.')';
 				};
 			};
@@ -596,7 +596,7 @@ else {
 
 # Write Permissions
 
-if (is_writable($SFTP_PATH_WWW)) {
+if (@is_writable($SFTP_PATH_WWW)) {
 	echo '<tr><td class="failure">FAIL</td><td>Write Permissions</td><td>Apache can write to the document root. LiveWhale should be assigned an SFTP user with write permissions while Apache should run as a user without write permissions.</td></tr>';
 }
 else {
