@@ -423,7 +423,7 @@ else {
 # HTTP Access
 
 if (extension_loaded('curl')) {
-	$response=getUrl('http://'.$HTTP_HOST.'/livewhale-readiness-test/file.html', true, false, array(CURLOPT_ENCODING=>1, CURLOPT_HTTPHEADER=>array('Accept-Encoding: gzip,deflate')));
+	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/file.html', true, false, array(CURLOPT_ENCODING=>1, CURLOPT_HTTPHEADER=>array('Accept-Encoding: gzip,deflate')));
 	if (empty($GLOBALS['last_code']) || strpos($response, '<div id="foo"></div>')===false) {
 		echo '<tr><td class="failure">FAIL</td><td>HTTP Access</td><td>The web server is not able to make an HTTP request to itself at '.$HTTP_HOST.'.</td></tr>';
 	}
@@ -453,7 +453,7 @@ else {
 # Caching Headers (JS)
 
 if (!empty($has_http_access)) {
-	$response=getUrl('http://'.$HTTP_HOST.'/livewhale-readiness-test/file.js', true, false);
+	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/file.js', true, false);
 	if (!empty($GLOBALS['last_headers'])) {
 		$has_caching=false;
 		foreach($GLOBALS['last_headers'] as $val) {
@@ -484,7 +484,7 @@ else {
 # Caching Headers (CSS)
 
 if (!empty($has_http_access)) {
-	$response=getUrl('http://'.$HTTP_HOST.'/livewhale-readiness-test/file.css', true, false);
+	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/file.css', true, false);
 	if (!empty($GLOBALS['last_headers'])) {
 		$has_caching=false;
 		foreach($GLOBALS['last_headers'] as $val) {
@@ -515,7 +515,7 @@ else {
 # AllowOverride Enabled
 
 if (!empty($has_http_access)) {
-	$response=getUrl('http://'.$HTTP_HOST.'/livewhale-readiness-test/htaccess/index.html', true, false);
+	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/htaccess/index.html', true, false);
 	if (empty($GLOBALS['last_code']) || strpos($response, '<div id="error"></div>')===false) {
 		echo '<tr><td class="warning">WARNING</td><td>AllowOverride Enabled</td><td>The web server is not configured with AllowOverride All, so that per-dir .htaccess files can be utilized. (Integrated password protection and HTTP redirects support requires it.) If this setting is not to be expected, you should contact support@whitewhale.net for an alternate configuration setting which will allow installation to complete.</td></tr>';
 	}
@@ -530,7 +530,7 @@ else {
 # HTTPS/SSL Access
 
 if (!empty($has_http_access)) {
-	$response=getUrl('https://'.$HTTP_HOST.'/livewhale-readiness-test/file.html', true, false);
+	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/file.html', true, false);
 	if (empty($GLOBALS['last_code']) || strpos($response, '<div id="foo"></div>')===false) {
 		echo '<tr><td class="failure">FAIL</td><td>HTTPS/SSL Access</td><td>The web server is not able to make an HTTPS/SSL request to itself at '.$HTTP_HOST.'. This is strongly recommended for security reasons. If not enabled, LiveWhale will be configured in a sub-optimal security mode.</td></tr>';
 	}
