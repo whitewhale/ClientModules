@@ -485,7 +485,10 @@ if (!empty($res)) { // if there was a valid response
 									if (!isset($output[$current_field])) {
 										$output[$current_field]=array();
 									};
-									$output[$current_field][]=$_LW->setFormatClean($node->nodeValue);
+									$vals=explode("\n", $node->nodeValue);
+									foreach($vals as $val) {
+										$output[$current_field][]=$_LW->setFormatClean($val);
+									};
 								};
 								break;
 						};
