@@ -166,7 +166,7 @@ if (!empty($res)) { // if there was a valid response
 								break;
 						};
 					};
-					if (!empty($item['title']) && !empty($item['group_title']) && (empty($groups) || in_array($item['group_title'], $groups)) && (empty($buildings) || in_array($item['building_id'], $buildings)) && (empty($statuses) || in_array($item['status_id'], $statuses)) && (empty($event_types) || in_array($item['event_type_id'], $event_types)) && (empty($group_types) || in_array($item['group_type_id'], $group_types))) { // if each result is valid
+					if (!empty($item['title']) && !empty($item['group_title']) && (empty($groups) || in_array($item['group_title'], $groups) || in_array($item['group_title'],$_LW->REGISTERED_APPS['ems']['custom']['groups_map'])) && (empty($buildings) || in_array($item['building_id'], $buildings)) && (empty($statuses) || in_array($item['status_id'], $statuses)) && (empty($event_types) || in_array($item['event_type_id'], $event_types)) && (empty($group_types) || in_array($item['group_type_id'], $group_types))) { // if each result is valid
 						if (!empty($item['location']) && !empty($item['room'])) { // merge room into location
 							$item['location'].=', '.$item['room'];
 						};
