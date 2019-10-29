@@ -6,6 +6,7 @@ $_LW->REGISTERED_APPS['lockout']=array(
 	'custom'=>array(
 		'is_enabled'=>false, // toggle this lockout on/off
 		'other_ips'=>array(), // add any manually whitelisted IPs that can access the site
+		'other_ips_ranges'=>array(), // add arrays of start and end IPs for whitelisting by range
 		'relocate_unknown_users'=>true, // set to true to redirect authenticated users with no LiveWhale user to the homepage
 		'allowable_urls'=>array('/index.php') // relative paths to urls that should uniquely not trigger a login prompt
 	)
@@ -69,16 +70,31 @@ if (empty($ips)) { // if no cached IPs
 			$ips[]=$ip;
 		};
 	};
-	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['other_ips'])) { // add any explicitly whitelisted IPs
-		foreach($_LW->REGISTERED_APPS['lockout']['custom']['other_ips'] as $ip) {
-			if (!in_array($ip, $ips)) {
-				$ips[]=$ip;
+	$_LW->setVariable('lockout_ips', $ips, 86400); // cache localhost IPs
+};
+if (!empty($ips) && is_array($ips) && in_array($ip, $ips)) { // return true for matches on any automatically whitelisted individual IPs
+	return true;
+};
+if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['other_ips'])) { // return true for any matches on manually whitelisted individual IPs
+	foreach($_LW->REGISTERED_APPS['lockout']['custom']['other_ips'] as $other_ip) {
+		if ($other_ip==$ip) {
+			return true;
+		};
+	};
+};
+if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['other_ips_ranges'])) { // return true for any matches on manually whitelisted IP ranges
+	foreach($_LW->REGISTERED_APPS['lockout']['custom']['other_ips_ranges'] as $other_ip_range) {
+		if (!empty($other_ip_range) && is_array($other_ip_range) && sizeof($other_ip_range)===2) {
+			$low_ip=ip2long($other_ip_range[0]);
+			$high_ip=ip2long($other_ip_range[1]);
+			$ip=ip2long($ip);
+			if ($ip<=$high_ip && $low_ip<=$ip) {
+				return true;
 			};
 		};
 	};
-	$_LW->setVariable('lockout_ips', $ips, 86400); // cache localhost IPs
 };
-return ((is_array($ips) && in_array($ip, $ips))? true : false); // return true if IP is among localhost IPs
+return false; // default to non-local IP
 }
 
 }
