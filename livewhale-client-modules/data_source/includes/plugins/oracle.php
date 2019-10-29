@@ -129,7 +129,7 @@ if (isset($this->tables[$source['name']][$args['table']])) {
 		$args['sort_field']=implode(',', $args['sort_field']);
 		$order_by=$args['sort_field'];
 	};
-	if ($res=@oci_parse($source['handle'], 'SELECT * FROM '.$args['table'].(!empty($where) ? ' WHERE '.implode(' AND ', $where) : '').(!empty($order_by) ? ' ORDER BY '.$order_by : '').' FETCH FIRST '.(int)$args['max'].' ROWS ONLY')) { // fetch results
+	if ($res=@oci_parse($source['handle'], str_replace('&amp;', '&', 'SELECT * FROM '.$args['table'].(!empty($where) ? ' WHERE '.implode(' AND ', $where) : '').(!empty($order_by) ? ' ORDER BY '.$order_by : '').' FETCH FIRST '.(int)$args['max'].' ROWS ONLY'))) { // fetch results
 		@oci_execute($res);
 		while ($res2=@oci_fetch_array($res, OCI_ASSOC+OCI_RETURN_NULLS)) {
 			$res2=$_LW->utf8Encode($res2); // enforce utf8
