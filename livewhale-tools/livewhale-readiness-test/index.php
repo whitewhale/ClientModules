@@ -399,12 +399,12 @@ if (!empty($has_db)) {
 			};
 		};
 	};
-	if ($res=$db->query('SHOW VARIABLES LIKE "ft_min_word_len";')) {
+	if ($res=$db->query('SHOW VARIABLES LIKE "innodb_ft_min_token_size";')) {
 		if ($res->num_rows) {
 			$res2=$res->fetch_assoc();
 			$res->close();
 			if ($res2['Value']>3) {
-				$settings[]='The value of ft_min_word_len ('.$res2['Value'].') is too high. A value of 3 is recommended.';
+				$settings[]='The value of innodb_ft_min_token_size ('.$res2['Value'].') is too high. A value of 3 is recommended.';
 			};
 		};
 	};
