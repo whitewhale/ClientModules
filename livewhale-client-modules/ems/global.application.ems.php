@@ -245,9 +245,11 @@ if ($page=='groups_edit' || $page=='events_subscriptions_edit') { // add CSS for
 
 public function onSaveSuccess($type, $id) { // after saving any type
 global $_LW;
-if ($type=='groups') { // if saving a group
-	if ($this->initEMS()) { // if EMS loaded
-		$_LW->setCustomFields($type, $id, array('ems_group'=>@$_LW->_POST['ems_group']), array()); // store the value entered for ems_group
+if ($_LW->page=='groups_edit') { // if on the group editor page
+	if ($type=='groups') { // if saving a group
+		if ($this->initEMS()) { // if EMS loaded
+			$_LW->setCustomFields($type, $id, array('ems_group'=>@$_LW->_POST['ems_group']), array()); // store the value entered for ems_group
+		};
 	};
 };
 }
