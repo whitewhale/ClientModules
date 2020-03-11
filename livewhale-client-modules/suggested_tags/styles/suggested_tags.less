@@ -1,0 +1,32 @@
+#events_categories, #news_categories {
+	ul.manager.simple .lw-multisuggest .lw-suggestions li {
+		padding-left:10px;
+	}
+
+	ul.manager.simple h5 {
+	   float: none;
+	}
+
+	a.lw-showall {
+		font-size:0;
+		color:transparent;
+		display:block;
+		margin: 10px 0 0;
+	}
+
+	a.lw-showall:before,
+	a.lw-showall:after {
+		font-size:14px;
+		color:#333;
+	}
+
+	a.lw-showall:before {
+		content:'Choose from your global tags';
+		text-decoration:underline;
+	}
+
+	a.lw-showall:after {
+		content:' or create new ones.';
+		pointer-events: none;
+	}
+}
