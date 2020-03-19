@@ -91,8 +91,8 @@ catch (Exception $e) {
 }
 if (!empty($res)) { // if there was a valid response
 	if ($res2=$this->getResponse($call, $res)) { // if the response parses
+		$output=array();
 		if ($bookings=$res2->query('/Bookings/Data')) { // fetch and format results
-			$output=array();
 			foreach($bookings as $booking) {
 				if ($booking->hasChildNodes()) {
 					$item=array();
@@ -191,26 +191,16 @@ if (!empty($res)) { // if there was a valid response
 					};
 				};
 			};
-			$hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
-			if (sizeof($output)) { // if there were results
-				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems')) { // ensure EMS directory exists
-					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems');
-				};
-				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache')) { // ensure feed_cache directory exists
-					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache');
-				};
-				@file_put_contents($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash, serialize($output), LOCK_EX); // cache the results
-			}
-			else { // else if there were no results
-				if ($tmp=@file_get_contents($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash)) { // fall back on most recent cache if available (in case of EMS API failure)
-					if ($tmp=@unserialize($tmp)) {
-						$output=$tmp;
-					};
-					$_LW->logError('Failed to retrieve results from EMS ('.$_SERVER['REQUEST_URI'].'). Will fall back on: '.$_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash.' ('.(!empty($tmp) ? sizeof($tmp) : 0).')'); // record failure
-				};
-			};
-			return $output; // return all results
 		};
+		$hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
+		if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems')) { // ensure EMS directory exists
+			@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems');
+		};
+		if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache')) { // ensure feed_cache directory exists
+			@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache');
+		};
+		@file_put_contents($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash, serialize($output), LOCK_EX); // cache the results
+		return $output; // return all results
 	};
 };
 $hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
