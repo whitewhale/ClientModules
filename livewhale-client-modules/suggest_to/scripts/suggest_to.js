@@ -14,7 +14,7 @@
 
 		var $suggest = $('.group_suggest').bind('multisuggestchange', function(e) {
 			var selected = $suggest.multisuggest('getSelected'),
-					main_exists = (_.findIndex(selected, { id: group_id }) > -1);
+					main_exists = selected.filter(s => s.id == group_id).length > 0;
 
 			if (main_exists && !$share_checkbox.prop('checked')) {
 				$share_checkbox.prop('checked', true);
@@ -28,7 +28,7 @@
 
 			if ($(this).prop('checked')) {
 				selected = $suggest.multisuggest('getSelected');
-				main_exists = (_.findIndex(selected, { id: group_id }) > -1);
+				main_exists = selected.filter(s => s.id == group_id).length > 0;
 
 				if (!main_exists) {
 					$suggest.multisuggest('addItem', { id: group_id, title: group_name });
