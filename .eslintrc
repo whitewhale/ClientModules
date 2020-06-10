@@ -1,0 +1,19 @@
+{
+  extends: ["eslint:recommended"],
+  env: {
+    es6: true,
+    node: false,
+    browser: true
+  },
+  parserOptions: {
+    sourceType: "module"
+  },
+  globals: {
+    livewhale: "readonly",
+    $: "writeable",
+    _: "readonly"
+  },
+  rules: {
+    semi: ["error", "always"]
+  }
+}
