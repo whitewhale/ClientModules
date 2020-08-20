@@ -84,13 +84,17 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 			};
 			if (!empty($ssh_auth)) {
 				if ($ssh_sftp=@ssh2_sftp($ssh)) {
+					$has_sftp_access=true;
 					if (@is_dir('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME)) {
-						if (@is_dir('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_WWW)) {
-							echo '<tr><td class="success">SUCCESS</td><td>SSH2/SFTP Access</td><td></td></tr>';
-							$has_sftp_access=true;
+						$SFTP_PATH_HOME_PARENT=dirname($SFTP_PATH_HOME);
+						@touch('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME_PARENT);
+						$is_writable=file_exists('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME_PARENT);
+						if (!empty($is_writable)) {
+							echo '<tr><td class="success">SUCCESS</td><td>SSH2/SFTP Access (HOME)</td><td></td></tr>';
+							@unlink('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_HOME_PARENT);
 						}
 						else {
-							echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access</td><td>Access successful, but cannot locate '.$SFTP_PATH_WWW.'.</td></tr>';
+							echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access (HOME)</td><td>Access successful, but cannot write to '.$SFTP_PATH_HOME_PARENT.' (for node module installation).</td></tr>';
 						};
 					}
 					else {
@@ -99,6 +103,13 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 				}
 				else {
 					echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access</td><td>Cannot obtain SFTP handle.</td></tr>';
+				};
+				if (@is_dir('ssh2.sftp://'.intval($ssh_sftp).$SFTP_PATH_WWW)) {
+					echo '<tr><td class="success">SUCCESS</td><td>SSH2/SFTP Access (WWW)</td><td></td></tr>';
+					
+				}
+				else {
+					echo '<tr><td class="failure">FAIL</td><td>SSH2/SFTP Access (WWW)</td><td>Access successful, but cannot locate '.$SFTP_PATH_WWW.'.</td></tr>';
 				};
 			}
 			else {
@@ -573,12 +584,14 @@ else {
 
 # mod_rewrite Installed
 
-$response=shell_exec('curl -I -L http://'.$HTTP_HOST.'/livewhale-readiness-test/mod_rewrite/');
-if (!empty($response) && strpos($response, 'google.com')!==false) {
+if (!function_exists('apache_get_modules')) {
+	echo '<tr><td class="warning">WARNING</td><td>mod_rewrite Installed</td><td>Cannot check for mod_rewrite support because Apache is not available.</td></tr>';
+}
+else if (in_array('mod_rewrite', apache_get_modules())) {
 	echo '<tr><td class="success">SUCCESS</td><td>mod_rewrite Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>mod_rewrite Installed</td><td>The Apache mod_rewrite extension is not installed or enabled. Please enable it for certain built-in LiveWhale services.</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>mod_rewrite Installed</td><td>The Apache mod_rewrite extension is not installed. Please enable it for certain built-in LiveWhale services.</td></tr>';
 };
 
 # Zend OPCache Installed/Compatible
