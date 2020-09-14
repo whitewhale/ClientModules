@@ -134,7 +134,8 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 			'X-LIVEWHALE-TIMEZONE'=>@$booking['timezone'],
 			'X-LIVEWHALE-CANCELED'=>@$booking['canceled'],
 			'X-LIVEWHALE-CONTACT-INFO'=>@$booking['contact_info'],
-			'X-EMS-STATUS-ID'=>@$booking['status_id']
+			'X-EMS-STATUS-ID'=>@$booking['status_id'],
+			'X-EMS-EVENT-TYPE-ID'=>@$booking['event_type_id']
 		);
 		if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
 			$arr['X-LIVEWHALE-SKIP-SYNC']=1;
