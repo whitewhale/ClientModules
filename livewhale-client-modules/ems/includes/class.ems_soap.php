@@ -101,6 +101,9 @@ if (!empty($res)) { // if there was a valid response
 							case 'BookingID':
 								$item['booking_id']=(int)$node->nodeValue;
 								break;
+							case 'ReservationID':
+								$item['reservation_id']=(int)$node->nodeValue;
+								break;
 							case 'EventName':
 								$item['title']=$_LW->setFormatClean($node->nodeValue);
 								break;
@@ -181,8 +184,8 @@ if (!empty($res)) { // if there was a valid response
 						if (!empty($item['room'])) {
 							unset($item['room']);
 						};
-						if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($item['booking_id'])) {
-							$item['udfs']=$this->getUDFs($username, $password, $item['booking_id'], -42);
+						if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($item['reservation_id'])) {
+							$item['udfs']=$this->getUDFs($username, $password, $item['reservation_id'], -42);
 						};
 						foreach($item as $key=>$val) { // sanitize result data
 							$item[$key]=$_LW->setFormatSanitize($val);
