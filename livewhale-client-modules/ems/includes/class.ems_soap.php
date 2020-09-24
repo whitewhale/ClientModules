@@ -478,11 +478,8 @@ if (!empty($res)) { // if there was a valid response
 											$output[$current_field][]=$_LW->setFormatClean($val);
 										}
 									}
-									else if (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && $current_field == $_LW->REGISTERED_APPS['ems']['custom']['udf_description']) { // save description as HTML
+									else { // save description and all others as HTML
 										$output[$current_field]=$_LW->setFormatClean(nl2br($node->nodeValue));
-									}
-									else { // save other as sanitized string
-										$output[$current_field]=$_LW->setFormatClean($node->nodeValue);
 									}
 								};
 								break;
