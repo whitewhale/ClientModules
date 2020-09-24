@@ -18,6 +18,8 @@ $_LW->REGISTERED_APPS['ems']=array(
 		'capath'=>'', // specify path to the server's certificate directory for additional certifications in the chain
 		'hidden_by_default'=>false, // default to importing live events
 		'enable_udfs'=>false, // set to true to capture UDFs on events
+		'udf_categories'=>'', // if capturing UDFs, set the name of the UDF cooresponding to categories that should be created/assigned to incoming EMS events
+		'udf_description'=>'', // if using UDFs as event description, set the name of the UDF cooresponding to description
 		'udf_tags'=>'' // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
 	)
 ); // configure this module
