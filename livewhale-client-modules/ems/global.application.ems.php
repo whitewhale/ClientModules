@@ -146,6 +146,12 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_tags']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_tags']])) { // if assigning UDF values as event tags
 			$arr['X-LIVEWHALE-TAGS']=implode('|', $booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_tags']]); // add them to output
 		};
+		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_categories']])) { // if assigning UDF values as event categories, implode array
+			$arr['categories']=implode('|', $booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_categories']]); // add them to output
+		};
+		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']])) { // if assigning UDF value as event description
+			$arr['description']=$booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']];
+		};
 		foreach($arr as $key=>$val) { // clear empty entries
 			if (empty($val)) {
 				unset($arr[$key]);
