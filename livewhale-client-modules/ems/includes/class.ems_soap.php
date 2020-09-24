@@ -472,7 +472,7 @@ if (!empty($res)) { // if there was a valid response
 								break;
 							case 'Value':
 								if (!empty($current_field)) {
-									if (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && $current_field == $_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) { // save categories as array
+									if ((!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && $current_field == $_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_tags']) && $current_field == $_LW->REGISTERED_APPS['ems']['custom']['udf_tags'])) { // save categories/tags as array
 										$vals=explode("\n", $node->nodeValue);
 										foreach($vals as $val) {
 											$output[$current_field][]=$_LW->setFormatClean($val);
