@@ -472,13 +472,18 @@ if (!empty($res)) { // if there was a valid response
 								break;
 							case 'Value':
 								if (!empty($current_field)) {
-									if (!isset($output[$current_field])) {
-										$output[$current_field]=array();
-									};
-									$vals=explode("\n", $node->nodeValue);
-									foreach($vals as $val) {
-										$output[$current_field][]=$_LW->setFormatClean($val);
-									};
+									if (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && $current_field == $_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) { // save categories as array
+										$vals=explode("\n", $node->nodeValue);
+										foreach($vals as $val) {
+											$output[$current_field][]=$_LW->setFormatClean($val);
+										}
+									}
+									else if (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && $current_field == $_LW->REGISTERED_APPS['ems']['custom']['udf_description']) { // save description as HTML
+										$output[$current_field]=$_LW->setFormatClean(nl2br($node->nodeValue));
+									}
+									else { // save other as sanitized string
+										$output[$current_field]=$_LW->setFormatClean($node->nodeValue);
+									}
 								};
 								break;
 						};
