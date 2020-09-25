@@ -482,7 +482,7 @@ if (!empty($res)) { // if there was a valid response
 										}
 									}
 									else { // save description and all others as HTML
-										$output[$current_field]=$_LW->setFormatClean(nl2br($node->nodeValue));
+										$output[$current_field]=nl2br($node->nodeValue);
 									}
 								};
 								break;
