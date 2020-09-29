@@ -23,31 +23,31 @@ if (!empty($_LW->is_private_request)) { // if on backend
 }
 else { // else if on frontend
 	switch(true) {
-		case empty($_LW->REGISTERED_APPS['lockout']['custom']['is_enabled']): // if lockout is toggled off
+		case (empty($_LW->REGISTERED_APPS['lockout']['custom']['is_enabled'])): // if lockout is toggled off
 			return true;
 			break;
-		case strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/')!==false: // allow LiveURL requests
+		case (strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/')!==false): // allow LiveURL requests
 			return true;
 			break;
-		case strpos($_SERVER['REQUEST_URI'], '/livewhale/')!==false: // allow /livewhale requests
+		case (strpos($_SERVER['REQUEST_URI'], '/livewhale/')!==false): // allow /livewhale requests
 			return true;
 			break;
-		case strpos(@$_SERVER['HTTP_USER_AGENT'], 'LiveWhale')!==false: // allow internal LiveWhale requests
+		case (strpos(@$_SERVER['HTTP_USER_AGENT'], 'LiveWhale')!==false): // allow internal LiveWhale requests
 			return true;
 			break;
-		case strpos(@$_SERVER['HTTP_USER_AGENT'], 'White Whale')!==false: // allow White Whale monitor requests
+		case (strpos(@$_SERVER['HTTP_USER_AGENT'], 'White Whale')!==false): // allow White Whale monitor requests
 			return true;
 			break;
-		case in_array($_LW->page, $_LW->REGISTERED_APPS['lockout']['custom']['allowable_urls']): // allow allowable_urls
+		case (in_array($_LW->page, $_LW->REGISTERED_APPS['lockout']['custom']['allowable_urls'])): // allow allowable_urls
 			return true;
 			break;
-		case $this->isLocalIP($_SERVER['REMOTE_ADDR']): // allow requests from localhost or White Whale servers
+		case (!empty($_SERVER['REMOTE_ADDR']) && $this->isLocalIP($_SERVER['REMOTE_ADDR'])): // allow requests from localhost or White Whale servers
 			return true;
 			break;
-		case $_LW->isLiveWhaleUser(): // allow requests from logged-in users
+		case ($_LW->isLiveWhaleUser()): // allow requests from logged-in users
 			return true;
 			break;
-		case !empty($_LW->_GET['lw_accessibility_check']): // allow accessibility checks
+		case (!empty($_LW->_GET['lw_accessibility_check'])): // allow accessibility checks
 			return true;
 			break;
 	};
