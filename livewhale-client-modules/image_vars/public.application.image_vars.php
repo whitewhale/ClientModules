@@ -26,6 +26,7 @@ if (!empty($_LW->widget['format']) && strpos($_LW->widget['format'], 'image_')!=
 					$image_is_decoration=$image_data[7];
 					$image_src=$_LW->getImage($image_data[0], $image_data[1], $image_data[2], $_LW->widget['args']['thumb_width'], $_LW->widget['args']['thumb_height'], ((isset($_LW->widget['args']['thumb_crop']) && (string)$_LW->widget['args']['thumb_crop']=='false') ? false : ((!empty($image_data[3]) && !empty($_LW->widget['args']['thumb_width']) && !empty($_LW->widget['args']['thumb_height'])) ? $image_data[3] : false)), $image_data[4], false, false, ((isset($_LW->widget['args']['ignore_cropper']) && $_LW->widget['args']['ignore_cropper']=='true') ? true : false));
 					$vars['image_'.$image_key]='<img src="'.$image_src.'" alt="'.(empty($image_is_decoration) ? $_LW->setFormatAltText($image_caption) : '').'" class="lw_image"'.(!empty($_LW->widget['args']['thumb_width']) ? ' width="'.$_LW->widget['args']['thumb_width'].'"' : '').(!empty($_LW->widget['args']['thumb_height']) ? ' height="'.$_LW->widget['args']['thumb_height'].'"' : '').'/>'; // create image tag
+					$vars['image_'.$image_key.'_src']=$image_src; // create image src
 				};
 			};
 		};
