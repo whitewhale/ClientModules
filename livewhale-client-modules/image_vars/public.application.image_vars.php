@@ -13,7 +13,7 @@ public function onWidgetFormat($module, $handler, $vars) { // post-processes wid
 global $_LW;
 if (!empty($_LW->widget['format']) && strpos($_LW->widget['format'], 'image_')!==false) { // if there may be image vars
 	$matches=[];
-	preg_match_all('~{image_([0-9]+?)}~', $_LW->widget['format'], $matches);
+	preg_match_all('~{image_([0-9]+)(?:_src)*}~', $_LW->widget['format'], $matches);
 	if (!empty($matches[1])) {
 		if ($table=$_LW->getTableForDataType($module)) {
 			foreach($_LW->dbo->query('select', 'CONCAT(livewhale_images.gid,"<,>",livewhale_images.filename,"<,>",livewhale_images.extension,"<,>",IF(livewhale_images2any.thumb_crop IS NULL,"",livewhale_images2any.thumb_crop),"<,>",IF(livewhale_images2any.thumb_src_region IS NULL,"",livewhale_images2any.thumb_src_region),"<,>",IF(livewhale_images2any.caption IS NULL,"",livewhale_images2any.caption),"<,>",IF(livewhale_images.credit IS NULL,"",livewhale_images.credit),"<,>",IF(livewhale_images2any.is_decoration IS NULL,"",livewhale_images2any.is_decoration)) AS image', $table, $table.'.id='.(int)$vars['id'], 'livewhale_images2any.position ASC')
