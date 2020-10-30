@@ -50,6 +50,9 @@ else { // else if on frontend
 		case (!empty($_LW->_GET['lw_accessibility_check'])): // allow accessibility checks
 			return true;
 			break;
+		case (!empty($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'Chrome-Lighthouse')!==false): // allow Google Lighthouse
+			return true;
+			break;
 	};
 	die(header('Location: /livewhale/?login&url='.rawurlencode($_SERVER['REQUEST_URI']))); // else redirect to login
 };
