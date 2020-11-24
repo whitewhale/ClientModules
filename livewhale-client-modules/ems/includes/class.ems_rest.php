@@ -42,7 +42,7 @@ return false;
 
 public function getResponse($endpoint, $params=false, $payload=false) { // gets the response from EMS
 global $_LW;
-$response=@shell_exec('curl -m 15'.(!empty($payload) ? ' --data '.escapeshellarg(@json_encode($payload)).' -H "Content-Type: application/json"' : '').' -H '.escapeshellarg('x-ems-api-token: '.$this->token).' '.escapeshellarg($_LW->REGISTERED_APPS['ems']['custom']['rest'].$endpoint.(!empty($params) ? '?'.http_build_query($params) : ''))); // request response
+$response=@shell_exec('curl -m 15'.(!empty($payload) ? ' --request POST --data '.escapeshellarg(@json_encode($payload)).' -H "Content-Type: application/json"' : '').' -H '.escapeshellarg('x-ems-api-token: '.$this->token).' '.escapeshellarg($_LW->REGISTERED_APPS['ems']['custom']['rest'].$endpoint.(!empty($params) ? '?'.http_build_query($params) : ''))); // request response
 if (!empty($response)) { // fetch the result
 	if (@$response=@json_decode($response, true)) {
 		if (!empty($response['errorCode'])) {
@@ -174,6 +174,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							break;
 						case 'reservation':
 							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
+								$booking['reservation_id']=$val['id'];
 								if ($reservation=$this->getReservationByID($val['id'], $val['webUserId'].'-'.$val['contactName'])) {
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 										$booking['contact_info']=$reservation['contact']['name'].' (<a href="mailto:'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'">'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'</a>)';
@@ -190,6 +191,9 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 				};
 				if (!empty($booking['room'])) {
 					unset($booking['room']);
+				};
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['reservation_id'])) {
+					$booking['udfs']=$this->getUDFs($username, $password, $booking['reservation_id'], -42);
 				};
 				foreach($booking as $key=>$val) { // sanitize result data
 					if (!is_array($val)) {
@@ -404,6 +408,33 @@ if (empty($reservation)) { // if cached reservation not available
 	$map[$id]=$reservation; // static cache the reservation
 };
 return $reservation;
+}
+
+public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs for a booking
+global $_LW;
+$output=array();
+$payload=array('reservationIds'=>array($parent_id), 'parentType'=>$parent_type);
+$params=array('pageSize'=>2000);
+if ($response=$this->getResponse('/reservations/actions/search/userdefinedfields', $params, $payload)) { // get the response
+	if (!empty($response['results'])) { // fetch and format results
+		foreach($response['results'] as $udf) {
+			if (!empty($udf)) { // sanitize result data
+				if (!empty($udf['definition']['description'])) {
+					if ((!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && $udf['definition']['description'] == $_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_tags']) &&  $udf['definition']['description'] == $_LW->REGISTERED_APPS['ems']['custom']['udf_tags'])) { // save categories/tags as array
+						$vals=explode("\n", $udf['value']);
+						foreach($vals as $val) {
+							$output[$udf['definition']['description']][]=$_LW->setFormatClean($val);
+						};
+					}
+					else { // save description and all others as HTML
+						$output[$udf['definition']['description']]=nl2br($udf['value']);
+					};
+				};
+			};
+		};
+	};
+};
+return $output;
 }
 
 }
