@@ -15,9 +15,9 @@ if ($type=='events') { // if this is an RSVP form for an event
 	$has_free_appointment_slots=false;
     if ($rows=$this->getAppointmentsForEvent($id)) { // get appointment slots associated with this event
 		$has_appointments=true;
-	    $str = '<div id="appointments" style="display: none;">'
+	    $str = '<div id="appointmentsE">' //style="display: none;"
              . '<h5>Available Appointments</h5>'
-             . '<div id="appointment_select">';
+             . '<div id="appointment_selectE">';
  		usort($rows, function($a, $b){
 		if ((strtotime($a['title']) !== false) && (strtotime($b['title']) !== false)) { // sort by time, if they're times
 			$a = strtotime($a['title']);
@@ -28,15 +28,32 @@ if ($type=='events') { // if this is an RSVP form for an event
 		}
 		return $a==$b ? 0 : ($a<$b) ? -1 : 1;
 		});
-        foreach($rows as $row) {
+       /* foreach($rows as $row) {
             $str .= '<span data-time="' . $row['title'] . '" data-filled="'.$row['is_filled'].'"></span>';
 			if (empty($row['is_filled'])) { // flag as having a free slot if one encountered
 				$has_free_appointment_slots=true;
 			};
+        }*/
+		
+        foreach($rows as $row) {
+			$cls = $row['is_filled'] ? 'text-lt':'';
+			
+			$uid = 'slot_'.substr(hash("md5",$row['title'] ),0,12);
+            $str .= '<div class="'.$cls.'">
+				<label for="'.$uid.'">
+					<input type="radio"  name="appointments[]" id="'.$uid.'" value="' . $row['title'] . '" '.($row['is_filled']?'disabled="disabled"':'').' > 
+				' . $row['title']. '  </label>
+				</div>';
+            //$str .= '<input type=checkbox name="appointmentsE[]" value="' . $row['title'] . '" '.($row['is_filled']?'disabled="disabled':'').'> ' . $row['title'] . ' <br>';
+			if (empty($row['is_filled'])) { // flag as having a free slot if one encountered
+				$has_free_appointment_slots=true;
+			};
         }
+		
         $str .= '</div>'
               . '</div>
-                 <script type="text/javascript" src="//'.$_LW->CONFIG['HTTP_HOST'].$_LW->CONFIG['LIVE_URL'].'/resource/js/%5Clivewhale%5Cscripts%5Clwui%5Cjquery.lw-multiselect.min.js/appointments%5Ccalendar.js"></script>';
+			  <style>.text-lt { color: #777}</style>
+         ';//'        <script type="text/javascript" src="//'.$_LW->CONFIG['HTTP_HOST'].$_LW->CONFIG['LIVE_URL'].'/resource/js/%5Clivewhale%5Cscripts%5Clwui%5Cjquery.lw-multiselect.js/appointments%5Ccalendar.js"></script>';
         // $str .= '</div>'
         //       . '</div>
         //          <script type="text/javascript" src="//'.$_LW->CONFIG['HTTP_HOST'].$_LW->CONFIG['LIVE_URL'].'/resource/js/livewhale/scripts/lwui/jquery.lw-multiselect.min.js"></script>
