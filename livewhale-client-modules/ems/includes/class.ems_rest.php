@@ -194,8 +194,8 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 				if (!empty($booking['room'])) {
 					unset($booking['room']);
 				};
-				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['reservation_id'])) {
-					$booking['udfs']=$this->getUDFs($username, $password, $booking['reservation_id'], -42);
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['id'])) {
+					$booking['udfs']=$this->getUDFs($username, $password, $booking['id'], -42);
 				};
 				foreach($booking as $key=>$val) { // sanitize result data
 					if (!is_array($val)) {
@@ -415,9 +415,8 @@ return $reservation;
 public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs for a booking
 global $_LW;
 $output=array();
-$payload=array('reservationIds'=>array($parent_id), 'parentType'=>$parent_type);
 $params=array('pageSize'=>2000);
-if ($response=$this->getResponse('/reservations/actions/search/userdefinedfields', $params, $payload)) { // get the response
+if ($response=$this->getResponse('/bookings/'.(int)$parent_id.'/userdefinedfields', $params)) { // get the response
 	if (!empty($response['results'])) { // fetch and format results
 		foreach($response['results'] as $udf) {
 			if (!empty($udf)) { // sanitize result data
