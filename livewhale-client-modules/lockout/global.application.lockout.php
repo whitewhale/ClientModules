@@ -1,16 +1,18 @@
 <?php
 
-$_LW->REGISTERED_APPS['lockout']=array(
+$_LW->REGISTERED_APPS['lockout']=[
 	'title'=>'Lockout',
-	'handlers'=>array('onLoad'),
-	'custom'=>array(
+	'handlers'=>['onLoad'],
+	'custom'=>[
 		'is_enabled'=>false, // toggle this lockout on/off
-		'other_ips'=>array(), // add any manually whitelisted IPs that can access the site
-		'other_ips_ranges'=>array(), // add arrays of start and end IPs for whitelisting by range
+		'is_backend_only'=>false, // set to true if the lockout impacts backend access only
+		'other_ips'=>[], // add any manually whitelisted IPs that can access the site
+		'other_ips_ranges'=>[], // add arrays of start and end IPs for whitelisting by range
 		'relocate_unknown_users'=>true, // set to true to redirect authenticated users with no LiveWhale user to the homepage
-		'allowable_urls'=>array('/index.php') // relative paths to urls that should uniquely not trigger a login prompt
-	)
-);
+		'allowable_urls'=>['/index.php'], // relative paths to urls that should uniquely not trigger a login prompt
+		'approved_editors'=>[] // if this array contains usernames, then only users matching those usernames will be able to access the backend interfaces
+	]
+];
 
 class LiveWhaleApplicationLockout {
 
@@ -20,16 +22,31 @@ if (!empty($_LW->is_private_request)) { // if on backend
 	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['relocate_unknown_users']) && $_LW->page=='login_unknown_user') { // relocate unknown users if configured (i.e. redirect SSO-only users to the homepage)
 		die(header('Location: /'));
 	};
+	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if backend request and there are approved_editors
+		if ($_LW->isLiveWhaleUser() || $_LW->isSSOAuthOnlyUser()) { // if there is an active login
+			if (!in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if user is a non-approved editor
+				die(header('Location: /')); // redirect to frontend
+			};
+		};
+	};
 }
 else { // else if on frontend
 	switch(true) {
 		case (empty($_LW->REGISTERED_APPS['lockout']['custom']['is_enabled'])): // if lockout is toggled off
 			return true;
 			break;
+		case (!empty($_LW->REGISTERED_APPS['lockout']['custom']['is_backend_only'])): // if backend access restricted only
+			return true;
+			break;
 		case (strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/')!==false): // allow LiveURL requests
 			return true;
 			break;
 		case (strpos($_SERVER['REQUEST_URI'], '/livewhale/')!==false): // allow /livewhale requests
+			if (!empty($_LW->is_private_request) && !empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if backend request and there are approved_editors
+				if (($_LW->isLiveWhaleUser() || $_LW->isSSOAuthOnlyUser()) && !in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if there is an active login by a non-approved editor
+					die(header('Location: /')); // redirect to homepage
+				};
+			};
 			return true;
 			break;
 		case (strpos(@$_SERVER['HTTP_USER_AGENT'], 'LiveWhale')!==false): // allow internal LiveWhale requests
@@ -44,7 +61,14 @@ else { // else if on frontend
 		case (!empty($_SERVER['REMOTE_ADDR']) && $this->isLocalIP($_SERVER['REMOTE_ADDR'])): // allow requests from localhost or White Whale servers
 			return true;
 			break;
-		case ($_LW->isLiveWhaleUser()): // allow requests from logged-in users
+		case ($_LW->isLiveWhaleUser() || $_LW->isSSOAuthOnlyUser()): // allow requests from authenticated users
+			if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if front-end request and there are approved_editors
+				if (!empty($_SESSION['livewhale']['manage']['toolbar'])) { // if there is a toolbar
+					if (!in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if there is an active login by a non-approved editor
+						unset($_SESSION['livewhale']['manage']['toolbar']); // remove toolbar for non-approved editor
+					};
+				};
+			};
 			return true;
 			break;
 		case (!empty($_LW->_GET['lw_accessibility_check'])): // allow accessibility checks
@@ -62,7 +86,7 @@ protected function isLocalIP($ip) { // checks if an IP points to the localhost
 global $_LW;
 $ips=$_LW->getVariable('lockout_ips'); // get cached IPs for the localhost
 if (empty($ips)) { // if no cached IPs
-	$ips=array('172.0.0.1', '::1'); // set base IPs
+	$ips=['172.0.0.1', '::1']; // set base IPs
 	if ($ip=shell_exec('dig +short '.preg_replace('~[^a-zA-Z0-9\-_\.]~', '', $_LW->CONFIG['HTTP_HOST']).' A')) { // add public A record IP
 		if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
 			$ips[]=$ip;
