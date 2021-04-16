@@ -47,10 +47,9 @@ else { // else if on frontend
 					if (!empty($_SESSION['livewhale']['manage']['toolbar'])) { // if there is a toolbar
 						unset($_SESSION['livewhale']['manage']['toolbar']); // remove toolbar for non-approved editor
 					};
-					return true;
 				};
+				return true;
 			};
-			return true;
 			break;
 		case (strpos(@$_SERVER['HTTP_USER_AGENT'], 'LiveWhale')!==false): // allow internal LiveWhale requests
 			return true;
