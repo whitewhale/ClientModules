@@ -42,9 +42,12 @@ else { // else if on frontend
 			return true;
 			break;
 		case (strpos($_SERVER['REQUEST_URI'], '/livewhale/')!==false): // allow /livewhale requests
-			if (!empty($_LW->is_private_request) && !empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if backend request and there are approved_editors
-				if (($_LW->isLiveWhaleUser() || $_LW->isSSOAuthOnlyUser()) && !in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if there is an active login by a non-approved editor
-					die(header('Location: /')); // redirect to homepage
+			if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if front-end request and there are approved_editors
+				if (!in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if there is an active login by a non-approved editor
+					if (!empty($_SESSION['livewhale']['manage']['toolbar'])) { // if there is a toolbar
+						unset($_SESSION['livewhale']['manage']['toolbar']); // remove toolbar for non-approved editor
+					};
+					return true;
 				};
 			};
 			return true;
