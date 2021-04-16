@@ -19,6 +19,9 @@ class LiveWhaleApplicationLockout {
 public function onLoad() { // on application load
 global $_LW;
 if (!empty($_LW->is_private_request)) { // if on backend
+	if (empty($_LW->REGISTERED_APPS['lockout']['custom']['is_enabled'])) { // allow if lockout is toggled off
+		return true;
+	};
 	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['relocate_unknown_users']) && $_LW->page=='login_unknown_user') { // relocate unknown users if configured (i.e. redirect SSO-only users to the homepage)
 		die(header('Location: /'));
 	};
