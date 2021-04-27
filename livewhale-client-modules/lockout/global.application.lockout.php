@@ -53,7 +53,6 @@ else { // else if on frontend
 				};
 				return true;
 			};
-			break;
 		case (strpos(@$_SERVER['HTTP_USER_AGENT'], 'LiveWhale')!==false): // allow internal LiveWhale requests
 			return true;
 			break;
