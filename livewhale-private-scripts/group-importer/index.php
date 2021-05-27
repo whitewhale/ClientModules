@@ -19,24 +19,28 @@ if ($file=fopen('./groups.csv', 'r')) {
 	$count=0;
 	while (($item=fgetcsv($file, 0, ',', '"'))!==false) {
 		if (!empty($item) && !empty($count)) {
-			if (sizeof($item)!=2) {
-				die('Row found that is not 2 fields long: '.var_export($item, true));
+			if (sizeof($item)!=4) {
+				die('Row found that is not 4 fields long: '.var_export($item, true));
 			};
-			if (empty($item[0]) || empty($item[1])) {
+			if (empty($item[0])) {
 				die('Row found with incomplete data: '.var_export($item, true));
 			};
 			foreach($item as $key=>$val) {
-				if ($val[0]=='/') {
-					$val=substr($val, 1);
-				};
-				if (substr($val, -1, 1)=='/') {
-					$val=substr($val, 0, -1);
+				if ($key===2) {
+					if ($val[0]=='/') {
+						$val=substr($val, 1);
+					};
+					if (substr($val, -1, 1)=='/') {
+						$val=substr($val, 0, -1);
+					};
 				};
 				$item[$key]=$_LW->setFormatSanitize(trim($val));
 			};
 			$tmp=array();
 			$tmp['fullname']=$item[0];
-			$tmp['directory']=$item[1];
+			$tmp['fullname_public']=$item[1];
+			$tmp['directory']=$item[2];
+			$tmp['template_path']=$item[3];
 			$items[]=$tmp;
 		};
 		$count++;
@@ -53,7 +57,9 @@ if (!empty($items)) {
 		if (!empty($_LW->_GET['run'])) {
 			if ($id=$_LW->create('groups', array(
 				'fullname'=>$item['fullname'],
-				'directory'=>$item['directory']
+				'fullname_public'=>$item['fullname_public'],
+				'directory'=>$item['directory'],
+				'template_path'=>$item['template_path']
 			))) {
 				echo 'Created group '.$id.'<br/>';
 			}
