@@ -553,6 +553,26 @@ else {
 	echo '<tr><td class="failure">FAIL</td><td>HTTPS/SSL Access</td><td>Cannot perform check, HTTP access not available.</td></tr>';
 };
 
+# Node Installed
+
+$response=shell_exec('whereis node');
+if (!empty($response) && strpos($response, 'node:')===0 && trim($response)!='node:') {
+	echo '<tr><td class="success">SUCCESS</td><td>Node Installed</td><td></td></tr>';
+	if ($node_version=shell_exec('node -v')) { // check that node is >= 10.x
+		$matches=[];
+		preg_match('~([0-9]+?\.[0-9]+?\.[0-9]+?)~', $node_version, $matches);
+		if (!empty($matches[1])) {
+			$node_version=$matches[1];
+			if (version_compare($node_version, '10.0', '<')) {
+				echo '<tr><td class="warning">WARNING</td><td>Node Installed</td><td>Command line "node" is installed. However, the installed node version on this server is '.$node_version.'. Version 10.0+ is required for full compatibility.</td></tr>';
+			};
+		};
+	};
+}
+else {
+	echo '<tr><td class="warning">WARNING</td><td>Node Installed</td><td>Command line "node" not installed. Node modules are used by the CMS to enable support for compilation (LESS, SASS, ES6, achecker, etc.) as well as for minifying resources and accessibility checking. Installing "node" along with "npm" and "npx" for these features is strongly recommended.</td></tr>';
+};
+
 # NPM Installed
 
 $response=shell_exec('whereis npm');
@@ -560,7 +580,7 @@ if (!empty($response) && strpos($response, 'npm:')===0 && trim($response)!='npm:
 	echo '<tr><td class="success">SUCCESS</td><td>NPM Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>NPM Installed</td><td>Command line "npm" not installed. Node modules are used by the CMS to enable support for compilation (LESS, SASS, ES6, etc.) as well as for minifying resources. Installing "npm" and "npx" for these features is strongly recommended.</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>NPM Installed</td><td>Command line "npm" not installed. Node modules are used by the CMS to enable support for compilation (LESS, SASS, ES6, achecker, etc.) as well as for minifying resources and accessibility checking. Installing "node" along with "npm" and "npx" for these features is strongly recommended.</td></tr>';
 };
 
 # NPX Installed
@@ -570,7 +590,7 @@ if (!empty($response) && strpos($response, 'npx:')===0 && trim($response)!='npx:
 	echo '<tr><td class="success">SUCCESS</td><td>NPX Installed</td><td></td></tr>';
 }
 else {
-	echo '<tr><td class="warning">WARNING</td><td>NPX Installed</td><td>Command line "npx" not installed. Node modules are used by the CMS to enable support for compilation (LESS, SASS, ES6, etc.) as well as for minifying resources. Installing "npm" and "npx" for these features is strongly recommended.</td></tr>';
+	echo '<tr><td class="warning">WARNING</td><td>NPX Installed</td><td>Command line "npx" not installed. Node modules are used by the CMS to enable support for compilation (LESS, SASS, ES6, achecker, etc.) as well as for minifying resources and accessibility checking. Installing "node" along with "npm" and "npx" for these features is strongly recommended.</td></tr>';
 };
 
 # LDAP Installed
