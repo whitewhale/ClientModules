@@ -10,7 +10,7 @@ $_LW->REGISTERED_APPS['ems']=array(
 		'rest'=>'', // url to EMS REST (i.e. https://####/EmsPlatform/api/v1)
 		'username'=>'', // EMS username
 		'password'=>'', // EMS password
-		'event_types_map'=>array(), // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type'
+		'event_types_map'=>array(), // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type' (or an array of LiveWhale Event Types)
 		'default_statuses'=>array(), // default statuses (if none specified)
 		'default_group_types'=>array(), // default group types (if none specified)
 		'default_event_types'=>array(), // default event types (if none specified)
@@ -193,9 +193,21 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 								};
 							};
 							if (!empty($val2_id) && isset($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id])) { // if the EMS event type was found in map
-								$new_category=$_LW->setFormatClean($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id]); // format the translated category
-								if (in_array($new_category, $event_types)) { // if the translated category is a known LiveWhale event type
-									$buffer['items']['default'][$key]['categories'][$key2]=array_search($new_category, $event_types); // translate the EMS event type to the corresponding LiveWhale event type
+								$new_categories=$_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id];
+								if (!is_array($new_categories)) {
+									$new_categories=[$new_categories];
+								};
+								foreach($new_categories as $val3) { // format the translated categories
+									$val3=$_LW->setFormatClean($val3);
+									if ($val3==='Open to the Public') {
+										$val3=' Open to the Public';
+									};
+									if (in_array($val3, $event_types)) { // if the translated category is a known LiveWhale event type
+										$val4=array_search($val3, $event_types); // translate the EMS event type to the corresponding LiveWhale event type ID
+										if (!in_array($val4, $buffer['items']['default'][$key]['categories'])) {
+											$buffer['items']['default'][$key]['categories'][]=$val4;
+										};
+									};
 								};
 							};
 						};
@@ -214,13 +226,23 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 								if (!is_array($buffer['items']['default'][$key]['categories'])) { // ensure that there is an array of known categories
 									$buffer['items']['default'][$key]['categories']=array();
 								};
-								$new_category=$_LW->setFormatClean($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id]); // format the translated category
-								if (in_array($new_category, $event_types)) { // if the translated category is a known LiveWhale event type
-									if (!in_array($new_category, $buffer['items']['default'][$key]['categories'])) { // add it as a known category if not already present
-										$buffer['items']['default'][$key]['categories'][]=array_search($new_category, $event_types);
-									};
-									unset($buffer['items']['default'][$key]['unknown_categories'][$key2]); // remove the unknown category
+								$new_categories=$_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id];
+								if (!is_array($new_categories)) {
+									$new_categories=[$new_categories];
 								};
+								foreach($new_categories as $val3) { // format the translated categories
+									$val3=$_LW->setFormatClean($val3);
+									if ($val3==='Open to the Public') {
+										$val3=' Open to the Public';
+									};
+									if (in_array($val3, $event_types)) { // if the translated category is a known LiveWhale event type
+										$val4=array_search($val3, $event_types); // translate the EMS event type to the corresponding LiveWhale event type ID
+										if (!in_array($val4, $buffer['items']['default'][$key]['categories'])) {
+											$buffer['items']['default'][$key]['categories'][]=$val4;
+										};
+									};
+								};
+								unset($buffer['items']['default'][$key]['unknown_categories'][$key2]); // remove the unknown category
 							};
 						};
 					};
