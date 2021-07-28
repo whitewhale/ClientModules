@@ -154,6 +154,12 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']])) { // if assigning UDF value as event description
 			$arr['description']=$booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']];
 		};
+		if (!empty($booking['contact_info'])) { // add contact info if available
+			$arr['X-EMS-CONTACT-INFO']=$booking['contact_info'];
+		};
+		if (!empty($booking['contact_name'])) { // add contact name if available
+			$arr['X-EMS-CONTACT-NAME']=$booking['contact_name'];
+		};
 		foreach($arr as $key=>$val) { // clear empty entries
 			if (empty($val)) {
 				unset($arr[$key]);

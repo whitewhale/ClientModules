@@ -176,6 +176,9 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							if (!empty($val['id'])) {
 								$booking['reservation_id']=$val['id'];
 							};
+							if (!empty($val['contactName'])) {
+								$booking['contact_name']=$val['contactName'];
+							};
 							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
 								if ($reservation=$this->getReservationByID($val['id'], $val['webUserId'].'-'.$val['contactName'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) {
