@@ -10,12 +10,20 @@ $_LW->REGISTERED_APPS['simplify_nav']=[ // configure this module
 	'title'=>'Simplify Nav',
 	'handlers'=>['onTransform'],
 	'custom'=>[
-		'enabled_ids'=>[],
-		'enabled_classes'=>['lw-simplify-nav'],
-		'add_classes'=>[
-			'/ul'=>['nav-module-content'],
-			'/ul/li'=>['nav-module-item'],
-			'/ul/li/ul'=>['nav-module-content-subnav']
+		'enabled_ids'=>[ // ID => optional array of classes to add by selector
+			123=>[
+				'/ul'=>['nav-module-content_1'],
+				'/ul/li'=>['nav-module-item_1'],
+				'/ul/li/ul'=>['nav-module-content-subnav_1']
+			]
+		],
+		'enabled_classes'=>[ // class => optional array of classes to add by selector
+			'lw-simplify-nav'=>[
+				'/ul'=>['nav-module-content_2'],
+				'/ul/li'=>['nav-module-item_2'],
+				'/ul/li/ul'=>['nav-module-content-subnav_2']
+			],
+			'lw-simplify-only'=>[] // example of simplification w/o classes added
 		]
 	]
 ];
@@ -25,19 +33,33 @@ class LiveWhaleApplicationSimplifyNav {
 public function onTransform($type, $xml) { // updates widget output to include custom classes on uls
 global $_LW;
 if (!empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids']) || !empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes'])) { // if simplify nav module is configured
-	foreach(['enabled_ids', 'enabled_classes'] as $key) { // ensure proper format of settings
-		if (!is_array($_LW->REGISTERED_APPS['simplify_nav']['custom'][$key])) {
-			$_LW->REGISTERED_APPS['simplify_nav']['custom'][$key]=[$_LW->REGISTERED_APPS['simplify_nav']['custom'][$key]];
+	$will_simplify=false;
+	$add_classes=[];
+	if (!empty($_LW->widget['widget_id']) && isset($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids'][$_LW->widget['widget_id']]) && is_array($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids'][$_LW->widget['widget_id']])) { // if the widget's ID is enabled
+		$will_simplify=true; // flag for simplification
+		if (!empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids'][$_LW->widget['widget_id']])) { // if there are any classes to add
+			foreach($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids'][$_LW->widget['widget_id']] as $selector=>$classes) {
+				if (!isset($add_classes[$selector])) {
+					$add_classes[$selector]=[];
+				};
+				$add_classes[$selector]=array_merge($add_classes[$selector], $classes); // record classes to add
+			};
 		};
 	};
-	$will_simplify=false;
-	switch(true) { // check if this nav will be simplified
-		case (!empty($_LW->widget['widget_id']) && !empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids']) && in_array($_LW->widget['widget_id'], $_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids'])):
-			$will_simplify=true;
-			break;
-		case (!empty($_LW->widget['args']['class']) && !empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes']) && sizeof(array_diff($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes'], (array)$_LW->widget['args']['class']))!=sizeof($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes'])):
-			$will_simplify=true;
-			break;
+	if (!empty($_LW->widget['args']['class'])) {
+		foreach((array)$_LW->widget['args']['class'] as $class) {
+			if (isset($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes'][$class])) { // if any of the widget's classes are enabled
+				$will_simplify=true; // flag for simplification
+				if (!empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes'][$class])) { // if there are any classes to add
+					foreach($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_classes'][$class] as $selector=>$classes) {
+						if (!isset($add_classes[$selector])) {
+							$add_classes[$selector]=[];
+						};
+						$add_classes[$selector]=array_merge($add_classes[$selector], $classes); // record classes to add
+					};
+				};
+			};
+		};
 	};
 	if (!empty($will_simplify)) { // if nav will be simplified
 		foreach(array_merge($xml->elements('//ul'), $xml->elements('//li')) as $node) { // filter ul and li classes
@@ -58,8 +80,8 @@ if (!empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['enabled_ids']) || !e
 			};
 		};
 		$xml->elements(0)->unwrap(); // remove wrapper
-		if (!empty($_LW->REGISTERED_APPS['simplify_nav']['custom']['add_classes'])) { // add custom classes
-			foreach($_LW->REGISTERED_APPS['simplify_nav']['custom']['add_classes'] as $selector=>$classes) {
+		if (!empty($add_classes)) { // add custom classes
+			foreach($add_classes as $selector=>$classes) {
 				if ($res=@$xml->elements($selector)) {
 					foreach($res as $res2) {
 						$existing_classes=($res2->hasAttribute('class') ? $res2->getAttribute('class') : '');

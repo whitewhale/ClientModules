@@ -176,6 +176,9 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							if (!empty($val['id'])) {
 								$booking['reservation_id']=$val['id'];
 							};
+							if (!empty($val['contactName'])) {
+								$booking['contact_name']=$val['contactName'];
+							};
 							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
 								if ($reservation=$this->getReservationByID($val['id'], $val['webUserId'].'-'.$val['contactName'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) {
@@ -187,7 +190,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 					};
 				};
 			};
-			if (!empty($booking['title']) && !empty($booking['group_title']) && (empty($group_id) || $booking['group_id']==$group_id) && (empty($groups) || in_array($booking['group_title'], $groups) || in_array($booking['group_title'],$_LW->REGISTERED_APPS['ems']['custom']['groups_map'])) && (empty($buildings) || in_array($booking['building_id'], $buildings)) && (empty($statuses) || in_array($booking['status_id'], $statuses)) && (empty($event_types) || in_array($booking['event_type_id'], $event_types))) { // if each result is valid
+			if (!empty($booking['title']) && !empty($booking['group_title']) && (empty($group_id) || $booking['group_id']==$group_id) && (empty($groups) || in_array($booking['group_title'], $groups) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && in_array($booking['group_title'], $_LW->REGISTERED_APPS['ems']['custom']['groups_map']))) && (empty($buildings) || in_array($booking['building_id'], $buildings)) && (empty($statuses) || in_array($booking['status_id'], $statuses)) && (empty($event_types) || in_array($booking['event_type_id'], $event_types))) { // if each result is valid
 				if (!empty($booking['location']) && !empty($booking['room'])) { // merge room into location
 					$booking['location'].=', '.$booking['room'];
 				};

@@ -10,7 +10,7 @@ $_LW->REGISTERED_APPS['ems']=array(
 		'rest'=>'', // url to EMS REST (i.e. https://####/EmsPlatform/api/v1)
 		'username'=>'', // EMS username
 		'password'=>'', // EMS password
-		'event_types_map'=>array(), // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type'
+		'event_types_map'=>array(), // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type' (or an array of LiveWhale Event Types)
 		'default_statuses'=>array(), // default statuses (if none specified)
 		'default_group_types'=>array(), // default group types (if none specified)
 		'default_event_types'=>array(), // default event types (if none specified)
@@ -78,24 +78,84 @@ return (isset($this->client) && $this->client!==false);
 
 public function debug() { // debug EMS connections, such as validating the login credentials after an install
 global $_LW;
-echo '<h2>Debugging EMS</h2><hr/>';
+echo '<h1>Debugging EMS</h1>';
 if ($this->initEMS()) { // if EMS loaded
-	$this->client->getStatuses($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS statuses
-	echo '<h3>Statuses:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($this->client->statuses, true).'</pre></div>'; // display the statuses
-	$this->client->getGroupTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS group types
-	echo '<h3>Group Types:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($this->client->group_types, true).'</pre></div>'; // display the group types
-	$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS groups
-	echo '<h3>Groups:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($this->client->groups, true).'</pre></div>'; // display the groups
-	$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS event types
-	echo '<h3>Event Types:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($this->client->event_types, true).'</pre></div>'; // display the event types
-	//if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('12-01-2015')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-07-2016')), false, false, array(1, 7), false, false, 14)) { // if there are bookings (status = 1/7, group id = 14)
-	//if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('04-01-2016')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-30-2016')), false, false, array(1, 7), false, false, 364)) { // if there are bookings (status = 1/7, group id = 364)
-	if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS('01-04-2016')), $_LW->toDate(DATE_W3C, $_LW->toTS('12-30-2016')), false, false, array(1), false, false, 85)) { // if there are bookings (status = 1, group id = 85)
-		echo '<h3>Bookings:</h3><div style="max-height:300px;overflow:scroll;border:1px solid black;"><pre>'.var_export($bookings, true).'</pre></div>'; // display the events
+
+	if (!empty($_LW->REGISTERED_APPS['ems']['custom']['rest'])) { // when using REST API
+		echo '<h2>Look up a booking</h2>';
+		if (!empty($_GET['booking_id'])) { // searching for individual booking 
+			echo '<a href="?livewhale=ems-debug">&lt; back to EMS debug home</a><h2>Booking #' . $_GET['booking_id'] . '</h2>';
+			if ($response=$this->client->getResponse('/bookings/'.(int)$_GET['booking_id'])) { // get the response
+				echo '<pre>'.var_export($response, true).'</pre>';
+			} else { // else display any errors
+				print_r($this->client->ems_errors);
+			};
+			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
+			exit;
+		} else { // show booking form
+			echo '<form method="get"><label>Search for booking ID: <input type="hidden" name="livewhale" value="ems-debug"/><input type="text" name="booking_id" autocomplete="false" data-lpignore="true"/></label> <input type="submit" value="Go"/></form>';
+		}
 	}
-	else { // else display any errors
-		print_r($this->client->ems_errors);
-	};
+
+	$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS groups
+
+	if (!empty($this->client->groups)) { // if groups obtained
+			$group_selector='<h2>Search bookings by group:</h2><!-- START EMS GROUP --><div id="groups_ems_wrap" class="fields ems" style="font-size: 1.5em"><select name="ems_group" onChange="window.document.location.href=this.options[this.selectedIndex].value;" style="font-size: 0.875em"><option value="?livewhale=ems-debug"></option>'; // format group selector
+			foreach($this->client->groups as $group) {
+				$group_selector.='<option value="?livewhale=ems-debug&group_id='.$group['id'].'"'.(@$_LW->_GET['group_id']==$group['id'] ? ' selected="selected"' : '').'>'.$group['title'].' (ID: '.$group['id'].')</option>';
+			};
+			$group_selector.='</select></div><!-- END EMS GROUP -->';
+		echo $group_selector;
+	}
+	if (!empty($_GET['group_id'])) { // searching by group
+
+		$date_start = (!empty($_GET['date_start']) ? $_GET['date_start'] : '-6 months');
+		$date_end = (!empty($_GET['date_end']) ? $_GET['date_end'] : '+6 months');
+		echo '<h3>Bookings from Group ' . $_GET['group_id'] . '</h3>';
+
+		echo 'Date range: <strong>['.$date_start.']</strong> to <strong>['.$date_end.']</strong> ';
+
+		if (!empty($_GET['date_start']) || !empty($_GET['date_end'])) {
+			echo '(<a href="?livewhale=ems-debug&group_id='.$_GET['group_id'].'">reset</a>)<br/>';
+		} else {
+			echo '(<a href="?livewhale=ems-debug&group_id='.$_GET['group_id'].'&date_start=today&date_end=tomorrow">customize</a>)<br/>';
+		}
+		if (!empty($_GET['bypass_types_statuses'])) { // grab all types/statuses
+			echo 'Statuses and types: <strong>all</strong> <a href="?livewhale=ems-debug&group_id='.$_GET['group_id'].'">(show only defaults)</a>';
+			if ($bookings=$this->client->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($date_start)), $_LW->toDate(DATE_W3C, $_LW->toTS($date_end)), false, false, false, false, false, $_GET['group_id'])) {
+			echo '<pre>'.var_export($bookings, true).'</pre>'; // display the events
+			}
+			else { // else display any errors
+				echo '<h4>Error</h4><pre>'.var_export($this->client->ems_errors, true).'</pre>';
+			};
+		} else { // use default types/statuses
+			echo 'Statuses and types: <strong>defaults</strong> <a href="?livewhale=ems-debug&group_id='.$_GET['group_id'].'&bypass_types_statuses=true">(show all)</a>';
+			if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($date_start)), $_LW->toDate(DATE_W3C, $_LW->toTS($date_end)), false, false, false, false, false, $_GET['group_id'])) {
+				echo '<pre>'.var_export($bookings, true).'</pre>'; // display the events
+			}
+			else { // else display any errors
+				echo '<h4>Error</h4><pre>'.var_export($this->client->ems_errors, true).'</pre>';
+			};
+		};
+	} else { // if not showing group results
+		if (empty($_GET['general'])) { 
+			echo '<h2>Check general setup</h2>';
+			echo '<a href="?livewhale=ems-debug&general=true">Show statuses, group types, groups, and event types</a>';
+		} else {
+			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
+			$this->client->getStatuses($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS statuses
+			echo '<div style="display:flex; flex-wrap: wrap;">';
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Statuses:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->statuses, true).'</pre></div></div>'; // display the statuses
+			$this->client->getGroupTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS group types
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Group Types:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->group_types, true).'</pre></div></div>'; // display the group types
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Groups:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->groups, true).'</pre></div></div>'; // display the groups
+			$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS event types
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Event Types:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->event_types, true).'</pre></div></div>'; // display the event types
+			echo '</div>';
+			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
+		}
+	}
+
 };
 exit;
 }
@@ -154,6 +214,12 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']])) { // if assigning UDF value as event description
 			$arr['description']=$booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']];
 		};
+		if (!empty($booking['contact_info'])) { // add contact info if available
+			$arr['X-EMS-CONTACT-INFO']=$booking['contact_info'];
+		};
+		if (!empty($booking['contact_name'])) { // add contact name if available
+			$arr['X-EMS-CONTACT-NAME']=$booking['contact_name'];
+		};
 		foreach($arr as $key=>$val) { // clear empty entries
 			if (empty($val)) {
 				unset($arr[$key]);
@@ -193,9 +259,21 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 								};
 							};
 							if (!empty($val2_id) && isset($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id])) { // if the EMS event type was found in map
-								$new_category=$_LW->setFormatClean($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id]); // format the translated category
-								if (in_array($new_category, $event_types)) { // if the translated category is a known LiveWhale event type
-									$buffer['items']['default'][$key]['categories'][$key2]=array_search($new_category, $event_types); // translate the EMS event type to the corresponding LiveWhale event type
+								$new_categories=$_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id];
+								if (!is_array($new_categories)) {
+									$new_categories=[$new_categories];
+								};
+								foreach($new_categories as $val3) { // format the translated categories
+									$val3=$_LW->setFormatClean($val3);
+									if ($val3==='Open to the Public') {
+										$val3=' Open to the Public';
+									};
+									if (in_array($val3, $event_types)) { // if the translated category is a known LiveWhale event type
+										$val4=array_search($val3, $event_types); // translate the EMS event type to the corresponding LiveWhale event type ID
+										if (!in_array($val4, $buffer['items']['default'][$key]['categories'])) {
+											$buffer['items']['default'][$key]['categories'][]=$val4;
+										};
+									};
 								};
 							};
 						};
@@ -214,13 +292,23 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 								if (!is_array($buffer['items']['default'][$key]['categories'])) { // ensure that there is an array of known categories
 									$buffer['items']['default'][$key]['categories']=array();
 								};
-								$new_category=$_LW->setFormatClean($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id]); // format the translated category
-								if (in_array($new_category, $event_types)) { // if the translated category is a known LiveWhale event type
-									if (!in_array($new_category, $buffer['items']['default'][$key]['categories'])) { // add it as a known category if not already present
-										$buffer['items']['default'][$key]['categories'][]=array_search($new_category, $event_types);
-									};
-									unset($buffer['items']['default'][$key]['unknown_categories'][$key2]); // remove the unknown category
+								$new_categories=$_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id];
+								if (!is_array($new_categories)) {
+									$new_categories=[$new_categories];
 								};
+								foreach($new_categories as $val3) { // format the translated categories
+									$val3=$_LW->setFormatClean($val3);
+									if ($val3==='Open to the Public') {
+										$val3=' Open to the Public';
+									};
+									if (in_array($val3, $event_types)) { // if the translated category is a known LiveWhale event type
+										$val4=array_search($val3, $event_types); // translate the EMS event type to the corresponding LiveWhale event type ID
+										if (!in_array($val4, $buffer['items']['default'][$key]['categories'])) {
+											$buffer['items']['default'][$key]['categories'][]=$val4;
+										};
+									};
+								};
+								unset($buffer['items']['default'][$key]['unknown_categories'][$key2]); // remove the unknown category
 							};
 						};
 					};
