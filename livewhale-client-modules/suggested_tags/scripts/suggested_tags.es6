@@ -8,7 +8,7 @@
         return false;
       }
       var that = this,
-        $tags = $('fieldset.tags'),
+        $tags = $('.fieldset.tags'),
         $tag_suggest = $tags.find('.tag_suggest');
       this.$suggested_tags = $('<div class="suggested_tags lw-multisuggest"></div>').hide().appendTo($tags);
       this.$categories = $('fieldset.categories');
@@ -141,7 +141,7 @@
               tags.push(tag.title);
             });
           };
-          $this.find('h5').after('<div class="item_info" style="clear: both;"><span class="tags">' + (tags ? tags.join(', ') : '') + ' <a href="#" class="add-tags">Add Tags...</a></span></div>');
+          $this.find('.item_name').after('<div class="item_info" style="clear: both;"><span class="tags pull-right">' + (tags ? tags.join(', ') : '') + ' <a href="#" class="add-tags">Add Tags...</a></span></div>');
         });
       }
     },

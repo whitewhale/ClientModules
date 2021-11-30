@@ -1,2 +1,2 @@
-"fullname","fullname_public","directory","template_path"
-"Academics","http://www.domain.edu/academics/","",""
+fullname,fullname_public,directory,template_path
+Academics: Biology,Department of Biological Science,/academics/biology/,/_ingredients/templates/pages/department-page.php
