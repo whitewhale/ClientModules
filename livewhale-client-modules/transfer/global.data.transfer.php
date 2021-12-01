@@ -567,6 +567,10 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 												};
 											};
 										};
+										if (isset($line['data_insert']['rank'])) { // convert rank if source is older version of LiveWhale
+											$line['data_insert']['balloons']=$line['data_insert']['rank'];
+											unset($line['data_insert']['rank']);
+										};
 										$_LW->dbo->query('insert', $line['table'], $line['data_insert'])->run(); // insert the item
 										if (!isset($imported_ids[$line['type']])) {
 											$imported_ids[$line['type']]=[];
