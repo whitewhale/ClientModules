@@ -571,11 +571,16 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 											$line['data_insert']['balloons']=$line['data_insert']['rank'];
 											unset($line['data_insert']['rank']);
 										};
-										$_LW->dbo->query('insert', $line['table'], $line['data_insert'])->run(); // insert the item
-										if (!isset($imported_ids[$line['type']])) {
-											$imported_ids[$line['type']]=[];
+										if (isset($line['data_insert']['collection_id'])) { // handle old style collection ID
+											unset($line['data_insert']['collection_id']);
 										};
-										$imported_ids[$line['type']][]=$line['data']['id']; // keep track of imported IDs for deletion of unaffected content on destination server
+										$_LW->dbo->query('insert', $line['table'], $line['data_insert'])->run(); // insert the item
+										if ($line['type']==$type) { // for the main import type only
+											if (!isset($imported_ids[$line['type']])) {
+												$imported_ids[$line['type']]=[];
+											};
+											$imported_ids[$line['type']][]=$line['data']['id']; // keep track of imported IDs for deletion of unaffected content on destination server
+										};
 										if ($_LW->hasHandler('data_type', $line['type'], 'onCreate')) { // trigger post-creation steps
 											$_LW->callHandler('data_type', $line['type'], 'onCreate', [$line['data']['id']]);
 											$_LW->callHandlersByType('application', 'onAfterCreate', [$line['type'], $line['data']['id']]);
