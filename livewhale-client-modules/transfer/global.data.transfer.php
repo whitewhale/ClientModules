@@ -28,8 +28,8 @@ $_LW->REGISTERED_MODULES['transfer']=[ // configure this module
 		]
 	],
 	'custom'=>[
-		'import_url'=>'https://events.susqu.edu/live/transfer/export/events', // source url to import from
-		'gid'=>25 // group ID for the local destination group
+		'import_url'=>'', // source url to import from
+		'gid'=>0 // group ID for the local destination group
 	]
 ];
 
@@ -149,7 +149,8 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 			if ($fp=@fopen($path, 'w+')) { // fetch and stage the export
 				$ch=curl_init();
 				curl_setopt($ch, CURLOPT_URL, $_LW->REGISTERED_MODULES['transfer']['custom']['import_url']. '/'.$_LW->CONFIG['HTTP_HOST']);
-				curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+				curl_setopt($ch, CURLOPT_TIMEOUT, 900);
+				curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 900);
 				curl_setopt($ch, CURLOPT_FILE, $fp);
 				curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 				curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
@@ -175,9 +176,10 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 					};
 				};
 				if (empty($was_valid)) { // if invalid export
+					$size=@filesize($path);
 					@unlink($path); // delete export
 					if (empty($_LW->REGISTERED_MESSAGES['failure'])) { // and give error if we don't already have one
-						$_LW->REGISTERED_MESSAGES['failure'][]='Could not retrieve export from source server ('.$code.').';
+						$_LW->REGISTERED_MESSAGES['failure'][]='Could not retrieve export from source server ('.$code.' / '.$size.').';
 					};
 				}
 				else { // else if valid export
@@ -238,7 +240,7 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 									};
 								};
 							};
-							$msg.='<li><strong>'.str_replace(['events_', 'event subscriptions', 'event categories', 'places'], ['event ', 'linked calendars', 'event types', 'locations'], $key).'</strong>: '.implode(', ', $display).'</li>';
+							$msg.='<li><strong>'.str_replace(['events_', 'event subscription', 'event category', 'places', 'images_collection'], ['event ', 'linked calendars', 'event types', 'locations', 'image collections'], $key).'</strong>: '.implode(', ', $display).'</li>';
 						};
 						$msg.='</ul>';
 						$msg.='<p>What should be done with local content?</p><p><input type="radio" name="action" value="delete"/> Delete '.$type.' unique to this install and other content being replaced by the import<br/><input type="radio" name="action" value="preserve"/> Preserve all content of the type(s) being imported</p><p><input type="submit" value="Import"/></p>'; // and prompt for import options
@@ -256,6 +258,41 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 		};
 	};
 };
+}
+
+protected function getImageWidgetIDs($str) { // extracts IDs from image widgets
+if (strpos($str, '<widget type="image"')!==false) {
+	$matches=[];
+	preg_match_all('~<widget type="image"[^>]*?>\s*?<arg id="id">\s*?([0-9]+?)\s*?</arg>~s', $str, $matches);
+	if (!empty($matches[1])) {
+		return $matches[1];
+	};
+};
+return [];
+}
+
+protected function updateImageWidgetIDs($str, $map) { // updates IDs in image widgets via ID map
+if (empty($map) || !is_array($map)) {
+	return $str;
+};
+$find=[];
+$replace=[];
+if (strpos($str, '<widget type="image"')!==false) {
+	$matches=[];
+	preg_match_all('~<widget type="image"[^>]*?>\s*?<arg id="id">([0-9]+?)</arg>.+?</widget>~s', $str, $matches);
+	if (!empty($matches[1])) {
+		foreach($matches[1] as $key=>$id) {
+			if (isset($map[$id]) && is_array($map[$id]) && sizeof($map[$id])===2) {
+				$find[]=$matches[0][$key];
+				$replace[]=preg_replace('~/gid/[0-9]+?/~', '/gid/'.$map[$id][1].'/', str_replace(['<arg id="id">'.$id.'</arg>', '/'.$id.'_', 'lw_image'.$id], ['<arg id="id">'.$map[$id][0].'</arg>', '/'.$map[$id][0].'_', 'lw_image'.$map[$id][0]], $matches[0][$key]));
+			};
+		};
+	};
+};
+if (!empty($find)) {
+	$str=str_replace($find, $replace, $str);
+};
+return $str;
 }
 
 public function exportContent($type) { // exports content for the specified type
@@ -280,12 +317,105 @@ if (!empty($type) && in_array($type, ['news', 'events'])) { // if valid type
 		};
 		$unique_items=[];
 		if ($fp=@fopen($path, 'w+')) { // open file for writing
-			foreach($_LW->dbo->query('select', '*', 'livewhale_'.$type, false, 'id ASC')->run() as $res2) { // add each item of this type
-				if ($type==='events' && !empty($res2['subscription_pid'])) { // and any linked calendars
+			foreach($_LW->dbo->query('select', '*', 'livewhale_'.$type, false, 'id ASC')->run() as $res2) { // for each item of this type
+				$line=[ // add the main item (must do this first, because if ID is changed at import time we need to update it in all subsequent imported items)
+					'type'=>$type,
+					'table'=>'livewhale_'.$type,
+					'group'=>[
+						'id'=>(!empty($res2['gid']) ? $res2['gid'] : false),
+						'title'=>(!empty($res2['gid']) ? $group_titles[$res2['gid']] : false)
+					],
+					'data'=>$res2
+				];
+				@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n"); // write the record
+				if ($type!='images') { // add any images that are WYSIWYG-added
+					foreach($res2 as $val) {
+						if ($image_ids=$this->getImageWidgetIDs($val)) {
+							foreach($image_ids as $image_id) { // match all inline image IDs
+								if (!isset($unique_items['livewhale_images-'.$image_id])) {
+									if ($res4=$_LW->dbo->query('select', '*', 'livewhale_images', 'id='.(int)$image_id)->firstRow()->run()) { // and add them
+										$line=[
+											'type'=>'images',
+											'table'=>'livewhale_images',
+											'group'=>[
+												'id'=>(!empty($res4['gid']) ? $res4['gid'] : false),
+												'title'=>(!empty($res4['gid']) ? $group_titles[$res4['gid']] : false)
+											],
+											'data'=>$res4
+										];
+										@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+										$unique_items[$linked_table.'-'.$res4['id']]='';
+										if (!empty($res4['collection_id'])) { // handle old style collection_id
+											if (!isset($unique_items['livewhale_images_collections-'.$res4['collection_id']])) { // if we haven't copied the image collection yet
+												if ($res6=$_LW->dbo->query('select', '*', 'livewhale_images_collections', 'id='.(int)$res4['collection_id'])->firstRow()->run()) { // fetch the image collection and add it
+													$line=[
+														'type'=>'images_collection',
+														'table'=>'livewhale_images_collections',
+														'group'=>[
+															'id'=>(!empty($res6['gid']) ? $res6['gid'] : false),
+															'title'=>(!empty($res6['gid']) ? $group_titles[$res6['gid']] : false)
+														],
+														'data'=>$res6
+													];
+													@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+													$unique_items['livewhale_images_collections-'.$res6['id']]='';
+												};
+											};
+											if (isset($unique_items['livewhale_images_collections-'.$res4['collection_id']])) { // if we did copy the image collection
+												$line=[ // add all the image collection linkages
+													'type'=>'lookup',
+													'table'=>'livewhale_images2images_collections',
+													'group'=>[
+														'id'=>false,
+														'title'=>false
+													],
+													'data'=>['id1'=>$res4['id'], 'id2'=>$res4['collection_id']]
+												];
+												@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+											};
+										};
+										if ($_LW->dbo->hasTable('livewhale_images2images_collections', true)) {
+											foreach($_LW->dbo->query('select', 'id2', 'livewhale_images2images_collections', 'id1='.(int)$res4['id'])->run() as $res5) { // get all image collection linkages
+												if (!isset($unique_items['livewhale_images_collections-'.$res5['id2']])) { // if we haven't copied the image collection yet
+													if ($res6=$_LW->dbo->query('select', '*', 'livewhale_images_collections', 'id='.(int)$res5['id2'])->firstRow()->run()) { // fetch the image collection and add it
+														$line=[
+															'type'=>'images_collection',
+															'table'=>'livewhale_images_collections',
+															'group'=>[
+																'id'=>(!empty($res6['gid']) ? $res6['gid'] : false),
+																'title'=>(!empty($res6['gid']) ? $group_titles[$res6['gid']] : false)
+															],
+															'data'=>$res6
+														];
+														@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+														$unique_items['livewhale_images_collections-'.$res6['id']]='';
+													};
+												};
+												if (isset($unique_items['livewhale_images_collections-'.$res5['id2']])) { // if we did copy the image collection
+													$line=[ // add all the image collection linkages
+														'type'=>'lookup',
+														'table'=>'livewhale_images2images_collections',
+														'group'=>[
+															'id'=>false,
+															'title'=>false
+														],
+														'data'=>$res5
+													];
+													@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+				if ($type==='events' && !empty($res2['subscription_pid'])) { // add any linked calendars
 					if (!isset($unique_items['livewhale_events_subscriptions-'.$res2['subscription_pid']])) {
 						if ($res3=$_LW->dbo->query('select', '*', 'livewhale_events_subscriptions', 'id='.(int)$res2['subscription_pid'])->firstRow()->run()) {
 							$line=[
-								'type'=>'events_subscriptions',
+								'type'=>'events_subscription',
 								'table'=>'livewhale_events_subscriptions',
 								'group'=>[
 									'id'=>(!empty($res3['gid']) ? $res3['gid'] : false),
@@ -318,8 +448,12 @@ if (!empty($type) && in_array($type, ['news', 'events'])) { // if valid type
 					foreach($_LW->dbo->query('select', '*', $lookup_table, 'type="'.$type.'" AND id2='.(int)$res2['id'])->run() as $res3) { // get links TO the item being imported from other content types
 						if ($res4=$_LW->dbo->query('select', '*', $linked_table, 'id='.(int)$res3['id1'])->firstRow()->run()) {
 							if (!isset($unique_items[$linked_table.'-'.$res4['id']])) { // and fetch the item linking to it because we need to import that tag/location/etc.
+								$linked_type=$this->getDataTypeForTable($linked_table);
+								if (empty($linked_type)) {
+									$linked_type=substr($linked_table, 10);
+								};
 								$line=[
-									'type'=>substr($linked_table, 10),
+									'type'=>$linked_type,
 									'table'=>$linked_table,
 									'group'=>[
 										'id'=>(!empty($res4['gid']) ? $res4['gid'] : false),
@@ -329,6 +463,68 @@ if (!empty($type) && in_array($type, ['news', 'events'])) { // if valid type
 								];
 								@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
 								$unique_items[$linked_table.'-'.$res4['id']]='';
+								if (substr($linked_table, 10)=='images') { // if it is an image coming over
+									if (!empty($res4['collection_id'])) { // handle old style collection_id
+										if (!isset($unique_items['livewhale_images_collections-'.$res4['collection_id']])) { // if we haven't copied the image collection yet
+											if ($res6=$_LW->dbo->query('select', '*', 'livewhale_images_collections', 'id='.(int)$res4['collection_id'])->firstRow()->run()) { // fetch the image collection and add it
+												$line=[
+													'type'=>'images_collection',
+													'table'=>'livewhale_images_collections',
+													'group'=>[
+														'id'=>(!empty($res6['gid']) ? $res6['gid'] : false),
+														'title'=>(!empty($res6['gid']) ? $group_titles[$res6['gid']] : false)
+													],
+													'data'=>$res6
+												];
+												@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+												$unique_items['livewhale_images_collections-'.$res6['id']]='';
+											};
+										};
+										if (isset($unique_items['livewhale_images_collections-'.$res4['collection_id']])) { // if we did copy the image collection
+											$line=[ // add all the image collection linkages
+												'type'=>'lookup',
+												'table'=>'livewhale_images2images_collections',
+												'group'=>[
+													'id'=>false,
+													'title'=>false
+												],
+												'data'=>['id1'=>$res4['id'], 'id2'=>$res4['collection_id']]
+											];
+											@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+										};
+									};
+									if ($_LW->dbo->hasTable('livewhale_images2images_collections', true)) {
+										foreach($_LW->dbo->query('select', 'id2', 'livewhale_images2images_collections', 'id1='.(int)$res4['id'])->run() as $res5) { // get all image collection linkages
+											if (!isset($unique_items['livewhale_images_collections-'.$res5['id2']])) { // if we haven't copied the image collection yet
+												if ($res6=$_LW->dbo->query('select', '*', 'livewhale_images_collections', 'id='.(int)$res5['id2'])->firstRow()->run()) { // fetch the image collection and add it
+													$line=[
+														'type'=>'images_collection',
+														'table'=>'livewhale_images_collections',
+														'group'=>[
+															'id'=>(!empty($res6['gid']) ? $res6['gid'] : false),
+															'title'=>(!empty($res6['gid']) ? $group_titles[$res6['gid']] : false)
+														],
+														'data'=>$res6
+													];
+													@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+													$unique_items['livewhale_images_collections-'.$res6['id']]='';
+												};
+											};
+											if (isset($unique_items['livewhale_images_collections-'.$res5['id2']])) { // if we did copy the image collection
+												$line=[ // add all the image collection linkages
+													'type'=>'lookup',
+													'table'=>'livewhale_images2images_collections',
+													'group'=>[
+														'id'=>false,
+														'title'=>false
+													],
+													'data'=>$res5
+												];
+												@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n");
+											};
+										};
+									};
+								};
 							};
 							$line=[
 								'type'=>'lookup',
@@ -370,16 +566,6 @@ if (!empty($type) && in_array($type, ['news', 'events'])) { // if valid type
 					];
 					@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n"); // write the record
 				};
-				$line=[ // add the main item
-					'type'=>$type,
-					'table'=>'livewhale_'.$type,
-					'group'=>[
-						'id'=>(!empty($res2['gid']) ? $res2['gid'] : false),
-						'title'=>(!empty($res2['gid']) ? $group_titles[$res2['gid']] : false)
-					],
-					'data'=>$res2
-				];
-				@fwrite($fp, @base64_encode(gzdeflate(serialize($line)))."\n"); // write the record
 			};
 			fclose($fp);
 			unset($unique_items);
@@ -394,8 +580,8 @@ if (!empty($type) && in_array($type, ['news', 'events'])) { // if valid type
 						gc_collect_cycles();
 					};
 				};
+				fclose($fp); // close file
 			};
-			fclose($fp); // close file
 		};
 		@unlink($_LW->INCLUDES_DIR_PATH.'/data/transfer/'.$type.'.ts'); // unflag as writing
 	}
@@ -416,7 +602,7 @@ if ($fp=@fopen($path, 'r')) { // open the file
 		if ($line=trim(@gzinflate(base64_decode($line)))) {
 			if ($line=@unserialize($line)) {
 				if (!empty($line['type']) && !empty($line['table']) && isset($line['group']) && isset($line['data'])) { // for each valid line
-					if ($line['type']!='lookup') { // if not a lookup record
+					if ($line['type']=='news' || $line['type']=='events') { // if supported type
 						if (!isset($tables[$line['table']])) { // record each unique table encountered, and track the highest ID found in the import for that table
 							$tables[$line['table']]=$line['data']['id'];
 						}
@@ -444,52 +630,9 @@ if (!empty($tables)) { // if tables were found
 				foreach($_LW->dbo->query('select', 'id', $table, false, 'id DESC')->run() AS $res2) { // loop through all items of this type
 					$old_id=$res2['id'];
 					$new_id=$old_id+$offset;
-					$_LW->dbo->sql('UPDATE '.$table.' SET id='.(int)$new_id.' WHERE id='.(int)$old_id.';'); // update the main table
-					if ($table=='livewhale_events_categories') { // if preserving an event type, update the ID in the authorized event types per group
-						foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="event_types"')->run() as $res3) {
-							$res3['value']=explode(',', $res3['value']);
-							if (in_array((int)$old_id, $res3['value'])) {
-								$res3['value'][array_search((int)$old_id, $res3['value'])]=(int)$new_id;
-								$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res3['value']))], 'gid='.(int)$res3['gid'].' AND name='.$_LW->escape($res3['name']))->run();
-							};
-						};
-					};
-					if ($table=='livewhale_news_categories') { // if preserving a news category, update the ID in the authorized news categories per group
-						foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="news_categories"')->run() as $res3) {
-							$res3['value']=explode(',', $res3['value']);
-							if (in_array((int)$old_id, $res3['value'])) {
-								$res3['value'][array_search((int)$old_id, $res3['value'])]=(int)$new_id;
-								$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res3['value']))], 'gid='.(int)$res3['gid'].' AND name='.$_LW->escape($res3['name']))->run();
-							};
-						};
-					};
-					if ($_LW->dbo->hasTable($table.'2any')) { // update primary lookup table
-						$_LW->dbo->sql('UPDATE '.$table.'2any SET id1='.(int)$new_id.' WHERE id1='.(int)$old_id.';');
-					};
-					foreach($_LW->getLookupTables() as $lookup_table) { // update all lookup tables
-						if (substr($lookup_table, -4, 4)!='2any') {
-							continue;
-						};
-						$_LW->dbo->sql('UPDATE '.$lookup_table.' SET id2='.(int)$new_id.' WHERE id2='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					};
-					// update additional tables
-					$_LW->dbo->sql('UPDATE livewhale_autosaves SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND data_type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_custom_data SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_languages_fields SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_messages SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND data_type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_payments_orders SET product_id='.(int)$new_id.' WHERE product_id='.(int)$old_id.' AND product_type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_public_submissions SET submission_id='.(int)$new_id.' WHERE submission_id='.(int)$old_id.' AND submission_type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_revisions SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_search SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_trash SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					$_LW->dbo->sql('UPDATE livewhale_uploads SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
-					if ($type=='events') { // if main type is events, update registrations
-						$_LW->dbo->sql('UPDATE livewhale_events_registrations SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.';');
-					}
-					else if ($type=='events_subscriptions') { // else if main type is linked calendar
-						$_LW->dbo->sql('UPDATE livewhale_events SET subscription_pid='.(int)$new_id.' WHERE subscription_pid='.(int)$old_id.';'); // update events that are in this linked calendar
-					};
+					$this->changeIDForContent($type, $old_id, $new_id); // update the ID
 				};
+				$this->resetAutoIncrement($table); // reset the auto-increment ID for each table
 			};
 		};
 	};
@@ -508,6 +651,8 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 		set_time_limit(3600); // lessen time limit
 		ini_set('memory_limit', '256M'); // set high memory limit
 		header('Cache-Control: no-store, no-cache, must-revalidate');
+		ini_set('display_errors', 1);
+		error_reporting(E_ALL);
 		if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/transfer')) {
 			@mkdir($_LW->INCLUDES_DIR_PATH.'/data/transfer');
 		};
@@ -515,57 +660,71 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 			@touch($_LW->INCLUDES_DIR_PATH.'/data/transfer/'.$type.'.ts'); // flag as processing
 			$path=$_LW->INCLUDES_DIR_PATH.'/data/transfer/'.$type; // set path to read
 			if ($action=='preserve') { // if preserve option was chosen
-				$this->preserveContent($path); // preserve all existing content types impacted by the import by ID-shifting their data
-				if ($type=='events') { // clear caches
-					$_LW->d_events->clearEventsCategoriesCache();
-				}
-				else if ($type=='news') {
-					$_LW->d_news->clearNewsCategoriesCache();
-				};
+				$this->preserveContent($path); // preserve all existing supported content types impacted by the import by ID-shifting their data
 			};
 			$imported_ids=[];
+			$translated_ids=[];
+			$image_widgets=[];
+			$image_widget_map=[];
 			if ($fp=@fopen($path, 'r')) { // open the file
 				while (($line=@fgets($fp, 4096))!==false) {
 					if ($line=trim(@gzinflate(base64_decode($line)))) {
 						if ($line=@unserialize($line)) {
 							if (!empty($line['type']) && !empty($line['table']) && isset($line['group']) && isset($line['data'])) { // for each valid line
 								if ($line['type']!='lookup') { // if not a lookup record
+									$last_insert_id=$line['data']['id'];
 									$_LW->dbo->query('delete', 'livewhale_trash', 'id='.(int)$line['data']['id'])->run(); // always delete an existing trash entry for the imported item, because an item can be in the trash or not, but not both
 									if (isset($line['data']['gid'])) { // override destination group if necessary
+										$line['original_gid']=$line['data']['gid'];
 										$line['data']['gid']=$this->getImportGID($line['group']);
 									};
 									$status=$this->getItemStatus($line['table'], $line['data']['id'], $line['data']); // get status of import
-									if ($status=='created' || $status=='changed') { // for created or changed items (but not skipped)
-										if ($status=='changed' && $action=='delete') { // if item was changed and delete option was chosen
-											$_LW->delete($line['type'], $line['data']['id'], false); // delete an existing item first but do not trash
-										};
-										$line['data_insert']=$line['data'];
-										foreach($line['data_insert'] as $key=>$val) {
-											$line['data_insert'][$key]=$_LW->escape($val);
-										};
-										if ($line['table']=='livewhale_events_categories' || $line['table']=='livewhale_news_categories') { // for these types
-											if ($res2=$_LW->dbo->query('select', 'id', $line['table'], 'title='.$_LW->escape($line['data']['title']))->firstRow()->run()) { // check if there is still another by the same title but with a different ID (after preserving existing items or deletion of same-ID)
-												$_LW->dbo->query('delete', $line['table'], 'id='.(int)$res2['id'])->run(); // delete it
-												$_LW->dbo->query('update', $line['table'].'2any', ['id1'=>(int)$line['data']['id']], 'id1='.(int)$res2['id'])->run(); // and relink its assignments to the one we're importing
+									if ($status!='skipped') { // if not skipping the item
+										if ($status=='changed') { // if the item is changed
+											if ($action=='delete') { // if deleting
+												$_LW->delete($line['type'], $line['data']['id'], false); // delete an existing item first but do not trash
+												$status='created'; // change status to created so it gets recreated
+											}
+											else { // else if preserving
+												if (in_array($line['type'], ['news', 'events'])) { // if one of the types we ID shifted
+													$status='created'; // switch to created
+												};
 											};
-											if ($line['table']=='livewhale_events_categories') { // add the ID to the authorized event types per group
-												foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="event_types"')->run() as $res2) {
-													$res2['value']=explode(',', $res2['value']);
-													if (!in_array((int)$line['data']['id'], $res2['value'])) {
-														$res2['value'][]=(int)$line['data']['id'];
-														$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res2['value']))], 'gid='.(int)$res2['gid'].' AND name='.$_LW->escape($res2['name']))->run();
+										};
+										if ($status=='changed') { // if item is still changed (and therefore neither deleted, nor one of the ID shifted content types)
+											if ($import_id=$_LW->dbo->query('select', 'value', 'livewhale_custom_data', 'type='.$_LW->escape($line['type']).' AND pid='.(int)$line['data']['id'].' AND name="import_id"')->firstRow('value')->run()) { // if there was a previous import ID
+												$line2=$line;
+												$line2['data']['id']=$import_id;
+												if ($status2=$this->getItemStatus($line2['table'], $line2['data']['id'], $line2['data'])) { // check the status of that ID
+													if ($status2=='changed') { // if still changed, import it again at auto_increment
+														$translated_ids[$line['type'].'-'.$line['data']['id']]=0;
+													}
+													else { // else use the previous import ID
+														$translated_ids[$line['type'].'-'.$line['data']['id']]=(int)$import_id;
 													};
+												}
+												else { // else use the previous import ID
+													$translated_ids[$line['type'].'-'.$line['data']['id']]=(int)$import_id;
 												};
 											}
-											else if ($line['table']=='livewhale_news_categories') { // add the ID to the authorized news categories per group
-												foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="news_categories"')->run() as $res2) {
-													$res2['value']=explode(',', $res2['value']);
-													if (!in_array((int)$line['data']['id'], $res2['value'])) {
-														$res2['value'][]=(int)$line['data']['id'];
-														$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res2['value']))], 'gid='.(int)$res2['gid'].' AND name='.$_LW->escape($res2['name']))->run();
-													};
-												};
+											else { // else if no previous import ID
+												$translated_ids[$line['type'].'-'.$line['data']['id']]=0; // import it at auto_increment
 											};
+										};
+										$line['data_insert']=$line['data'];
+										if (isset($translated_ids[$line['type'].'-'.$line['data']['id']])) { // if the ID is translated
+											if (empty($translated_ids[$line['type'].'-'.$line['data']['id']])) { // if using auto-increment
+												$line['data_insert']['id']=''; // blank the ID
+												$last_insert_id='';
+											}
+											else { // else if using a different ID
+												$line['data_insert']['id']=$translated_ids[$line['type'].'-'.$line['data']['id']]; // set it
+												$last_insert_id=$translated_ids[$line['type'].'-'.$line['data']['id']];
+											};
+										};
+										// at this point, all "created" items have no ID conflict and all "changed" items will be created using a translated ID, so also no ID conflict
+										foreach($line['data_insert'] as $key=>$val) {
+											$line['data_insert'][$key]=$_LW->escape($val);
 										};
 										if (isset($line['data_insert']['rank'])) { // convert rank if source is older version of LiveWhale
 											$line['data_insert']['balloons']=$line['data_insert']['rank'];
@@ -575,26 +734,101 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 											unset($line['data_insert']['collection_id']);
 										};
 										$_LW->dbo->query('insert', $line['table'], $line['data_insert'])->run(); // insert the item
+										$last_insert_id=(empty($last_insert_id) ? (int)$_LW->dbo->lastInsertID() : $last_insert_id); // get the last insert ID
+										if ($line['type']=='images' && $line['data']['gid']!=$line['original_gid']) { // build image widget map if gid changed
+											$image_widget_map[$last_insert_id]=[$last_insert_id, $line['data']['gid']];
+										};
+										foreach($line['data'] as $key=>$val) { // track all fields with an image widget
+											if (is_scalar($val) && strpos($val, '<widget type="image"')!==false) {
+												$image_widgets[$line['table']][$last_insert_id][$key]=$this->getImageWidgetIDs($val);
+											};
+										};
+										if (isset($translated_ids[$line['type'].'-'.$line['data']['id']]) && empty($translated_ids[$line['type'].'-'.$line['data']['id']])) { // update translated ID if it was created at auto_increment
+											$translated_ids[$line['type'].'-'.$line['data']['id']]=$last_insert_id;
+										};
+										if ($line['table']=='livewhale_events_categories' || $line['table']=='livewhale_news_categories') { // for these types
+											if ($res2=$_LW->dbo->query('select', 'id', $line['table'], 'title='.$_LW->escape($line['data']['title']).' AND id!='.(int)$last_insert_id)->firstRow()->run()) { // check if there is still another by the same title but with a different ID (we can't have duplicates)
+												$_LW->dbo->query('delete', $line['table'], 'id='.(int)$res2['id'])->run(); // delete it
+												$_LW->dbo->query('update', $line['table'].'2any', ['id1'=>(int)$last_insert_id], 'id1='.(int)$res2['id'])->run(); // and relink its assignments to the one we just imported
+											};
+											if ($line['table']=='livewhale_events_categories') { // add the ID to the authorized event types per group
+												foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="event_types"')->run() as $res2) {
+													$res2['value']=explode(',', $res2['value']);
+													if (!in_array((int)$last_insert_id, $res2['value'])) {
+														$res2['value'][]=(int)$last_insert_id;
+														$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res2['value']))], 'gid='.(int)$res2['gid'].' AND name='.$_LW->escape($res2['name']))->run();
+													};
+												};
+											}
+											else if ($line['table']=='livewhale_news_categories') { // add the ID to the authorized news categories per group
+												foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="news_categories"')->run() as $res2) {
+													$res2['value']=explode(',', $res2['value']);
+													if (!in_array((int)$last_insert_id, $res2['value'])) {
+														$res2['value'][]=(int)$last_insert_id;
+														$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res2['value']))], 'gid='.(int)$res2['gid'].' AND name='.$_LW->escape($res2['name']))->run();
+													};
+												};
+											};
+										};
+										if ($line['type']==$type) { // for the main import type only
+											if (!isset($imported_ids[$line['type']])) {
+												$imported_ids[$line['type']]=[];
+											};
+											$imported_ids[$line['type']][]=$last_insert_id; // keep track of imported IDs for deletion of unaffected content on destination server
+										};
+										if ($_LW->hasHandler('data_type', $line['type'], 'onCreate')) { // trigger post-creation steps
+											$_LW->callHandler('data_type', $line['type'], 'onCreate', [$last_insert_id]);
+											$_LW->callHandlersByType('application', 'onAfterCreate', [$line['type'], $last_insert_id]);
+										};
+									}
+									else { // else if skipped
 										if ($line['type']==$type) { // for the main import type only
 											if (!isset($imported_ids[$line['type']])) {
 												$imported_ids[$line['type']]=[];
 											};
 											$imported_ids[$line['type']][]=$line['data']['id']; // keep track of imported IDs for deletion of unaffected content on destination server
 										};
-										if ($_LW->hasHandler('data_type', $line['type'], 'onCreate')) { // trigger post-creation steps
-											$_LW->callHandler('data_type', $line['type'], 'onCreate', [$line['data']['id']]);
-											$_LW->callHandlersByType('application', 'onAfterCreate', [$line['type'], $line['data']['id']]);
+										if ($line['type']=='images' && $line['data']['gid']!=$line['original_gid']) { // build image widget map if gid changed
+											$image_widget_map[$last_insert_id]=[$last_insert_id, $line['data']['gid']];
 										};
-										if ($line['table']=='livewhale_images' || $line['table']=='livewhale_files') { // if creating an image or file
-											if (!isset($url_info)) {
-												$url_info=@parse_url($_LW->REGISTERED_MODULES['transfer']['custom']['import_url']);
+									};
+									if ($line['table']=='livewhale_images' || $line['table']=='livewhale_files') { // if image or file
+										if (empty($last_insert_id)) { // make sure we have a last insert ID for skipped items
+											$last_insert_id=$line['data']['id'];
+										};
+										if ($res2=$_LW->dbo->query('select', 'gid, filename, extension', 'livewhale_'.($line['table']=='livewhale_images'  ? 'images' : 'files'), 'id='.(int)$last_insert_id)->firstRow()->run()) { // if item info obtained
+											$path=$_LW->LIVEWHALE_DIR_PATH.'/content/'.($line['table']=='livewhale_images'  ? 'images' : 'files').'/'.$res2['gid'].'/'.$res2['filename'].'.'.$res2['extension'];
+											if (!is_dir($_LW->LIVEWHALE_DIR_PATH.'/content/'.($line['table']=='livewhale_images'  ? 'images' : 'files').'/'.$res2['gid'])) {
+												@mkdir($_LW->LIVEWHALE_DIR_PATH.'/content/'.($line['table']=='livewhale_images'  ? 'images' : 'files').'/'.$res2['gid']);
 											};
-											$image_data=[
-												'url'=>$url_info['scheme'].'://'.$url_info['host'].'/live/'. ($line['table']=='livewhale_images'  ? 'images' : 'files').'/'.$line['data']['id']
-											];
-											$last_modified=$_LW->dbo->query('select', 'last_modified', $line['table'], 'id='.(int)$line['data']['id'])->firstRow('last_modified')->run(); // get before last_modified
-											$_LW->update('images', $line['data']['id'], $image_data); // import the file itself
-											$_LW->dbo->query('update', $line['table'], ['last_modified'=>$_LW->escape($last_modified)], 'id='.(int)$line['data']['id'])->run(); // restore last_modified (so that it can be skipped next time)
+											if (!file_exists($path)) { // if the item does not exist in the FS yet
+												if (!isset($url_info)) {
+													$url_info=@parse_url($_LW->REGISTERED_MODULES['transfer']['custom']['import_url']);
+												};
+												$item_data=[
+													'url'=>$url_info['scheme'].'://'.$url_info['host'].'/live/image/gid/'.$line['original_gid'].'/'.$line['data']['filename'].'.'.$line['data']['extension']
+												];
+												if ($fp_write=@fopen($_LW->INCLUDES_DIR_PATH.'/data/transfer/image_sync', 'w+')) { // write the local file from remote url
+													$ch=curl_init($item_data['url']);
+													curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+													curl_setopt($ch, CURLOPT_FILE, $fp_write);
+													curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+													curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+													curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+													curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
+													curl_setopt($ch, CURLOPT_USERAGENT, 'LiveWhale');
+													curl_exec($ch);
+													curl_close($ch);
+													fclose($fp_write);
+													if (file_exists($_LW->INCLUDES_DIR_PATH.'/data/transfer/image_sync')) { // if file was written
+														if (@filesize($_LW->INCLUDES_DIR_PATH.'/data/transfer/image_sync')!=0) {
+															@rename($_LW->INCLUDES_DIR_PATH.'/data/transfer/image_sync', $path);
+														};
+														@unlink($_LW->INCLUDES_DIR_PATH.'/data/transfer/image_sync');
+													};
+												};
+												
+											};
 										};
 									};
 								}
@@ -603,13 +837,62 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 									foreach($line['data_insert'] as $key=>$val) {
 										$line['data_insert'][$key]=$_LW->escape($val);
 									};
-									$_LW->dbo->query('insert', $line['table'], $line['data_insert'])->run(); // insert the item
+									$_LW->dbo->query('insert', $line['table'], $line['data_insert'], true)->run(); // insert the item
 								};
 							};
 						};
 					};
 				};
 				fclose($fp);
+				if (!empty($translated_ids)) { // process all translated IDs
+					$lookup_tables=$_LW->getLookupTables();
+					foreach($translated_ids as $key=>$val) {
+						$key=explode('-', $key);
+						$translated_type=$key[0];
+						$old_id=$key[1];
+						$new_id=$val;
+						$_LW->dbo->sql('REPLACE INTO livewhale_custom_data VALUES('.$_LW->escape($translated_type).', '.(int)$old_id.', "import_id", '.(int)$new_id.', 1);'); // record the ID we translated it to
+						if ($translated_type=='images') { // build image widget map
+							if ($translated_gid=$_LW->dbo->query('select', 'gid', 'livewhale_images', 'id='.(int)$new_id)->firstRow('gid')->run()) {
+								$image_widget_map[$old_id]=[$new_id, $translated_gid];
+							};
+						};
+						foreach($lookup_tables as $lookup_table) { // update all lookup tables
+							if (substr($lookup_table, -4, 4)!='2any') {
+								continue;
+							};
+							if ($lookup_table=='livewhale_'.$translated_type.'2any') {
+								$_LW->dbo->query('update', $lookup_table, ['id1'=>(int)$new_id], 'id1='.(int)$old_id.' AND type='.$_LW->escape($type))->run();
+							}
+							else {
+								$_LW->dbo->query('update', $lookup_table, ['id2'=>(int)$new_id], 'type='.$_LW->escape($translated_type).' AND id2='.(int)$old_id)->run();
+							};
+						};
+						if ($translated_type=='images') {
+							$_LW->dbo->query('update', 'livewhale_images2images_collections', ['id1'=>(int)$new_id], 'id1='.(int)$old_id)->run();
+						}
+						else if ($translated_type=='images_collections') {
+							$_LW->dbo->query('update', 'livewhale_images2images_collections', ['id2'=>(int)$new_id], 'id2='.(int)$old_id)->run();
+						};
+					};
+				};
+				if (!empty($image_widgets) && !empty($image_widget_map)) { // if there were image widgets and an image widget map
+					foreach(array_keys($image_widgets) as $iw_table) {
+						foreach(array_keys($image_widgets[$iw_table]) as $iw_id) {
+							foreach(array_keys($image_widgets[$iw_table][$iw_id]) as $iw_field) {
+								$image_ids=$image_widgets[$iw_table][$iw_id][$iw_field];
+								foreach($image_ids as $image_id) {
+									if (isset($image_widget_map[$image_id])) { // if any of the image widget IDs appear in the map
+										if ($field_value=$_LW->dbo->query('select', $iw_field, $iw_table, 'id='.(int)$iw_id)->firstRow($iw_field)->run()) { // get the field
+											$_LW->dbo->query('update', $iw_table, [$iw_field=>$_LW->escape($this->updateImageWidgetIDs($field_value, $image_widget_map))], 'id='.(int)$iw_id)->run(); // and update it via the map
+										};
+									};
+									break;
+								};
+							};
+						};
+					};
+				};
 				if ($action=='delete' && !empty($imported_ids)) { // if delete option chosen
 					foreach($imported_ids as $import_type=>$import_ids) {
 						$where=($import_type=='events' ? 'subscription_pid IS NULL' : false); // don't delete linked calendar events unique to this install because we haven't deleted their parent linked calendar so they'd just be recreated
@@ -638,6 +921,194 @@ if (!empty($_LW->REGISTERED_MODULES['transfer']['custom']['import_url'])) { // i
 		$_LW->REGISTERED_MESSAGES['failure'][]='Invalid content type. Only news and events are currently supported.';
 	};
 };
+}
+
+protected function changeIDForContent($type, $old_id, $new_id) { // changes the ID for a piece of content and associated records
+global $_LW;
+static $map_tables;
+static $map_types;
+if (!isset($map_tables)) { // init tables map
+	$map_tables=[];
+};
+if (!isset($map_tables[$type])) { // get table for type
+	if ($table=$_LW->getTableForDataType($type)) {
+		$map_tables[$type]=$table;
+	};
+};
+if (!isset($map_types)) { // if type map not created yet
+	$map_types=[];
+	foreach($_LW->getLookupTables() as $lookup_table) { // update all lookup tables
+		if (substr($lookup_table, -4, 4)!='2any') {
+			continue;
+		};
+		$map_types[$lookup_table]=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT type SEPARATOR "|") types', $lookup_table)->firstRow('types')->run());
+	};
+	$map_types['livewhale_autosaves']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT data_type SEPARATOR "|") types', 'livewhale_autosaves')->firstRow('types')->run());
+	$map_types['livewhale_custom_data']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT type SEPARATOR "|") types', 'livewhale_custom_data')->firstRow('types')->run());
+	$map_types['livewhale_languages_fields']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT type SEPARATOR "|") types', 'livewhale_languages_fields')->firstRow('types')->run());
+	$map_types['livewhale_messages']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT data_type SEPARATOR "|") types', 'livewhale_messages')->firstRow('types')->run());
+	$map_types['livewhale_payments_orders']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT product_type SEPARATOR "|") types', 'livewhale_payments_orders')->firstRow('types')->run());
+	$map_types['livewhale_public_submissions']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT submission_type SEPARATOR "|") types', 'livewhale_public_submissions')->firstRow('types')->run());
+	$map_types['livewhale_revisions']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT type SEPARATOR "|") types', 'livewhale_revisions')->firstRow('types')->run());
+	$map_types['livewhale_search']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT type SEPARATOR "|") types', 'livewhale_search')->firstRow('types')->run());
+	$map_types['livewhale_trash']=explode('|', $_LW->dbo->query('select', 'GROUP_CONCAT(DiSTINCT type SEPARATOR "|") types', 'livewhale_trash')->firstRow('types')->run());
+};
+if (!empty($map_tables[$type])) { // if we have a table for the type
+	$table=$map_tables[$type]; // get the table
+	if (!$_LW->dbo->query('select', '1', $table, 'id='.(int)$new_id)->exists()->run()) { // if there isn't already an item with this ID
+		$_LW->dbo->sql('UPDATE '.$table.' SET id='.(int)$new_id.' WHERE id='.(int)$old_id.';'); // update the main table
+		switch($table) {
+			case 'livewhale_events_categories':
+				foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="event_types"')->run() as $res2) { // if preserving an event type, update the ID in the authorized event types per group
+				$res2['value']=explode(',', $res2['value']);
+					if (in_array((int)$old_id, $res2['value'])) {
+						$res2['value'][array_search((int)$old_id, $res2['value'])]=(int)$new_id;
+						$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res2['value']))], 'gid='.(int)$res2['gid'].' AND name='.$_LW->escape($res2['name']))->run();
+					};
+				};
+				break;
+			case 'livewhale_news_categories':
+				foreach($_LW->dbo->query('select', 'gid, name, value', 'livewhale_groups_settings', 'name="news_categories"')->run() as $res2) { // if preserving a news category, update the ID in the authorized news categories per group
+				$res2['value']=explode(',', $res2['value']);
+					if (in_array((int)$old_id, $res2['value'])) {
+						$res2['value'][array_search((int)$old_id, $res2['value'])]=(int)$new_id;
+						$_LW->dbo->query('update', 'livewhale_groups_settings', ['value'=>$_LW->escape(implode(',', $res2['value']))], 'gid='.(int)$res2['gid'].' AND name='.$_LW->escape($res2['name']))->run();
+					};
+				};
+				break;
+			case 'livewhale_images':
+				$_LW->dbo->sql('UPDATE livewhale_images2images_collections SET id1='.(int)$new_id.' WHERE id1='.(int)$old_id.';'); // preserve image collection assignment
+				if ($res2=$_LW->dbo->query('select', 'gid, filename, extension', 'livewhale_images', 'id='.(int)$new_id)->firstRow()->run()) { // update the filename and rename in the FS
+					if (strpos($res2['filename'], $old_id.'_')===0 && file_exists($_LW->LIVEWHALE_DIR_PATH.'/content/images/'.(int)$res2['gid'].'/'.$res2['filename'].'.'.$res2['extension'])) {
+						$new_filename=$new_id.substr($res2['filename'], strlen($old_id));
+						$_LW->dbo->sql('UPDATE livewhale_images SET filename='.$_LW->escape($new_filename).' WHERE id='.(int)$new_id.';');
+						$_LW->dbo->sql('UPDATE livewhale_uploads SET pid='.(int)$new_id.', filename='.$_LW->escape($new_filename).' WHERE type="images" AND pid='.(int)$old_id.';');
+						$path_old=$_LW->LIVEWHALE_DIR_PATH.'/content/images/'.(int)$res2['gid'].'/'.$res2['filename'].'.'.$res2['extension'];
+						$path_new=$_LW->LIVEWHALE_DIR_PATH.'/content/images/'.(int)$res2['gid'].'/'.$new_filename.'.'.$res2['extension'];
+						@rename($path_old, $path_new);
+						if (file_exists($path_old.'.transparent')) {
+							@rename($path_old.'.transparent', $path_new.'.transparent');
+						};
+						if (file_exists($path_old.'.animated')) {
+							@rename($path_old.'.animated', $path_new.'.animated');
+						};
+						if (is_dir($path_old.'.sizes')) {
+							@rename($path_old.'.sizes', $path_new.'.sizes');
+							foreach(@scandir($path_new.'.sizes') as $file) {
+								$file=basename($file);
+								if ($file[0]!='.' && strpos($file, $old_id.'_')===0) {
+									$new_filename2=$new_id.substr($file, strlen($old_id));
+									@rename($path_new.'.sizes/'.$file, $path_new.'.sizes/'.$new_filename2);
+								};
+							};
+						};
+						$path_old=$_LW->LIVEWHALE_DIR_PATH.'/content/images/'.(int)$res2['gid'].'/'.$res2['filename'].'.webp';
+						$path_new=$_LW->LIVEWHALE_DIR_PATH.'/content/images/'.(int)$res2['gid'].'/'.$new_filename.'.webp';
+						if (is_dir($path_old.'.sizes')) {
+							@rename($path_old.'.sizes', $path_new.'.sizes');
+							foreach(@scandir($path_new.'.sizes') as $file) {
+								$file=basename($file);
+								if ($file[0]!='.' && strpos($file, $old_id.'_')===0) {
+									$new_filename2=$new_id.substr($file, strlen($old_id));
+									@rename($path_new.'.sizes/'.$file, $path_new.'.sizes/'.$new_filename2);
+								};
+							};
+						};
+					};
+				};
+				break;
+			case 'livewhale_files':
+				if ($res2=$_LW->dbo->query('select', 'gid, filename, extension', 'livewhale_files', 'id='.(int)$new_id)->firstRow()->run()) { // update the filename and rename in the FS
+					if (strpos($res2['filename'], $old_id.'_')===0 && file_exists($_LW->LIVEWHALE_DIR_PATH.'/content/files/'.(int)$res2['gid'].'/'.$res2['filename'].'.'.$res2['extension'])) {
+						$new_filename=$new_id.substr($res2['filename'], strlen($old_id));
+						$_LW->dbo->sql('UPDATE livewhale_files SET filename='.$_LW->escape($new_filename).' WHERE id='.(int)$new_id.';');
+						$_LW->dbo->sql('UPDATE livewhale_uploads SET pid='.(int)$new_id.', filename='.$_LW->escape($new_filename).' WHERE type="files" AND pid='.(int)$old_id.';');
+						@rename($_LW->LIVEWHALE_DIR_PATH.'/content/files/'.(int)$res2['gid'].'/'.$res2['filename'].'.'.$res2['extension'], $_LW->LIVEWHALE_DIR_PATH.'/content/files/'.(int)$res2['gid'].'/'.$new_filename.'.'.$res2['extension']);
+					};
+				};
+				break;
+			case 'livewhale_events':
+				$_LW->dbo->sql('UPDATE livewhale_events_registrations SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.';'); // update event registrations
+				break;
+			case 'livewhale_events_subscriptions':
+				$_LW->dbo->sql('UPDATE livewhale_events SET subscription_pid='.(int)$new_id.' WHERE subscription_pid='.(int)$old_id.';'); // update events that are in this linked calendar
+				break;
+			case 'livewhale_forms':
+				$_LW->dbo->sql('UPDATE livewhale_forms_data SET fid='.(int)$new_id.' WHERE fid='.(int)$old_id.';'); // update form data and rename in the FS
+				@rename($_LW->INCLUDES_DIR_PATH.'/data/forms/submissions/'.(int)$old_id, $_LW->INCLUDES_DIR_PATH.'/data/forms/submissions/'.(int)$new_id);
+				break;
+		};
+		if ($_LW->dbo->hasTable($table.'2any')) { // update primary lookup table
+			$_LW->dbo->sql('UPDATE '.$table.'2any SET id1='.(int)$new_id.' WHERE id1='.(int)$old_id.';');
+		};
+		foreach($_LW->getLookupTables() as $lookup_table) { // update all lookup tables
+			if (substr($lookup_table, -4, 4)!='2any') {
+				continue;
+			};
+			if (isset($map_types[$lookup_table]) && in_array($type, $map_types[$lookup_table])) {
+				$_LW->dbo->sql('UPDATE '.$lookup_table.' SET id2='.(int)$new_id.' WHERE id2='.(int)$old_id.' AND type='.$_LW->escape($type).';');
+			};
+		};
+		// update additional tables
+		if (isset($map_types['livewhale_autosaves']) && in_array($type, $map_types['livewhale_autosaves'])) {
+			$_LW->dbo->sql('UPDATE livewhale_autosaves SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND data_type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_custom_data']) && in_array($type, $map_types['livewhale_custom_data'])) {
+			$_LW->dbo->sql('UPDATE livewhale_custom_data SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_languages_fields']) && in_array($type, $map_types['livewhale_languages_fields'])) {
+			$_LW->dbo->sql('UPDATE livewhale_languages_fields SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_messages']) && in_array($type, $map_types['livewhale_messages'])) {
+			$_LW->dbo->sql('UPDATE livewhale_messages SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND data_type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_payments_orders']) && in_array($type, $map_types['livewhale_payments_orders'])) {
+			$_LW->dbo->sql('UPDATE livewhale_payments_orders SET product_id='.(int)$new_id.' WHERE product_id='.(int)$old_id.' AND product_type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_public_submissions']) && in_array($type, $map_types['livewhale_public_submissions'])) {
+			$_LW->dbo->sql('UPDATE livewhale_public_submissions SET submission_id='.(int)$new_id.' WHERE submission_id='.(int)$old_id.' AND submission_type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_revisions']) && in_array($type, $map_types['livewhale_revisions'])) {
+			$_LW->dbo->sql('UPDATE livewhale_revisions SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_search']) && in_array($type, $map_types['livewhale_search'])) {
+			$_LW->dbo->sql('UPDATE livewhale_search SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
+		};
+		if (isset($map_types['livewhale_trash']) && in_array($type, $map_types['livewhale_trash'])) {
+			$_LW->dbo->sql('UPDATE livewhale_trash SET pid='.(int)$new_id.' WHERE pid='.(int)$old_id.' AND type='.$_LW->escape($type).';');
+		};
+		return true;
+	};
+};
+return false;
+}
+
+protected function resetAutoIncrement($table) { // resets the auto-increment ID for a table
+global $_LW;
+if ($id=$_LW->dbo->query('select', 'id+1 AS next_id', $table, false, 'id DESC')->limit(1)->firstRow('next_id')->run()) {
+	$_LW->dbo->sql('ALTER TABLE '.$table.' AUTO_INCREMENT='.(int)$id.';');
+};
+}
+
+protected function getDataTypeForTable($table) { // gets the data type for a table
+global $_LW;
+static $map;
+if ($table=='livewhale_events_registrations') { // special case alias
+	return 'events_rsvp';
+};
+if (isset($map[$table])) { // return cached response if possible
+	return $map[$table];
+};
+if (!isset($map)) { // init cache
+	$map=[];
+};
+$tables=$_LW->ENV->tables;
+$map[$table]=false;
+$key=array_search($table, $tables);
+if ($key!==false) {
+	$map[$table]=$key;
+};
+return $map[$table];
 }
 
 }
