@@ -30,7 +30,7 @@ if (is_dir('/var/log/apache2')) {
 										$logs[$log][$matches[1]]=[];
 									};
 									if (
-										!in_array($matches[9], ['/livewhale/scheduler.php', '/robots.txt', '/live/env/private/refresh', '/live/env/public/refresh', '/live/sync_uploads', '/live/uptime', '/livewhale/api/', '/livewhale/backend.php?livewhale=session_info', '/livewhale/?login', '/live/places/maps_js', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png', '/live/payments/form', '/livewhale/']) && 
+										!in_array($matches[9], ['/livewhale/scheduler.php', '/robots.txt', '/live/env/private/refresh', '/live/env/public/refresh', '/live/sync_uploads', '/live/uptime', '/livewhale/api/', '/livewhale/backend.php?livewhale=session_info', '/livewhale/?login', '/live/places/maps_js', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png', '/live/payments/form', '/livewhale/', '/health-check']) && 
 										strpos($matches[9], '/livewhale/backend.php?livewhale=exec')!==0 && 
 										strpos($matches[9], '/livewhale/nocache.php?livewhale=exec')===false && 
 										strpos($matches[9], '/livewhale/backend.php?livewhale=log_error')===false && 
