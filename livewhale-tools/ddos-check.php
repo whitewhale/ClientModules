@@ -19,9 +19,9 @@ if (is_dir('/var/log/apache2')) {
 					$lines=array_reverse($lines);
 					foreach($lines as $line) {
 						$matches=[];
-						preg_match('~^(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+) "([^"]*)" "([^"]*)"$~', $line, $matches);
+						preg_match('~^(\S+) (\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+) "([^"]*)" "([^"]*)"$~', $line, $matches);
 						if (!empty($matches[1]) && $matches[1]!==$_SERVER['SERVER_ADDR']) {
-							if ($ts=@strtotime(str_replace('/', '-', $matches[5].' '.$matches[4]))) {
+							if ($ts=@strtotime(str_replace('/', '-', $matches[6].' '.$matches[5]))) {
 								if ($ts>$_SERVER['REQUEST_TIME']-3600) {
 									if (!isset($logs[$log])) {
 										$logs[$log]=[];
@@ -30,22 +30,22 @@ if (is_dir('/var/log/apache2')) {
 										$logs[$log][$matches[1]]=[];
 									};
 									if (
-										!in_array($matches[8], ['/livewhale/scheduler.php', '/robots.txt', '/live/env/private/refresh', '/live/env/public/refresh', '/live/sync_uploads', '/live/uptime', '/livewhale/api/', '/livewhale/backend.php?livewhale=session_info', '/livewhale/?login', '/live/places/maps_js', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png', '/live/payments/form', '/livewhale/']) && 
-										strpos($matches[8], '/livewhale/backend.php?livewhale=exec')!==0 && 
-										strpos($matches[8], '/livewhale/nocache.php?livewhale=exec')===false && 
-										strpos($matches[8], '/livewhale/backend.php?livewhale=log_error')===false && 
-										strpos($matches[8], 'smart_cache_response_code=1')===false && 
-										strpos($matches[8], '/livewhale/theme/core/')!==0 && 
-										strpos($matches[8], '/livewhale/thirdparty/')!==0 && 
-										strpos($matches[8], '/_ingredients/')!==0 && 
-										strpos($matches[8], '/live/resource/')!==0 && 
-										strpos($matches[8], '/livewhale/?')!==0 && 
-										strpos($matches[8], '/live/image/')!==0 && 
-										strpos($matches[8], 'ddos-check.php')===false && 
-										substr($matches[8], -4, 4)!=='.txt' && 
-										substr($matches[8], -12, 12)!=='/favicon.ico'
+										!in_array($matches[9], ['/livewhale/scheduler.php', '/robots.txt', '/live/env/private/refresh', '/live/env/public/refresh', '/live/sync_uploads', '/live/uptime', '/livewhale/api/', '/livewhale/backend.php?livewhale=session_info', '/livewhale/?login', '/live/places/maps_js', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png', '/live/payments/form', '/livewhale/']) && 
+										strpos($matches[9], '/livewhale/backend.php?livewhale=exec')!==0 && 
+										strpos($matches[9], '/livewhale/nocache.php?livewhale=exec')===false && 
+										strpos($matches[9], '/livewhale/backend.php?livewhale=log_error')===false && 
+										strpos($matches[9], 'smart_cache_response_code=1')===false && 
+										strpos($matches[9], '/livewhale/theme/core/')!==0 && 
+										strpos($matches[9], '/livewhale/thirdparty/')!==0 && 
+										strpos($matches[9], '/_ingredients/')!==0 && 
+										strpos($matches[9], '/live/resource/')!==0 && 
+										strpos($matches[9], '/livewhale/?')!==0 && 
+										strpos($matches[9], '/live/image/')!==0 && 
+										strpos($matches[9], 'ddos-check.php')===false && 
+										substr($matches[9], -4, 4)!=='.txt' && 
+										substr($matches[9], -12, 12)!=='/favicon.ico'
 									) {
-										$logs[$log][$matches[1]][]=htmlspecialchars(rawurldecode($matches[8]));
+										$logs[$log][$matches[1]][]=htmlspecialchars(rawurldecode($matches[9]));
 									};
 								};
 							};
