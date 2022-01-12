@@ -18,10 +18,13 @@ if (is_dir('/var/log/apache2')) {
 				if ($lines=explode("\n", $contents)) {
 					$lines=array_reverse($lines);
 					foreach($lines as $line) {
+						if (empty($line)) {
+							continue;
+						};
 						$matches=[];
 						preg_match('~^(\S+) (\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+) "([^"]*)" "([^"]*)"$~', $line, $matches);
 						if (!empty($matches[1]) && $matches[1]!==$_SERVER['SERVER_ADDR']) {
-							if ($ts=@strtotime(str_replace('/', '-', $matches[6].' '.$matches[5]))) {
+							if ($ts=@strtotime(str_replace('/', '-', $matches[6].' '.$matches[5].' '.$matches[7]))) {
 								if ($ts>$_SERVER['REQUEST_TIME']-3600) {
 									if (!isset($logs[$log])) {
 										$logs[$log]=[];
