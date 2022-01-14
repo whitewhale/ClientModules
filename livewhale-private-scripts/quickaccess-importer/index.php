@@ -2,7 +2,7 @@
 
 /*
 
-This script is designed to import new places in bulk.
+This script is designed to import QuickAccess links in bulk.
 
 Instructions:
 
