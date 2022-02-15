@@ -41,7 +41,7 @@ else { // else if on frontend
 		case (!empty($_LW->REGISTERED_APPS['lockout']['custom']['is_backend_only'])): // if backend access restricted only
 			return true;
 			break;
-		case (strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/')!==false): // allow LiveURL requests
+		case (strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/')!==false && !preg_match('~'.preg_quote($_LW->CONFIG['LIVE_URL'], '~').'/(?:blogs|tags|profiles|news|forms|events|galleries|issues|blurbs)~', $_SERVER['REQUEST_URI'])): // allow non-details LiveURL requests
 			return true;
 			break;
 		case (strpos($_SERVER['REQUEST_URI'], '/livewhale/')!==false): // allow /livewhale requests
