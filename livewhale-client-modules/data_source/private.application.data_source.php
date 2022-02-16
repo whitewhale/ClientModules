@@ -1,10 +1,10 @@
 <?php
 
-$_LW->REGISTERED_APPS['data_source']=array(
+$_LW->REGISTERED_APPS['data_source']=[
 	'title'=>'Data Source',
-	'handlers'=>array('onWidgetConfig', 'onLoad'),
-	'flags'=>array('no_autoload')
-);
+	'handlers'=>['onWidgetConfig', 'onLoad'],
+	'flags'=>['no_autoload']
+];
 
 class LiveWhaleApplicationDataSource {
 

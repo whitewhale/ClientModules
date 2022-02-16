@@ -2,7 +2,7 @@
 
 // Plugin for accessing LiveWhale database data directly.
 
-$_LW->data_source=array(
+$_LW->data_source=[
 	'type'=>'mysql',
 	'host'=>'',
 	'port'=>'',
@@ -10,8 +10,8 @@ $_LW->data_source=array(
 	'password'=>'',
 	'database'=>'',
 	'allowed_tables'=>'*',
-	'disallowed_tables'=>array('livewhale_users', 'livewhale_profiles_data_sources'), // not safe to include these!
+	'disallowed_tables'=>['livewhale_users', 'livewhale_profiles_data_sources'], // not safe to include these!
 	'handle'=>$_LW->db
-);
+];
 
 ?>

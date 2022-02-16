@@ -4,7 +4,7 @@
 
 class LiveWhaleDataSourcePluginMysql {
 public $error='';
-protected $tables=array();
+protected $tables=[];
 
 public function isSupported() { // checks if this database type is supported on the current PHP installation
 if (extension_loaded('mysqli')) {
@@ -49,11 +49,11 @@ else {
 }
 
 protected function getTables($source) { // gets all tables for the specified database
-$this->tables[$source['name']]=array();
+$this->tables[$source['name']]=[];
 if ($res=$source['handle']->query('SHOW TABLES;')) {
 	if (!empty($res->num_rows)) {
 		while ($res2=$res->fetch_row()) {
-			$this->tables[$source['name']][$res2[0]]=array();
+			$this->tables[$source['name']][$res2[0]]=[];
 		};
 		$res->close();
 	};
@@ -84,7 +84,7 @@ return $this->tables[$source['name']][$table];
 
 public function getResults($source, $args) { // fetches results
 global $_LW;
-$output=array();
+$output=[];
 if (!isset($this->tables[$source['name']])) { // confirm that the specified table is valid
 	$this->getTables($source);
 };
@@ -92,13 +92,13 @@ if (isset($this->tables[$source['name']][$args['table']])) {
 	if (empty($this->tables[$source['name']][$args['table']])) {
 		$this->getFieldsForTable($source, $args['table']);
 	};
-	$where=array();
-	foreach(array('search', 'exclude_search') as $search_type) {
+	$where=[];
+	foreach(['search', 'exclude_search'] as $search_type) {
 		if (!empty($args[$search_type])) { // build search query
-			$search_mode=(!empty($args[$search_type.'_mode']) && in_array($args[$search_type.'_mode'], array('any', 'all'))) ? ((string)$args[$search_type.'_mode']=='all' ? 'AND' : 'OR') : 'AND'; // get search mode
-			$search_clauses=array();
+			$search_mode=(!empty($args[$search_type.'_mode']) && in_array($args[$search_type.'_mode'], ['any', 'all'])) ? ((string)$args[$search_type.'_mode']=='all' ? 'AND' : 'OR') : 'AND'; // get search mode
+			$search_clauses=[];
 			if (!is_array($args[$search_type])) {
-				$args[$search_type]=array($args[$search_type]);
+				$args[$search_type]=[$args[$search_type]];
 			};
 			foreach($args[$search_type] as $search_terms) { // construct each search clause
 				$search_terms=(string)$search_terms;
@@ -139,7 +139,7 @@ if (isset($this->tables[$source['name']][$args['table']])) {
 		$args['sort_field']=explode(',', $args['sort_field']);
 		foreach($args['sort_field'] as $key=>$val) {
 			$args['sort_field'][$key]=trim($val);
-			if (!isset($this->tables[$source['name']][$args['table']][str_replace(array(' ASC', ' DESC'), '', $args['sort_field'][$key])])) {
+			if (!isset($this->tables[$source['name']][$args['table']][str_replace([' ASC', ' DESC'], '', $args['sort_field'][$key])])) {
 				unset($args['sort_field'][$key]);
 			};
 		};

@@ -1,19 +1,19 @@
 <?php
 
-$_LW->REGISTERED_WIDGETS['data_source']=array( 
+$_LW->REGISTERED_WIDGETS['data_source']=[ 
        'title'=>'Data Source',
-       'widget'=>array(
-		   'cache'=>array(
+       'widget'=>[
+		   'cache'=>[
 			   'data_source'=>3600
-		   )
-       ),        
-	   'handlers'=>array('onDisplay'),
-	   'ajax'=>array('getDataSourceTableFields')
-);
+			]
+       ],        
+	   'handlers'=>['onDisplay'],
+	   'ajax'=>['getDataSourceTableFields']
+];
 
 class LiveWhaleWidgetDataSource {
-protected $sources=array();
-protected $plugins=array();
+protected $sources=[];
+protected $plugins=[];
 
 protected function getSource($name) { // gets the specified source for a query
 global $_LW;
@@ -146,7 +146,7 @@ return $output; // return output in place of widget
 
 public function getDataSourceTableFields() { // gets the fields for a table
 global $_LW;
-$output=array();
+$output=[];
 if (!empty($_LW->_GET['source'])) { // if source is defined
 	if (!empty($_LW->_GET['table'])) { // if table is specified
 		if ($source=$this->getSource($_LW->_GET['source'])) { // if source loaded
