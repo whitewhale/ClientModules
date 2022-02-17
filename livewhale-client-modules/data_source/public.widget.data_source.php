@@ -98,37 +98,32 @@ $this->error='';
 $is_preview=(strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/widget/preview/')===0); // flag if this is a widget preview (errors only reported there)
 $args=&$_LW->widget['args']; // alias args
 if (!empty($args['source'])) { // if source is defined
-	if (!empty($args['table'])) { // if table is specified
-		if (!empty($args['format'])) { // if format is specified
-			if ($source=$this->getSource($args['source'])) { // if source loaded
-				if (empty($args['max'])) { // sanitize max or set the default
-					$args['max']=30;
-				};
-				if ($args['max']>2000) {
-					$args['max']=2000;
-				};
-				$_LW->widgetApplyArgs(); // support core args (like header, etc.)
-				if ($results=$source['plugin']->getResults($source, $args)) { // fetch the results
-					foreach($results as $result) { // loop through results
-						foreach($result as $key=>$val) {
-							if (strpos($val, '<')!==false) {
-								$result[$key]=$_LW->setFormatSanitize($val);
-							};
+	if (!empty($args['format'])) { // if format is specified
+		if ($source=$this->getSource($args['source'])) { // if source loaded
+			if (empty($args['max'])) { // sanitize max or set the default
+				$args['max']=30;
+			};
+			if ($args['max']>2000) {
+				$args['max']=2000;
+			};
+			$_LW->widgetApplyArgs(); // support core args (like header, etc.)
+			if ($results=$source['plugin']->getResults($source, $args)) { // fetch the results
+				foreach($results as $result) { // loop through results
+					foreach($result as $key=>$val) {
+						if (strpos($val, '<')!==false) {
+							$result[$key]=$_LW->setFormatSanitize($val);
 						};
-						$_LW->widgetAddResult($_LW->widgetFormat($_LW->widgetFormatVars($result))); // add each result to widget output
 					};
+					$_LW->widgetAddResult($_LW->widgetFormat($_LW->widgetFormatVars($result))); // add each result to widget output
 				};
-			}
-			else {
-				$this->error='Could not load source "'.$_LW->setFormatClean($args['source']).'" for this widget'.(!empty($this->error) ? ': '.$this->error : '').'.';
-			}
+			};
 		}
 		else {
-			$this->error='You must enter an output format for this widget.';
-		};
+			$this->error='Could not load source "'.$_LW->setFormatClean($args['source']).'" for this widget'.(!empty($this->error) ? ': '.$this->error : '').'.';
+		}
 	}
 	else {
-		$this->error='You must enter a table name for this widget.';
+		$this->error='You must enter an output format for this widget.';
 	};
 }
 else {
