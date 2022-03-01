@@ -6,10 +6,10 @@ Show "Created by" for events
 
 */
 
-$_LW->REGISTERED_APPS['show_created_by']=array( // configure this module
+$_LW->REGISTERED_APPS['show_created_by']=[ // configure this module
 	'title'=>'Show Created By',
-	'handlers'=>array('onOutput')
-);
+	'handlers'=>['onOutput']
+];
 
 class LiveWhaleApplicationShowCreatedBy {
 
