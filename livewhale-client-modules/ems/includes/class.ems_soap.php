@@ -14,6 +14,8 @@ global $_LW;
 $response=(array)$response; // get the response as array
 if (!empty($response[$call.'Result'])) { // fetch the result
 	$xml=$_LW->getNew('xpresent'); // create the XML response object
+	$xml->recover=true;
+	$response[$call.'Result']=str_replace('&#x1F;', '', $response[$call.'Result']);
 	if ($xml->loadXML($response[$call.'Result'])) { // if the result parses
 		if ($errors=$xml->query('//Error/Message')) { // if there were errors
 			foreach($errors as $error) { // fetch them
