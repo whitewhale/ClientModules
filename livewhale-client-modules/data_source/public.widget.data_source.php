@@ -1,19 +1,19 @@
 <?php
 
-$_LW->REGISTERED_WIDGETS['data_source']=array( 
+$_LW->REGISTERED_WIDGETS['data_source']=[ 
        'title'=>'Data Source',
-       'widget'=>array(
-		   'cache'=>array(
+       'widget'=>[
+		   'cache'=>[
 			   'data_source'=>3600
-		   )
-       ),        
-	   'handlers'=>array('onDisplay'),
-	   'ajax'=>array('getDataSourceTableFields')
-);
+			]
+       ],        
+	   'handlers'=>['onDisplay'],
+	   'ajax'=>['getDataSourceTableFields']
+];
 
 class LiveWhaleWidgetDataSource {
-protected $sources=array();
-protected $plugins=array();
+protected $sources=[];
+protected $plugins=[];
 
 protected function getSource($name) { // gets the specified source for a query
 global $_LW;
@@ -98,37 +98,32 @@ $this->error='';
 $is_preview=(strpos($_SERVER['REQUEST_URI'], $_LW->CONFIG['LIVE_URL'].'/widget/preview/')===0); // flag if this is a widget preview (errors only reported there)
 $args=&$_LW->widget['args']; // alias args
 if (!empty($args['source'])) { // if source is defined
-	if (!empty($args['table'])) { // if table is specified
-		if (!empty($args['format'])) { // if format is specified
-			if ($source=$this->getSource($args['source'])) { // if source loaded
-				if (empty($args['max'])) { // sanitize max or set the default
-					$args['max']=30;
-				};
-				if ($args['max']>2000) {
-					$args['max']=2000;
-				};
-				$_LW->widgetApplyArgs(); // support core args (like header, etc.)
-				if ($results=$source['plugin']->getResults($source, $args)) { // fetch the results
-					foreach($results as $result) { // loop through results
-						foreach($result as $key=>$val) {
-							if (strpos($val, '<')!==false) {
-								$result[$key]=$_LW->setFormatSanitize($val);
-							};
+	if (!empty($args['format'])) { // if format is specified
+		if ($source=$this->getSource($args['source'])) { // if source loaded
+			if (empty($args['max'])) { // sanitize max or set the default
+				$args['max']=30;
+			};
+			if ($args['max']>2000) {
+				$args['max']=2000;
+			};
+			$_LW->widgetApplyArgs(); // support core args (like header, etc.)
+			if ($results=$source['plugin']->getResults($source, $args)) { // fetch the results
+				foreach($results as $result) { // loop through results
+					foreach($result as $key=>$val) {
+						if (strpos($val, '<')!==false) {
+							$result[$key]=$_LW->setFormatSanitize($val);
 						};
-						$_LW->widgetAddResult($_LW->widgetFormat($_LW->widgetFormatVars($result))); // add each result to widget output
 					};
+					$_LW->widgetAddResult($_LW->widgetFormat($_LW->widgetFormatVars($result))); // add each result to widget output
 				};
-			}
-			else {
-				$this->error='Could not load source "'.$_LW->setFormatClean($args['source']).'" for this widget'.(!empty($this->error) ? ': '.$this->error : '').'.';
-			}
+			};
 		}
 		else {
-			$this->error='You must enter an output format for this widget.';
-		};
+			$this->error='Could not load source "'.$_LW->setFormatClean($args['source']).'" for this widget'.(!empty($this->error) ? ': '.$this->error : '').'.';
+		}
 	}
 	else {
-		$this->error='You must enter a table name for this widget.';
+		$this->error='You must enter an output format for this widget.';
 	};
 }
 else {
@@ -146,7 +141,7 @@ return $output; // return output in place of widget
 
 public function getDataSourceTableFields() { // gets the fields for a table
 global $_LW;
-$output=array();
+$output=[];
 if (!empty($_LW->_GET['source'])) { // if source is defined
 	if (!empty($_LW->_GET['table'])) { // if table is specified
 		if ($source=$this->getSource($_LW->_GET['source'])) { // if source loaded
