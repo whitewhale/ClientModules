@@ -7,31 +7,38 @@
 		/*
 		 * suggest to main calendar checkbox
 		 */
-		var group_id = LW.suggest_to_group_id;
-		var group_obj = _.find(LW.groups, {id: String(group_id)});
-		var group_name = (typeof group_obj !== 'undefined') ? group_obj.title : '';
-		var $share_checkbox = $('#main_group_share input[type="checkbox"]');
+		var group_ids = LW.suggest_to_groups.map(function(obj) { return obj.group_id; });
+		var $share_checkbox = $('.main_group_share input[type="checkbox"]');
+
+		var getGroupName = function(id) {
+			var group = _.find(LW.groups, {id: String(id)});
+			return (group && group.title) ? group.title : '';
+		};
 
 		var $suggest = $('.group_suggest').bind('multisuggestchange', function(e) {
-			var selected = $suggest.multisuggest('getSelected'),
-					main_exists = selected.filter(s => s.id == group_id).length > 0;
+			var selected = $suggest.multisuggest('getSelected').map(function(obj) { return parseInt(obj.id, 10); });
 
-			if (main_exists && !$share_checkbox.prop('checked')) {
-				$share_checkbox.prop('checked', true);
-			}
-			if (!main_exists && $share_checkbox.prop('checked')) {
-				$share_checkbox.prop('checked', false);
-			}
+			$share_checkbox.each(function() {
+				var $this = $(this);
+				var val = parseInt($this.val(), 10);
+
+				if (_.includes(selected, val)) {
+					$this.prop('checked', true);
+				} else {
+					$this.prop('checked', false);
+				}
+			});
 		});
 		$share_checkbox.click(function() {
-			var selected, main_exists;
+			var $this = $(this);
+			var group_id = $this.val();
 
-			if ($(this).prop('checked')) {
-				selected = $suggest.multisuggest('getSelected');
-				main_exists = selected.filter(s => s.id == group_id).length > 0;
+			if ($this.prop('checked')) {
+				var selected = $suggest.multisuggest('getSelected');
+				var group_exists = _.includes(selected, group_id);
 
-				if (!main_exists) {
-					$suggest.multisuggest('addItem', { id: group_id, title: group_name });
+				if (!group_exists) {
+					$suggest.multisuggest('addItem', { id: group_id, title: getGroupName(group_id) });
 				}
 			} else {
 				$suggest.multisuggest('removeItem', group_id);

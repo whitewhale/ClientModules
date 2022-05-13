@@ -1,2 +1,4 @@
 .htaccess
 .htpasswd
+.DS_Store
+livewhale-client-modules/.DS_Store
