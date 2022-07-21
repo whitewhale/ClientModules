@@ -41,7 +41,7 @@ if (!empty($params['group'])) { // if there are (LiveWhale) groups specified, co
 	};
 	foreach($params['group'] as $key=>$val) {
 		$params['group'][$key]=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_groups', 'livewhale_groups.fullname='.$_LW->escape($val))->innerJoin('livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.name="ems_group" AND livewhale_custom_data.pid=livewhale_groups.id')->firstRow('value')->run();
-		if (empty($params['group'][$key])) {
+		if (empty($params['group'][$key]) && !empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map'])) {
 			// Fall back to pre-set array in config, if exists
 			$params['group'][$key]=array_search(urldecode($val), $_LW->REGISTERED_APPS['ems']['custom']['groups_map']);
 		}
