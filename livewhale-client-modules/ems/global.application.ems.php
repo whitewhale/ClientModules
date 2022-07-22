@@ -229,6 +229,7 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		$feed->addFeedItem($ical, $arr, 'ical'); // add event to feed
 	};
 };
+$feed->disable_content_length=true;
 return $feed->showFeed($ical, 'ical'); // show the feed
 }
 
