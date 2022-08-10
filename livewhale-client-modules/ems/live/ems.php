@@ -87,6 +87,9 @@ if (!empty($params['start_date']) && !empty($params['end_date']) && !empty($para
 		if ($ical=$_LW->a_ems->getBookingsAsICAL($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($params['start_date'])), $_LW->toDate(DATE_W3C, $_LW->toTS($params['end_date'])), (!empty($params['group']) ? $params['group'] : false), (!empty($params['buildings']) ? $params['buildings'] : false), (!empty($params['statusus']) ? $params['statuses'] : false), (!empty($params['event_types']) ? $params['event_types'] : false), (!empty($params['group_types']) ? $params['group_types'] : false), (!empty($is_single_group) ? $params['group'][0] : false))) { // fetch and format bookings as ICAL feed
 			$output=$ical;
 		};
+	}
+	else {
+		die($this->httpResponse(404, true));
 	};
 };
 header('Content-Type: text/calendar'); // send content encoding header
