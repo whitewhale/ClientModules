@@ -1,10 +1,10 @@
 <?php
 
-$_LW->REGISTERED_APPS['form_grader']=array(
+$_LW->REGISTERED_APPS['form_grader']=[
 	'title'=>'Form Grader',
-	'handlers'=>array('onLoad', 'onBeforeEditor', 'onOutput', 'onFormsShowElement', 'onAfterEdit', 'onSaveSuccess', 'onBeforeValidate'),
-	'flags'=>array('no_autoload')
-); // configure this module
+	'handlers'=>['onLoad', 'onBeforeEditor', 'onOutput', 'onFormsShowElement', 'onAfterEdit', 'onSaveSuccess', 'onBeforeValidate'],
+	'flags'=>['no_autoload']
+]; // configure this module
 
 class LiveWhaleApplicationFormGrader {
 
@@ -13,10 +13,10 @@ global $_LW;
 if ($_LW->page=='forms_edit') { // if on forms editor
 	$_LW->REGISTERED_CSS[]=$_LW->CONFIG['LIVE_URL'].'/resource/css/form_grader%5Cform_grader.css'; // add stylesheet
 	$_LW->REGISTERED_JS[]=$_LW->CONFIG['LIVE_URL'].'/resource/js/form_grader%5Cform_grader.js'; // add script
-	$_LW->ENV->input_filter['forms_edit']['answer_message_correct']=array('tags'=>'*', 'wysiwyg'=>1); // allow HTML in these fields
-	$_LW->ENV->input_filter['forms_edit']['answer_message_incorrect']=array('tags'=>'*', 'wysiwyg'=>1);
-	$_LW->ENV->input_filter['forms_edit']['score_message_pass']=array('tags'=>'*', 'wysiwyg'=>1);
-	$_LW->ENV->input_filter['forms_edit']['score_message_fail']=array('tags'=>'*', 'wysiwyg'=>1);
+	$_LW->ENV->input_filter['forms_edit']['answer_message_correct']=['tags'=>'*', 'wysiwyg'=>1]; // allow HTML in these fields
+	$_LW->ENV->input_filter['forms_edit']['answer_message_incorrect']=['tags'=>'*', 'wysiwyg'=>1];
+	$_LW->ENV->input_filter['forms_edit']['score_message_pass']=['tags'=>'*', 'wysiwyg'=>1];
+	$_LW->ENV->input_filter['forms_edit']['score_message_fail']=['tags'=>'*', 'wysiwyg'=>1];
 };
 }
 
@@ -137,7 +137,7 @@ public function onSaveSuccess($type, $id) {
 global $_LW;
 if ($type=='forms' && $_LW->page=='forms_edit') { // if saving a form from the editor
 	if (!empty($_LW->_POST['is_graded']) || (!empty($_LW->_POST['correct_answer']) && implode('', $_LW->_POST['correct_answer'])!='')) {
-		$fields=array(
+		$fields=[
 			'is_graded'=>@$_LW->_POST['is_graded'],
 			'correct_answer'=>$_LW->setFormatSanitize(@$_LW->_POST['correct_answer']),
 			'answer_message_correct'=>$_LW->setFormatSanitize(@$_POST['answer_message_correct']),
@@ -146,10 +146,10 @@ if ($type=='forms' && $_LW->page=='forms_edit') { // if saving a form from the e
 			'correct_answers_pass'=>(int)@$_LW->_POST['correct_answers_pass'],
 			'score_message_pass'=>$_LW->setFormatSanitize(@$_POST['score_message_pass']),
 			'score_message_fail'=>$_LW->setFormatSanitize(@$_POST['score_message_fail'])
-		);
+		];
 	}
 	else {
-		$fields=array(
+		$fields=[
 			'is_graded'=>'',
 			'correct_answer'=>'',
 			'answer_message_correct'=>'',
@@ -158,9 +158,9 @@ if ($type=='forms' && $_LW->page=='forms_edit') { // if saving a form from the e
 			'correct_answers_pass'=>'',
 			'score_message_pass'=>'',
 			'score_message_fail'=>''
-		);
+		];
 	};
-	$_LW->setCustomFields($type, $id, $fields, array()); // save the graded toggle
+	$_LW->setCustomFields($type, $id, $fields, []); // save the graded toggle
 };
 }
 

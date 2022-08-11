@@ -10,7 +10,7 @@ if (is_dir($dir)) {
 		mkdir($dir.'/verify_emails');
 	};
 	if (is_dir($dir.'/verify_emails')) {
-		$invalid_addresses=array();
+		$invalid_addresses=[];
 		foreach($_LW->dbo->query('select', 'username, email', 'livewhale_users', 'email NOT LIKE "%@whitewhale.net"')->run() as $res2) {
 			echo 'User: '.$res2['username'].'<br/>Email: '.$res2['email'].'<br/>Valid?: ';
 			$cache_path=$dir.'/verify_emails/'.hash('md5', $res2['email']);

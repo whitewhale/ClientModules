@@ -29,16 +29,16 @@
 
     private $_yahoo_signup_page_url = 'https://login.yahoo.com/account/create?specId=yidReg&lang=en-US&src=&done=https%3A%2F%2Fwww.yahoo.com&display=login';
     private $_yahoo_signup_ajax_url = 'https://login.yahoo.com/account/module/create?validateField=yid';
-    private $_yahoo_domains = array('yahoo.com');
+    private $_yahoo_domains = ['yahoo.com'];
     private $_hotmail_signin_page_url = 'https://login.live.com/';
     private $_hotmail_username_check_url = 'https://login.live.com/GetCredentialType.srf?wa=wsignin1.0';
-    private $_hotmail_domains = array('hotmail.com', 'live.com', 'outlook.com', 'msn.com');
+    private $_hotmail_domains = ['hotmail.com', 'live.com', 'outlook.com', 'msn.com'];
     private $page_content;
     private $page_headers;
 
     public function __construct($email = null, $verifier_email = null, $port = 25){
-      $this->debug = array();
-      $this->debug_raw = array();
+      $this->debug = [];
+      $this->debug_raw = [];
       if(!is_null($email) && !is_null($verifier_email)) {
         $this->debug[] = 'Initialized with Email: '.$email.', Verifier Email: '.$verifier_email.', Port: '.$port;
         $this->set_email($email);
@@ -80,7 +80,7 @@
     }
 
     public function get_errors(){
-      return array('errors' => $this->errors);
+      return ['errors' => $this->errors];
     }
 
     public function get_debug($raw = false) {
@@ -193,7 +193,7 @@
         $domain = substr($domain, strlen('IPv6') + 1);
       }
 
-      $mxhosts = array();
+      $mxhosts = [];
       if( filter_var($domain, FILTER_VALIDATE_IP) ) {
         $mx_ip = $domain;
       }
@@ -228,11 +228,11 @@
     }
 
     private function add_error($code, $msg) {
-      $this->errors[] = array('code' => $code, 'message' => $msg);
+      $this->errors[] = ['code' => $code, 'message' => $msg];
     }
 
     private function clear_errors() {
-      $this->errors = array();
+      $this->errors = [];
     }
 
     private function validate_yahoo() {
@@ -290,13 +290,13 @@
 
     private function fetch_page($service, $cookies = ''){
       if($cookies){
-        $opts = array(
-          'http'=>array(
+        $opts = [
+          'http'=>[
             'method'=>"GET",
             'header'=>"Accept-language: en\r\n" .
                       "Cookie: ".$cookies."\r\n"
-          )
-        );
+		  ]
+        ];
         $context = stream_context_create($opts);
       }
       if($service == 'yahoo'){
@@ -332,7 +332,7 @@
       $this->debug[] = 'Attempting to get the cookies from the sign up page...';
       if($this->page_content !== false){
         $this->debug[] = 'Extracting cookies from headers...';
-        $cookies = array();
+        $cookies = [];
         foreach ($this->page_headers as $hdr) {
           if (preg_match('/^Set-Cookie:\s*(.*?;).*?$/i', $hdr, $matches)) {
             $cookies[] = $matches[1];
@@ -352,7 +352,7 @@
 
     private function get_fields(){
       $dom = new DOMDocument();
-      $fields = array();
+      $fields = [];
       if(@$dom->loadHTML($this->page_content)){
         $this->debug[] = 'Parsing the page for input fields...';
         $xp = new DOMXpath($dom);
@@ -372,7 +372,7 @@
 
     private function request_validation($service, $cookies, $fields){
       if($service == 'yahoo'){
-        $headers = array();
+        $headers = [];
         $headers[] = 'Origin: https://login.yahoo.com';
         $headers[] = 'X-Requested-With: XMLHttpRequest';
         $headers[] = 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36';
@@ -388,19 +388,19 @@
 
         $postdata = http_build_query($fields);
 
-        $opts = array('http' =>
-          array(
+        $opts = ['http' =>
+		  [
             'method'  => 'POST',
             'header'  => $headers,
             'content' => $postdata
-          )
-        );
+		  ]
+		];
 
         $context  = stream_context_create($opts);
         $result = file_get_contents($this->_yahoo_signup_ajax_url, false, $context);
       }
       else if($service == 'hotmail'){
-        $headers = array();
+        $headers = [];
         $headers[] = 'Origin: https://login.live.com';
         $headers[] = 'hpgid: 33';
         $headers[] = 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36';
@@ -415,13 +415,13 @@
 
         $postdata = json_encode($fields);
 
-        $opts = array('http' =>
-          array(
+        $opts = ['http' =>
+          [
             'method'  => 'POST',
             'header'  => $headers,
             'content' => $postdata
-          )
-        );
+		  ]
+		];
 
         $context  = stream_context_create($opts);
         $result = file_get_contents($this->_hotmail_username_check_url, false, $context);
@@ -430,7 +430,7 @@
     }
 
     private function prep_hotmail_fields($cookies){
-      $fields = array();
+      $fields = [];
       foreach($cookies as $cookie){
         list($key, $val) = explode('=', $cookie, 2);
         if($key == 'uaid'){

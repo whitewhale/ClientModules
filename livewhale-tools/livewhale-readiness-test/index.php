@@ -20,7 +20,7 @@ $DB_DATABASE='';
 require './get_url.php';
 
 function formatCommandLine($buffer) { // formats the page output for command line
-$buffer=preg_replace(array('~<style>.+?</style>~s', '~<title>.+?</title>~s'), '', $buffer);
+$buffer=preg_replace(['~<style>.+?</style>~s', '~<title>.+?</title>~s'], '', $buffer);
 $buffer=str_replace('</td><td>', ' ', $buffer);
 $buffer=str_replace('<td', '<br/><td', $buffer);
 $buffer=strip_tags($buffer, '<br/><br>');
@@ -59,14 +59,14 @@ if (!empty($SFTP_HOST) && !empty($SFTP_PORT) && !empty($SFTP_USER) && (!empty($S
 	// SSH2/SFTP Access
 
 	if (extension_loaded('ssh2')) {
-		$methods=array();
+		$methods=[];
 		if (!empty($SFTP_PUBLIC_KEY_PATH)) {
 			if ($contents=@file_get_contents($SFTP_PUBLIC_KEY_PATH.(substr($SFTP_PUBLIC_KEY_PATH, -1, 1)!='/' ? '/' : '').'key.public')) {
 				if (strpos($contents, 'ssh-dss')===0) {
-					$methods=array('hostkey'=>'ssh-dss');
+					$methods=['hostkey'=>'ssh-dss'];
 				}
 				else if (strpos($contents, 'ssh-rsa')===0) {
-					$methods=array('hostkey'=>'ssh-rsa');
+					$methods=['hostkey'=>'ssh-rsa'];
 				};
 			};
 		};
@@ -227,8 +227,8 @@ else {
 
 // PHP Extensions
 
-$missing=array();
-foreach(array('SimpleXML', 'dom', 'tidy', 'ftp', 'json', 'mysqli', 'gd', 'curl', 'zlib') as $extension) {
+$missing=[];
+foreach(['SimpleXML', 'dom', 'tidy', 'ftp', 'json', 'mysqli', 'gd', 'curl', 'zlib'] as $extension) {
 	if (!extension_loaded($extension)) {
 		$missing[]=$extension;
 	};
@@ -264,7 +264,7 @@ else {
 
 // PHP Configuration Settings
 
-$settings=array();
+$settings=[];
 if ($memory=ini_get('memory_limit')) {
 	if (substr($memory, -1, 1)=='M') {
 		$memory=substr($memory, 0, -1);
@@ -311,10 +311,10 @@ if ($has_apc) {
 };
 $disable_functions=explode(',', ini_get('disable_functions'));
 if (!empty($disable_functions)) {
-	$disabled=array();
+	$disabled=[];
 	foreach($disable_functions as $function) {
 		$function=trim($function);
-		if (in_array($function, array('shell_exec', 'curl_exec', 'curl_multi_exec'))) {
+		if (in_array($function, ['shell_exec', 'curl_exec', 'curl_multi_exec'])) {
 			$disabled[]=$function;
 		};
 	};
@@ -337,7 +337,7 @@ else {
 // MySQL Configuration Settings
 
 if (!empty($has_db)) {
-	$settings=array();
+	$settings=[];
 	$version='';
 	if ($res=$db->query('SHOW VARIABLES LIKE "version";')) {
 		if ($res2=$res->fetch_assoc()) {
@@ -434,7 +434,7 @@ else {
 # HTTP Access
 
 if (extension_loaded('curl')) {
-	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/file.html', true, false, array(CURLOPT_ENCODING=>1, CURLOPT_HTTPHEADER=>array('Accept-Encoding: gzip,deflate')));
+	$response=getUrl('http'.(!empty($_SERVER['HTTPS']) ? 's' : '').'://'.$HTTP_HOST.'/livewhale-readiness-test/file.html', true, false, [CURLOPT_ENCODING=>1, CURLOPT_HTTPHEADER=>['Accept-Encoding: gzip,deflate']]);
 	if (empty($GLOBALS['last_code']) || strpos($response, '<div id="foo"></div>')===false) {
 		echo '<tr><td class="failure">FAIL</td><td>HTTP Access</td><td>The web server is not able to make an HTTP request to itself at '.$HTTP_HOST.'.</td></tr>';
 	}

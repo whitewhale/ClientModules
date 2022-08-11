@@ -14,10 +14,10 @@ Instructions:
 require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 
 ini_set('auto_detect_line_endings', true);
-$items=array();
+$items=[];
 
 // Get gids for comparing to group titles
-$gids=array();
+$gids=[];
 $groups=$_LW->read('groups');
 foreach ($groups as $group) {
 	$gids[$group['id']] = $group['title'];
@@ -36,7 +36,7 @@ if ($file=fopen('./tags.csv', 'r')) {
 			foreach($item as $key=>$val) {
 				$item[$key]=$_LW->setFormatSanitize(trim($val));
 			};
-			$tmp=array();
+			$tmp=[];
 			$tmp['title']=$item[0];
 			$tmp['is_starred']=(strtolower($item[1]) == 'true' || $item[1] == '1') ? '1' : false; 
 			$tmp['gid']=(!empty($item[2])) ? array_search($item[2], $gids) : '';
@@ -50,11 +50,11 @@ if ($file=fopen('./tags.csv', 'r')) {
 if (!empty($items)) {
 	foreach($items as $item) {
 		if (!empty($_LW->_GET['run'])) {
-			if ($id=$_LW->create('tags', array(
+			if ($id=$_LW->create('tags', [
 				'title'=>$item['title'],
 				'is_starred'=>$item['is_starred'],
 				'gid'=>$item['gid']
-			))) {
+			])) {
 				echo 'Created tag '.$id.' (' . $item['title'] . ', ' . ((!empty($item['gid'])) ? 'gid: ' . $item['gid'] : 'Global Tag') . ')<br/>';
 			}
 			else {

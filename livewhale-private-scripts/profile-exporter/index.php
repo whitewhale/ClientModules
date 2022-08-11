@@ -34,7 +34,7 @@ else { // else if a type has been selected
 		header('Content-Type: application/octet-stream'); // send download headers
 		header('Content-Disposition: attachment; filename="all-profiles-type-'.(int)$_LW->_POST['type'].'.csv"');
 		if ($fp=fopen('php://output', 'w')) { // if CSV opens
-			$header_row=array('id', 'gid', 'firstname', 'middlename', 'lastname', 'title', 'description', 'url', 'contact_info', 'username');
+			$header_row=['id', 'gid', 'firstname', 'middlename', 'lastname', 'title', 'description', 'url', 'contact_info', 'username'];
 			foreach($profile_field_ids as $profile_field_id) {
 				$header_row[]='profiles_'.(int)$profile_field_id;
 			};

@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['appointments']=array(
+$_LW->REGISTERED_APPS['appointments']=[
 	'title'=>'Appointments',
-	'handlers'=>array('onAfterEdit', 'onValidateSuccess', 'onSaveSuccess', 'onBeforeSave', 'onEditorFirstLoad', 'onOutput', 'onBeforeDelete', 'onSubnavs', 'onManagerFormatResults', 'onCSVOutput')
-);
+	'handlers'=>['onAfterEdit', 'onValidateSuccess', 'onSaveSuccess', 'onBeforeSave', 'onEditorFirstLoad', 'onOutput', 'onBeforeDelete', 'onSubnavs', 'onManagerFormatResults', 'onCSVOutput']
+];
 
 class LiveWhaleApplicationAppointments {
 
@@ -31,7 +31,7 @@ if ($module=='events') { // create list of clickable appointments for events
 public function onEditorFirstLoad($module, $page, $id) { // after initalizing an editor without a submission
 global $_LW;
 if (!empty($id) && $module=='events') { // if editing an existing event
-	$_LW->_POST['appointments']=array();
+	$_LW->_POST['appointments']=[];
 	foreach($_LW->dbo->query('select', 'id1', 'livewhale_appointments2any', 'id2='.(int)$id.' AND type="events"')->run() as $res2) {
 		$_LW->_POST['appointments'][]=$res2['id1'];
 	};
@@ -41,7 +41,7 @@ if (!empty($id) && $module=='events') { // if editing an existing event
 public function onBeforeSave($type, $id) { // before saving an item of any data type
 global $_LW;
 if (!empty($_LW->json['is_editor'])) { // if this is an editor submission
-	$_LW->save_data['associated_data']['appointments']=array();
+	$_LW->save_data['associated_data']['appointments']=[];
 	if (!empty($_LW->_POST['appointments']) || !empty($_LW->_POST['appointments_added'])) { // convert appointments to a single standardized list for saving
 		if (!empty($_LW->_POST['appointments'])) {
 			foreach($_LW->dbo->query('select', 'title', 'livewhale_appointments', 'id IN ('.preg_replace('~[^0-9,]~', '', implode(', ', $_LW->_POST['appointments'])).')')->run() as $res2) {
@@ -57,7 +57,7 @@ if (!empty($_LW->json['is_editor'])) { // if this is an editor submission
 
 public function onValidateSuccess($type, $id) { // after successfully validating an item of any data type
 global $_LW;
-$last_appointments=array();
+$last_appointments=[];
 if ($type=='events') { // if saving an event
 	if (!empty($id)) { // if updating, get current appointments before save
 		foreach($_LW->dbo->query('select', 'livewhale_appointments.id, livewhale_appointments.title', 'livewhale_appointments2any', 'livewhale_appointments2any.id2='.(int)$id.' AND livewhale_appointments2any.type="events"')->innerJoin('livewhale_appointments', 'livewhale_appointments.id=livewhale_appointments2any.id1')->run() as $res2) {
@@ -66,7 +66,7 @@ if ($type=='events') { // if saving an event
 				if ($this->hasFilledAppointment($id, $res2['id'])) {
 					$_SESSION['livewhale']['manage']['messages']['failure'][]='Removal of appointment time "'.$res2['title'].'" ignored, because this slot is currently filled.';
 					if (!isset($_LW->save_data['associated_data']['appointments'])) {
-						$_LW->save_data['associated_data']['appointments']=array();
+						$_LW->save_data['associated_data']['appointments']=[];
 					};
 					$_LW->save_data['associated_data']['appointments'][]=$res2['title'];
 				};
@@ -79,7 +79,7 @@ if ($type=='events') { // if saving an event
 			foreach($_LW->save_data['associated_data']['appointments'] as $key=>$appointment) { // for each appointment
 				if (!in_array($appointment, $last_appointments)) { // if appointment has been added with this save
 					if (!$_LW->dbo->query('select', '1', 'livewhale_appointments', 'title='.$_LW->escape($appointment))->exists()->run()) { // if appointment does not yet exist
-						$appointment_id=$_LW->create('appointments', array('gid'=>$gid, 'title'=>$appointment)); // create the appointment
+						$appointment_id=$_LW->create('appointments', ['gid'=>$gid, 'title'=>$appointment]); // create the appointment
 						if (empty($appointment_id)) { // if appointment could not be created
 							unset($_LW->save_data['associated_data']['appointments'][$key]); // remove this appointment from the array of appointments being saved (so that we don't attempt to create a lookup table entry for it)
 						}
@@ -110,7 +110,7 @@ global $_LW;
 if ($type=='events') { // if appointments supported
 	if (isset($_LW->save_data['associated_data']['appointments']) && is_array($_LW->save_data['associated_data']['appointments'])) { // if appointments are being saved
 		$type_escaped=$_LW->escape($type); // escape type
-		$appointment_ids=array();
+		$appointment_ids=[];
 		if (!empty($_LW->save_data['associated_data']['appointments'])) { // for each appointment that was attached to this item
 			foreach($_LW->save_data['associated_data']['appointments'] as $appointment) {
 				if (!empty($_LW->save_data['associated_data']['lw_last_appointments']) && in_array($appointment, $_LW->save_data['associated_data']['lw_last_appointments'])) { // get the appointment ID from last_appointments (not restricting by group, to preserve appointment assignments from admins in another group)
@@ -123,7 +123,7 @@ if ($type=='events') { // if appointments supported
 		};
 		if (!empty($appointment_ids)) { // insert appointment linkages, if any
 			foreach($appointment_ids as $appointment_id) {
-				$_LW->dbo->query('insert', 'livewhale_appointments2any', array('id1'=>(int)$appointment_id, 'id2'=>(int)$id, 'type'=>$type_escaped), true)->run();
+				$_LW->dbo->query('insert', 'livewhale_appointments2any', ['id1'=>(int)$appointment_id, 'id2'=>(int)$id, 'type'=>$type_escaped], true)->run();
 			};
 		};
 		$_LW->dbo->query('delete', 'livewhale_appointments2any', 'id2='.(int)$id.' AND type='.$type_escaped.(!empty($appointment_ids) ? ' AND id1 NOT IN ('.preg_replace('~[^0-9,]~', '', implode(',', $appointment_ids)).')' : ''))->flags('quick')->run(); // delete any appointment linkages no longer needed
@@ -134,7 +134,7 @@ if ($type=='events') { // if appointments supported
 public function onBeforeDelete($type, $id) { // before deleting an item of any data type
 global $_LW;
 if ($type=='events_registration') { // if deleting an event registration
-	$_LW->dbo->query('update', 'livewhale_appointments2any', array('registration_id'=>'NULL'), 'registration_id='.(int)$id.' AND type="events"')->run(); // reset the association of an appointment slot with this registration
+	$_LW->dbo->query('update', 'livewhale_appointments2any', ['registration_id'=>'NULL'], 'registration_id='.(int)$id.' AND type="events"')->run(); // reset the association of an appointment slot with this registration
 }
 else if ($type=='events') { // if deleting an event
 	$_LW->dbo->query('delete', 'livewhale_appointments2any', 'id2='.(int)$id.' AND type="events"')->flags('quick')->run(); // delete associations of appointment slots with this event
@@ -154,7 +154,7 @@ return false;
 public function onSubnavs($module, $subnavs) { // override subnavs
 global $_LW;
 if (strpos($_LW->page, 'events')===0 && $_LW->userSetting('core_admin')) { // if on an events page and user is an admin
-	$subnavs[]=array('title'=>'Appointments', 'url'=>'/livewhale/?appointments', 'id'=>'page_appointments'); // add subnav item
+	$subnavs[]=['title'=>'Appointments', 'url'=>'/livewhale/?appointments', 'id'=>'page_appointments']; // add subnav item
 };
 return $subnavs;
 }
@@ -164,11 +164,11 @@ global $_LW;
 if ($handler=='managerQueryRegistrationsList') { // if this is the event registrations list
 	foreach($data as $key=>$val) {
 		$event_id=$_LW->_GET['id'];
-		$matches=array();
+		$matches=[];
 		preg_match_all('~<tr[^>]*?>.+?</tr>~s', $data[$key]['attendees'], $matches);
 		if (!empty($matches)) {
 			foreach($matches[0] as $tr) {
-				$matches2=array();
+				$matches2=[];
 				preg_match('~<input type="hidden" name="registrations\[\]" value="([0-9]+?)"/>~', $tr, $matches2);
 				if (!empty($matches2[1])) {
 					$registration_id=$matches2[1];

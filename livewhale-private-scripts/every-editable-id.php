@@ -8,14 +8,14 @@ This script lists editable IDs in use by pages on the current web host and prese
 
 require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 
-$editable_ids=array();
+$editable_ids=[];
 foreach($_LW->dbo->query('select', 'path, elements', 'livewhale_pages', 'host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND is_deleted IS NULL')->run() as $res2) {
-	$matches=array();
+	$matches=[];
 	preg_match_all('~<element id="([^"]+?)">.+?</element>~s', $res2['elements'], $matches);
 	if (!empty($matches[1])) {
 		foreach($matches[1] as $element_key=>$element_id) {
 			if (!isset($editable_ids[$element_id])) {
-				$editable_ids[$element_id]=array('pages'=>array(), 'has_content'=>false);
+				$editable_ids[$element_id]=['pages'=>[], 'has_content'=>false];
 			};
 			if (!in_array($res2['path'], $editable_ids[$element_id]['pages'])) {
 				$editable_ids[$element_id]['pages'][]=$res2['path'];

@@ -1,7 +1,7 @@
 <?php
 
 class EMSSoapClient extends SoapClient { // SOAP client for EMS
-public $ems_errors=array();
+public $ems_errors=[];
 
 function __construct($wsdl, $options) { // creates a new SOAP server client
 global $_LW;
@@ -32,23 +32,23 @@ return false;
 
 public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // fetches EMS bookings by specified parameters
 global $_LW;
-$this->ems_errors=array(); // reset errors
-$opts=array( // set default parameters
+$this->ems_errors=[]; // reset errors
+$opts=[ // set default parameters
 	'UserName'=>$username,
 	'Password'=>$password,
 	'StartDate'=>$start_date,
 	'EndDate'=>$end_date,
 	'ViewComboRoomComponents'=>false
-);
-foreach(array('Buildings'=>'buildings', 'Statuses'=>'statuses', 'EventTypes'=>'event_types', 'GroupTypes'=>'group_types') as $key=>$param) { // format other parameters
+];
+foreach(['Buildings'=>'buildings', 'Statuses'=>'statuses', 'EventTypes'=>'event_types', 'GroupTypes'=>'group_types'] as $key=>$param) { // format other parameters
 	if (!empty($$param)) {
 		if (!is_array($$param)) {
-			$$param=array($$param);
+			$$param=[$$param];
 		};
 		if (!empty($$param)) {
 			foreach($$param as $id) {
 				if (!preg_match('~^[0-9]+$~', $id)) {
-					$this->ems_errors=array('Invalid '.$param.'for getBookings().');
+					$this->ems_errors=['Invalid '.$param.'for getBookings().'];
 					return false;
 				};
 			};
@@ -57,7 +57,7 @@ foreach(array('Buildings'=>'buildings', 'Statuses'=>'statuses', 'EventTypes'=>'e
 };
 if (!empty($groups)) { // ensure groups is an array
 	if (!is_array($groups)) {
-		$groups=array($groups);
+		$groups=[$groups];
 	};
 	if (!isset($this->groups)) { // convert any group IDs to group titles
 		$this->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']);
@@ -70,7 +70,7 @@ if (!empty($groups)) { // ensure groups is an array
 };
 if (!empty($group_id)) { // if fetching events by group ID
 	$call='GetGroupBookings';
-	foreach(array('Statuses'=>'statuses') as $key=>$param) { // format other parameters
+	foreach(['Statuses'=>'statuses'] as $key=>$param) { // format other parameters
 		if (!empty($$param)) {
 			$opts[$key]=$$param;
 		};
@@ -79,25 +79,25 @@ if (!empty($group_id)) { // if fetching events by group ID
 }
 else { // else if fetching across multiple groups
 	$call='GetBookings';
-	foreach(array('Buildings'=>'buildings', 'Statuses'=>'statuses', 'EventTypes'=>'event_types', 'GroupTypes'=>'group_types') as $key=>$param) { // format other parameters
+	foreach(['Buildings'=>'buildings', 'Statuses'=>'statuses', 'EventTypes'=>'event_types', 'GroupTypes'=>'group_types'] as $key=>$param) { // format other parameters
 		if (!empty($$param)) {
 			$opts[$key]=$$param;
 		};
 	};
 };
 try {
-	$res=@$this->__soapCall($call, array('message'=>$opts)); // perform SOAP call
+	$res=@$this->__soapCall($call, ['message'=>$opts]); // perform SOAP call
 }
 catch (Exception $e) {
 	$_LW->logError('EMS: '.$e->getMessage());
 }
 if (!empty($res)) { // if there was a valid response
 	if ($res2=$this->getResponse($call, $res)) { // if the response parses
-		$output=array();
+		$output=[];
 		if ($bookings=$res2->query('/Bookings/Data')) { // fetch and format results
 			foreach($bookings as $booking) {
 				if ($booking->hasChildNodes()) {
-					$item=array();
+					$item=[];
 					foreach($booking->childNodes as $node) {
 						switch($node->nodeName) {
 							case 'BookingID':
@@ -197,7 +197,7 @@ if (!empty($res)) { // if there was a valid response
 				};
 			};
 		};
-		$hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
+		$hash=hash('md5', serialize([@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id])); // get hash for feed
 		if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems')) { // ensure EMS directory exists
 			@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems');
 		};
@@ -208,7 +208,7 @@ if (!empty($res)) { // if there was a valid response
 		return $output; // return all results
 	};
 };
-$hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
+$hash=hash('md5', serialize([@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id])); // get hash for feed
 if ($tmp=@file_get_contents($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash)) { // fall back on most recent cache if available (in case of EMS API failure)
 	if ($tmp=@unserialize($tmp)) {
 		$output=$tmp;
@@ -226,13 +226,13 @@ if (isset($this->statuses)) { // return cached response if possible
 };
 $this->statuses=$_LW->getVariable('ems_statuses'); // fetch statuses from cache
 if (empty($this->statuses)) { // if cached statuses not available
-	$this->statuses=array();
-	$opts=array( // set default parameters
+	$this->statuses=[];
+	$opts=[ // set default parameters
 		'UserName'=>$username,
 		'Password'=>$password
-	);
+	];
 	try {
-		$res=@$this->__soapCall('GetStatuses', array('message'=>$opts)); // perform SOAP call
+		$res=@$this->__soapCall('GetStatuses', ['message'=>$opts]); // perform SOAP call
 	}
 	catch (Exception $e) {
 		$_LW->logError('EMS: '.$e->getMessage());
@@ -242,7 +242,7 @@ if (empty($this->statuses)) { // if cached statuses not available
 			if ($statuses=$res2->query('/Statuses/Data')) { // fetch and format results
 				foreach($statuses as $status) {
 					if ($status->hasChildNodes()) {
-						$item=array();
+						$item=[];
 						foreach($status->childNodes as $node) {
 							switch($node->nodeName) {
 								case 'Description':
@@ -294,13 +294,13 @@ if (isset($this->groups)) { // return cached response if possible
 };
 $this->groups=$_LW->getVariable('ems_groups'); // fetch groups from cache
 if (empty($this->groups)) { // if cached groups not available
-	$this->groups=array();
-	$opts=array( // set default parameters
+	$this->groups=[];
+	$opts=[ // set default parameters
 		'UserName'=>$username,
 		'Password'=>$password
-	);
+	];
 	try {
-		$res=@$this->__soapCall('GetGroups', array('message'=>$opts)); // perform SOAP call
+		$res=@$this->__soapCall('GetGroups', ['message'=>$opts]); // perform SOAP call
 	}
 	catch (Exception $e) {
 		$_LW->logError('EMS: '.$e->getMessage());
@@ -310,7 +310,7 @@ if (empty($this->groups)) { // if cached groups not available
 			if ($groups=$res2->query('/Groups/Data')) { // fetch and format results
 				foreach($groups as $group) {
 					if ($group->hasChildNodes()) {
-						$item=array();
+						$item=[];
 						foreach($group->childNodes as $node) {
 							switch($node->nodeName) {
 								case 'GroupName':
@@ -334,7 +334,7 @@ if (empty($this->groups)) { // if cached groups not available
 			};
 		};
 	};
-	uasort($this->groups, array($this, 'sortGroups')); // sort the groups
+	uasort($this->groups, [$this, 'sortGroups']); // sort the groups
 	$_LW->setVariable('ems_groups', $this->groups, 3600); // cache the groups
 };
 }
@@ -353,13 +353,13 @@ if (isset($this->group_types)) { // return cached response if possible
 };
 $this->group_types=$_LW->getVariable('ems_group_types'); // fetch group types from cache
 if (empty($this->group_types)) { // if cached group types not available
-	$this->group_types=array();
-	$opts=array( // set default parameters
+	$this->group_types=[];
+	$opts=[ // set default parameters
 		'UserName'=>$username,
 		'Password'=>$password
-	);
+	];
 	try {
-		$res=@$this->__soapCall('GetGroupTypes', array('message'=>$opts)); // perform SOAP call
+		$res=@$this->__soapCall('GetGroupTypes', ['message'=>$opts]); // perform SOAP call
 	}
 	catch (Exception $e) {
 		$_LW->logError('EMS: '.$e->getMessage());
@@ -369,7 +369,7 @@ if (empty($this->group_types)) { // if cached group types not available
 			if ($group_types=$res2->query('/GroupTypes/Data')) { // fetch and format results
 				foreach($group_types as $group_type) {
 					if ($group_type->hasChildNodes()) {
-						$item=array();
+						$item=[];
 						foreach($group_type->childNodes as $node) {
 							switch($node->nodeName) {
 								case 'Description':
@@ -404,13 +404,13 @@ if (isset($this->event_types)) { // return cached response if possible
 };
 $this->event_types=$_LW->getVariable('ems_event_types'); // fetch event types from cache
 if (empty($this->event_types)) { // if cached event types not available
-	$this->event_types=array();
-	$opts=array( // set default parameters
+	$this->event_types=[];
+	$opts=[ // set default parameters
 		'UserName'=>$username,
 		'Password'=>$password
-	);
+	];
 	try {
-		$res=@$this->__soapCall('GetEventTypes', array('message'=>$opts)); // perform SOAP call
+		$res=@$this->__soapCall('GetEventTypes', ['message'=>$opts]); // perform SOAP call
 	}
 	catch (Exception $e) {
 		$_LW->logError('EMS: '.$e->getMessage());
@@ -420,7 +420,7 @@ if (empty($this->event_types)) { // if cached event types not available
 			if ($event_types=$res2->query('/EventTypes/Data')) { // fetch and format results
 				foreach($event_types as $event_type) {
 					if ($event_type->hasChildNodes()) {
-						$item=array();
+						$item=[];
 						foreach($event_type->childNodes as $node) {
 							switch($node->nodeName) {
 								case 'Description':
@@ -450,15 +450,15 @@ if (empty($this->event_types)) { // if cached event types not available
 
 public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs for a booking
 global $_LW;
-$output=array();
-$opts=array( // set default parameters
+$output=[];
+$opts=[ // set default parameters
 	'UserName'=>$username,
 	'Password'=>$password,
 	'ParentID'=>$parent_id,
 	'ParentType'=>$parent_type
-);
+];
 try {
-	$res=@$this->__soapCall('GetUDFs', array('message'=>$opts)); // perform SOAP call
+	$res=@$this->__soapCall('GetUDFs', ['message'=>$opts]); // perform SOAP call
 }
 catch (Exception $e) {
 	$_LW->logError('EMS: '.$e->getMessage());
@@ -468,7 +468,7 @@ if (!empty($res)) { // if there was a valid response
 		if ($udfs=$res2->query('/UDFs/Data')) { // fetch and format results
 			foreach($udfs as $udf) {
 				if ($udf->hasChildNodes()) {
-					$item=array();
+					$item=[];
 					$current_field='';
 					foreach($udf->childNodes as $node) {
 						switch($node->nodeName) {

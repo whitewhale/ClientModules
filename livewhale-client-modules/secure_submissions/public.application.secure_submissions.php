@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['secure_submissions']=array(
+$_LW->REGISTERED_APPS['secure_submissions']=[
 	'title'=>'Secure Submissions',
-	'handlers'=>array('onLoad')
-); // configure this module
+	'handlers'=>['onLoad']
+]; // configure this module
 
 class LiveWhaleApplicationSecureSubmissions {
 

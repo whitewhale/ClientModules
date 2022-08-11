@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['custom_fields'] = array( // configure this application module
+$_LW->REGISTERED_APPS['custom_fields'] = [ // configure this application module
 	'title' => 'Custom Fields',
-	'handlers' => array('onLoad', 'onAfterValidate', 'onSaveSuccess', 'onAfterEdit', 'onOutput')
-);
+	'handlers' => ['onLoad', 'onAfterValidate', 'onSaveSuccess', 'onAfterEdit', 'onOutput']
+];
 
 class LiveWhaleApplicationCustomFields {
 
@@ -13,7 +13,7 @@ public function onLoad() {
 global $_LW;
 if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the events editor page
 	//$_LW->REGISTERED_CSS[]='/path/to/custom/stylesheet.css'; // load in some custom CSS for styling the new field (optional)
-	$_LW->ENV->input_filter['events_edit']['sample_textarea']=array('tags'=>'*', 'wysiwyg'=>1); // configure the input filter to present the textarea custom field as a WYSIWYG field (omit this line entirely for no HTML allowed, or change "wysiwyg" to "wysiwyg_limited" for the limited set of toolbar options)
+	$_LW->ENV->input_filter['events_edit']['sample_textarea']=['tags'=>'*', 'wysiwyg'=>1]; // configure the input filter to present the textarea custom field as a WYSIWYG field (omit this line entirely for no HTML allowed, or change "wysiwyg" to "wysiwyg_limited" for the limited set of toolbar options)
 };
 }
 
@@ -57,16 +57,16 @@ if (!isset($_LW->ENV->editors[$_LW->page])) {
 	return false;
 }
 if ($type=='events' && ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit')) { // if saving an event from the editor
-	$_LW->setCustomFields($type, $id, array('sample_textarea'=>@$_LW->_POST['sample_textarea']), array()); // store the value entered for sample_textarea, allowing the sample_textarea field full visibility (on details pages, in widget results, and /live/* requests such as /live/json)
+	$_LW->setCustomFields($type, $id, ['sample_textarea'=>@$_LW->_POST['sample_textarea']], []); // store the value entered for sample_textarea, allowing the sample_textarea field full visibility (on details pages, in widget results, and /live/* requests such as /live/json)
 	/*
 	Note:
  	To optionally hide the field (i.e. store it in the database but not expose it to the public on the frontend web site or API requests, add "sample_textarea" to the empty array above, registering it as a hidden field).
 	Non-hidden fields may be added to a details template via <xphp var="details_custom_sample_textarea"/> or to a widget format arg via {custom_sample_textarea}.
 	*/
-	$_LW->setCustomFields($type, $id, array('sample_text'=>@$_LW->_POST['sample_text']), array()); // store the value
-	$_LW->setCustomFields($type, $id, array('sample_select'=>@$_LW->_POST['sample_select']), array()); // store the value
-	$_LW->setCustomFields($type, $id, array('sample_checkbox'=>@$_LW->_POST['sample_checkbox']), array()); // store the value
-	$_LW->setCustomFields($type, $id, array('sample_radio'=>@$_LW->_POST['sample_radio']), array()); // store the value
+	$_LW->setCustomFields($type, $id, ['sample_text'=>@$_LW->_POST['sample_text']], []); // store the value
+	$_LW->setCustomFields($type, $id, ['sample_select'=>@$_LW->_POST['sample_select']], []); // store the value
+	$_LW->setCustomFields($type, $id, ['sample_checkbox'=>@$_LW->_POST['sample_checkbox']], []); // store the value
+	$_LW->setCustomFields($type, $id, ['sample_radio'=>@$_LW->_POST['sample_radio']], []); // store the value
 };
 }
 
@@ -98,7 +98,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 		</div>
 		<!-- END SAME_FIELD_TEXT -->', 
 	$buffer);
-	$new_field=$_LW->displayCustomField('select', 'sample_select', @$_LW->_POST['sample_select'], array('one', 'two', 'three')); // create the new element
+	$new_field=$_LW->displayCustomField('select', 'sample_select', @$_LW->_POST['sample_select'], ['one', 'two', 'three']); // create the new element
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_SELECT -->
 		<div class="fields sample_select">
@@ -109,7 +109,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 		</div>
 		<!-- END SAMPLE_SELECT -->', 
 	$buffer);
-	$new_field=$_LW->displayCustomField('checkbox', 'sample_checkbox', @$_LW->_POST['sample_checkbox'], array('a', 'b', 'c')); // create the new element
+	$new_field=$_LW->displayCustomField('checkbox', 'sample_checkbox', @$_LW->_POST['sample_checkbox'], ['a', 'b', 'c']); // create the new element
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_CHECKBOX -->
 		<div class="fields sample_checkbox">
@@ -120,7 +120,7 @@ if ($_LW->page=='events_edit' || $_LW->page=='events_sub_edit') { // if on the e
 		</div>
 		<!-- END SAMPLE_CHECKBOX -->', 
 	$buffer);
-	$new_field=$_LW->displayCustomField('radio', 'sample_radio', @$_LW->_POST['sample_radio'], array('yes', 'no'), 'yes'); // create the new element
+	$new_field=$_LW->displayCustomField('radio', 'sample_radio', @$_LW->_POST['sample_radio'], ['yes', 'no'], 'yes'); // create the new element
 	$buffer=str_replace('<!-- END LOCATION -->', '<!-- END LOCATION -->
 		<!-- START SAMPLE_RADIO -->
 		<div class="fields sample_radio">

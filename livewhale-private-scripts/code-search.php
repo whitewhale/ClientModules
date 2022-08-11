@@ -21,7 +21,7 @@ if (!empty($_POST['q'])) { // if there was a search
 				$is_deleted=!empty($res2['is_deleted']); // check if current revision is deleted
 				if ($last_match!=$res2['path']) { // only find most recent match per page
 					if ($res2['content']=@gzinflate($res2['content'])) { // decompress page content
-						if (preg_match('~'.str_replace(array("\n", "\r", ' ', '>\<'), array(' ', ' ', '\s+', '>\s*\<'), preg_quote($_POST['q'], '~')).'~s', $res2['content'])) { // if code matched
+						if (preg_match('~'.str_replace(["\n", "\r", ' ', '>\<'], [' ', ' ', '\s+', '>\s*\<'], preg_quote($_POST['q'], '~')).'~s', $res2['content'])) { // if code matched
 							echo '<p><a href="http://'.$_LW->CONFIG['HTTP_HOST'].$res2['path'].'">http://'.$_LW->CONFIG['HTTP_HOST'].$res2['path'].'</a> <span style="font-size:0.8em;">'.($is_deleted ? '(now deleted)' : ($is_current_revision ? '(current revision)' : '(<a href="'.$_LW->CONFIG['LIVE_URL'].'/pages/revision/'.$res2['id'].'" target="blank">revision '.$res2['id'].'</a> @ '.date('m/d/y g:ia', strtotime($res2['last_modified'])).')')).'</span></p>'; // add result
 							$last_match=$res2['path']; // increment last matched path
 						};

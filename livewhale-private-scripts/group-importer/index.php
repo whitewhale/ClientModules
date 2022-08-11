@@ -14,7 +14,7 @@ Instructions:
 require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 
 ini_set('auto_detect_line_endings', true);
-$items=array();
+$items=[];
 if ($file=fopen('./groups.csv', 'r')) {
 	$count=0;
 	while (($item=fgetcsv($file, 0, ',', '"'))!==false) {
@@ -36,7 +36,7 @@ if ($file=fopen('./groups.csv', 'r')) {
 				};
 				$item[$key]=$_LW->setFormatSanitize(trim($val));
 			};
-			$tmp=array();
+			$tmp=[];
 			$tmp['fullname']=$item[0];
 			$tmp['fullname_public']=$item[1];
 			$tmp['directory']=$item[2];
@@ -55,12 +55,12 @@ if (!empty($items)) {
 	};
 	foreach($items as $item) {
 		if (!empty($_LW->_GET['run'])) {
-			if ($id=$_LW->create('groups', array(
+			if ($id=$_LW->create('groups', [
 				'fullname'=>$item['fullname'],
 				'fullname_public'=>$item['fullname_public'],
 				'directory'=>$item['directory'],
 				'template_path'=>$item['template_path']
-			))) {
+			])) {
 				echo 'Created group '.$id.'<br/>';
 			}
 			else {

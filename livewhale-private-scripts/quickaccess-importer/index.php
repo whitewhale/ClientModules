@@ -15,7 +15,7 @@ require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 
 ini_set('auto_detect_line_endings', true);
 
-$pages=array();
+$pages=[];
 
 
 // LOAD SAVED QA RESULTS

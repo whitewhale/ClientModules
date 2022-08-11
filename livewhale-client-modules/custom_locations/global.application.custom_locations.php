@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['custom_locations'] = array( // configure this application module
+$_LW->REGISTERED_APPS['custom_locations'] = [ // configure this application module
 	'title' => 'Custom Locations',
-	'handlers' => array('onSaveSuccess', 'onAfterEdit', 'onOutput', 'onBeforeSync')
-);
+	'handlers' => ['onSaveSuccess', 'onAfterEdit', 'onOutput', 'onBeforeSync']
+];
 
 class LiveWhaleApplicationCustomLocations {
 
@@ -23,7 +23,7 @@ if ($page=='places_edit') { // if loading data for the location editor form
 public function onSaveSuccess($type, $id) { // after saving an item
 global $_LW;
 if ($type=='places') { // if saving a location
-	$_LW->setCustomFields($type, $id, array('short_name'=>@$_LW->_POST['short_name']), array()); // store the value
+	$_LW->setCustomFields($type, $id, ['short_name'=>@$_LW->_POST['short_name']], []); // store the value
 };
 }
 
@@ -54,17 +54,17 @@ static $map;
 // };
 if ($type=='events') { // if syncing an event
 	if (!isset($map[$calendar_id])) { // if feed info not yet obtained
-		$map[$calendar_id]['locations']=array(); // fetch locations usable by this feed owner
+		$map[$calendar_id]['locations']=[]; // fetch locations usable by this feed owner
 		foreach($_LW->dbo->query('select', 'livewhale_places.title, livewhale_custom_data.value AS short_name', 'livewhale_places', 'livewhale_places.gid IS NULL OR livewhale_places.gid=livewhale_events_subscriptions.gid')->innerJoin('livewhale_events_subscriptions', 'livewhale_events_subscriptions.id='.(int)$calendar_id)->leftJoin('livewhale_custom_data', 'livewhale_custom_data.type="places" AND livewhale_custom_data.name="short_name" AND livewhale_custom_data.pid=livewhale_places.id')->groupBy('livewhale_places.id')->run() as $res2) {
-			$map[$calendar_id]['locations'][]=array($res2['title'], $res2['title']);
+			$map[$calendar_id]['locations'][]=[$res2['title'], $res2['title']];
 			if (!empty($res2['short_name'])) {
-				$map[$calendar_id]['locations'][]=array($res2['short_name'], $res2['title']);
+				$map[$calendar_id]['locations'][]=[$res2['short_name'], $res2['title']];
 			};
 		};
 		$map[$calendar_id]['gid']=$_LW->dbo->query('select', 'gid', 'livewhale_events_subscriptions', 'id='.(int)$calendar_id)->firstRow('gid')->run(); // fetch feed owner
 	};
 	if (empty($buffer['location']) && !empty($buffer['description']) && !empty($map[$calendar_id]['locations'])) { // if event has no location but has a description, and there are locations to match
-		$locations_matched=array();
+		$locations_matched=[];
 		foreach($map[$calendar_id]['locations'] as $location) { // match up to 2 locations in the description, case-insensitive
 			if (stripos($buffer['description'], $location[0])) {
 				$locations_matched[$location[1]]='';

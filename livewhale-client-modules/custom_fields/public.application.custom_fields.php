@@ -2,10 +2,10 @@
 
 /* This module is optional and demonstrates how you might also want to expose custom fields to a static web page according to some logic. In this example, custom template variables are set according to the group owner of a particular page. */
 
-$_LW->REGISTERED_APPS['custom_fields'] = array( // configure this application module
+$_LW->REGISTERED_APPS['custom_fields'] = [ // configure this application module
 	'title' => 'Custom Fields',
-	'handlers' => array('onBeforeOutput')
-);
+	'handlers' => ['onBeforeOutput']
+];
 
 class LiveWhaleApplicationCustomFields {
 

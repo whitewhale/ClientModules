@@ -2,7 +2,7 @@
 
 // PHP functionality for a redundant checkbox above the group suggest selector box, providing a shortcut for users to suggest to a specific chosen group (like the homepage or main communications team).
 
-$_LW->REGISTERED_APPS['suggest_to']=array(
+$_LW->REGISTERED_APPS['suggest_to']=[
 	'title' => 'suggest_to',
 	'handlers' => ['onLoad','onOutput'],
 	'custom' => [
@@ -16,7 +16,7 @@ $_LW->REGISTERED_APPS['suggest_to']=array(
 //			'group_id' => 498
 //		]
 	]
-); // configure this module
+]; // configure this module
 
 class LiveWhaleApplicationSuggestTo
 {

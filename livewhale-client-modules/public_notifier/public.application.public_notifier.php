@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['public_notifier']=array(
+$_LW->REGISTERED_APPS['public_notifier']=[
         'title'=>'PublicNotifier',
-        'handlers' => array('onAfterPublicSubmission')
-);
+        'handlers' => ['onAfterPublicSubmission']
+];
 
 class LiveWhaleApplicationPublicNotifier {
 
@@ -21,14 +21,14 @@ class LiveWhaleApplicationPublicNotifier {
   // Likewise for groups, edit the group and note the url:
   // /livewhale/?groups_edit?id=##
   //
-  protected $users = array(
+  protected $users = [
     1, // user id
     2, // user id
-    );
-  protected $groups = array(
+  ];
+  protected $groups = [
     1, // group id
     2, // group id
-    );
+  ];
 
   // onAfterPublicSubmission
   // This the handler method; it should receive type and id as parameters.

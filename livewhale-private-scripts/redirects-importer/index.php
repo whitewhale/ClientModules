@@ -16,8 +16,8 @@ require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 echo '<div class="main no-sidebar"><h1>Import Redirects</h1>';
 
 ini_set('auto_detect_line_endings', true);
-$items=array();
-$tags=array();
+$items=[];
+$tags=[];
 if ($file=fopen('./redirects.csv', 'r')) {
 	$count=0;
 	while (($item=fgetcsv($file, 0, ',', '"'))!==false) {
@@ -37,7 +37,7 @@ if ($file=fopen('./redirects.csv', 'r')) {
 			foreach($item as $key=>$val) {
 				$item[$key]=$_LW->setFormatSanitize(trim($val));
 			};
-			$tmp=array();
+			$tmp=[];
 			$tmp['from']=$item[0];
 			$tmp['to']=$item[1];
 			$items[]=$tmp;

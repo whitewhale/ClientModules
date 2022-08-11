@@ -1,25 +1,25 @@
 <?php
 
-$_LW->REGISTERED_MODULES['migration']=array(
+$_LW->REGISTERED_MODULES['migration']=[
 	'title'=>'Migration',
 	'revision'=>1,
 	'order'=>0,
-	'flags'=>array('is_always_authorized', 'has_js', 'has_css'),
-	'handlers'=>array('onLogin', 'onInstall'),
-	'requires_permission'=>array('core_admin'),
-	'data_types'=>array(
-		'migration'=>array(
-			'managers'=>array(
-				'migration'=>array(
-					'handlers'=>array(
+	'flags'=>['is_always_authorized', 'has_js', 'has_css'],
+	'handlers'=>['onLogin', 'onInstall'],
+	'requires_permission'=>['core_admin'],
+	'data_types'=>[
+		'migration'=>[
+			'managers'=>[
+				'migration'=>[
+					'handlers'=>[
 						'onManager'=>'onManagerMigration',
 						'onManagerSubmit'=>'onManagerSubmitMigration'
-					)
-				)
-			)
-		)
-	)
-); // configure this module
+					]
+				]
+			]
+		]
+	]
+]; // configure this module
 
 class LiveWhaleDataMigration {
 
@@ -59,18 +59,18 @@ else { // else if valid config
 }
 
 public function isInvalidConfiguration($host) { // verifies a host's configuration
-foreach(array('HTTP_HOST', 'FTP_HOST', 'FTP_PORT', 'FTP_USER', 'FTP_PASS', 'FTP_PUB', 'FTP_MODE', 'LIVE_HOST', 'LIVE_INCLUDES_DIR', 'LIVE_DOCROOT', 'LIVE_DIR') as $key) { // check setting value types
+foreach(['HTTP_HOST', 'FTP_HOST', 'FTP_PORT', 'FTP_USER', 'FTP_PASS', 'FTP_PUB', 'FTP_MODE', 'LIVE_HOST', 'LIVE_INCLUDES_DIR', 'LIVE_DOCROOT', 'LIVE_DIR'] as $key) { // check setting value types
 	if (!is_scalar($host[$key])) {
 		return $key.' must be a string';
 	};
 };
-foreach(array('STAGE_ONLY', 'STAGE_EXCLUDE', 'STAGE_BUT_DONT_EXCLUDE', 'STAGE_NO_EDITING', 'CLEAN_ONLY', 'LIVE_ONLY', 'LIVE_IGNORED_HOSTS', 'MIGRATE_ONLY', 'TEMPLATES', 'EDITABLE') as $key) {
+foreach(['STAGE_ONLY', 'STAGE_EXCLUDE', 'STAGE_BUT_DONT_EXCLUDE', 'STAGE_NO_EDITING', 'CLEAN_ONLY', 'LIVE_ONLY', 'LIVE_IGNORED_HOSTS', 'MIGRATE_ONLY', 'TEMPLATES', 'EDITABLE'] as $key) {
 	if (!is_array($host[$key])) {
 		return $key.' must be an array';
 	};
 };
 if (!empty($host['LIVE_DOCROOT']) && !empty($host['LIVE_HOST']) && !empty($host['LIVE_INCLUDES_DIR']) && !empty($host['HTTP_HOST']) && !empty($host['FTP_HOST']) && !empty($host['FTP_USER']) && !empty($host['FTP_PASS']) && !empty($host['FTP_PUB']) && !empty($host['FTP_MODE']) && (!empty($host['TEMPLATES']) || !empty($host['EDITABLE']))) { // check required settings
-	foreach(array('FTP_PUB', 'LIVE_INCLUDES_DIR', 'LIVE_DOCROOT', 'LIVE_DIR') as $key) { // check path formating
+	foreach(['FTP_PUB', 'LIVE_INCLUDES_DIR', 'LIVE_DOCROOT', 'LIVE_DIR'] as $key) { // check path formating
 		if (!($key=='LIVE_DIR' && empty($host[$key])) && (empty($host[$key]) || $host[$key][0]!='/')) {
 			return $key.' must be an absolute path';
 		};
@@ -122,7 +122,7 @@ if (!$_LW->userSetting('core_admin')) { // only allow admins access
 };
 if ($this->config=$this->getConfig()) { // if config obtained
 	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/migration') && is_writable($_LW->INCLUDES_DIR_PATH.'/data/migration')) { // check for valid data directory
-		if (!empty($_LW->_POST['mode']) && in_array($_LW->_POST['mode'], array('stage', 'clean', 'migrate', 'live'))) { // check for valid migration mode
+		if (!empty($_LW->_POST['mode']) && in_array($_LW->_POST['mode'], ['stage', 'clean', 'migrate', 'live'])) { // check for valid migration mode
 			if (!empty($this->config['HOSTS'])) { // if there are hosts defined in the config
 				ini_set('display_errors', 1); // enable error reporting
 				error_reporting(-1);
@@ -131,7 +131,7 @@ if ($this->config=$this->getConfig()) { // if config obtained
 				$_LW->closeSession(); // close an open session
 				$GLOBALS['status']='';
 				$time=microtime(true); // get start time
-				$this->stats=array('staged'=>0, 'migrated'=>0, 'live'=>0, 'cleaned'=>0, 'excluded'=>0, 'skipped'=>0, 'deleted'=>0);
+				$this->stats=['staged'=>0, 'migrated'=>0, 'live'=>0, 'cleaned'=>0, 'excluded'=>0, 'skipped'=>0, 'deleted'=>0];
 				foreach($this->config['HOSTS'] as $host) { // loop through valid hosts
 					if (!$this->isInvalidConfiguration($host)) {
 						$host['LIVE_DEST_DIR']=preg_replace('~[/]{2,}~', '/', $host['LIVE_DOCROOT'].$host['LIVE_DIR']); // set full live destination directory
@@ -186,7 +186,7 @@ if ($this->config=$this->getConfig()) { // if config obtained
 							$GLOBALS['status'].='<div class="migration_warning">&bull; <strong>Publishing complete.</strong></div>';
 						}
 						else if ($_LW->_POST['mode']=='migrate') {
-							$this->whitelist_hosts=array();
+							$this->whitelist_hosts=[];
 							$GLOBALS['status'].='<div class="migration_warning">&bull; <strong>Beginning migration of '.$host['HTTP_HOST'].'.</strong></div>';
 							if (!empty($this->host['MIGRATE_ONLY'])) {
 								foreach($this->host['MIGRATE_ONLY'] as $item) {
@@ -278,8 +278,8 @@ else {
 protected function stageFilesInDirectory($dir) { // stages files for a directory
 global $_LW;
 @touch($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].'.staging'); // update last staging time
-$_LW->d_ftp->cache=array('existing_dirs'=>array(), 'existing_files'=>array()); // reset FTP cache
-$files=array();
+$_LW->d_ftp->cache=['existing_dirs'=>[], 'existing_files'=>[]]; // reset FTP cache
+$files=[];
 if (substr($dir, -1, 1)=='/') {
 	$dir=substr($dir, 0, -1);
 };
@@ -291,7 +291,7 @@ if (!empty($items)) { // ensure items returned are basenamed
 };
 if (!empty($items)) { // strip ignored items from list
 	foreach($items as $key=>$val) {
-		if (in_array(strtolower($val), array('.', '..', 'livewhale', '_notes', '_mm', '_baks', '.ds_store', 'thumbs.db', '.viminfo', '.bash_history', '.ssh', '.lesshst', '.mysql_history', 'old', 'backup')) || in_array(strtolower(substr($val, -4, 4)), array('.lck', '.bak', '_old')) || strpos($val, 'tmp.')===0 || $val[0]=='#' || substr($val, -7, 7)=='_backup') {
+		if (in_array(strtolower($val), ['.', '..', 'livewhale', '_notes', '_mm', '_baks', '.ds_store', 'thumbs.db', '.viminfo', '.bash_history', '.ssh', '.lesshst', '.mysql_history', 'old', 'backup']) || in_array(strtolower(substr($val, -4, 4)), ['.lck', '.bak', '_old']) || strpos($val, 'tmp.')===0 || $val[0]=='#' || substr($val, -7, 7)=='_backup') {
 			unset($items[$key]);
 		};
 	};
@@ -300,14 +300,14 @@ if (!empty($items)) { // sort items so we fetch them alphabetically
 	sort($items);
 };
 $relative_dir=substr($dir, strlen($this->host['FTP_PUB'])); // get relative dir
-$staged_items=is_dir($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].$relative_dir) ? scandir($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].$relative_dir) : array(); // get previously staged items
+$staged_items=is_dir($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].$relative_dir) ? scandir($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].$relative_dir) : []; // get previously staged items
 foreach($staged_items as $key=>$val) {
 	if ($val=='.' || $val=='..') {
 		unset($staged_items[$key]);
 	};
 };
 if (!empty($staged_items)) { // if there were previously staged items
-	$deleted_items=array_diff($staged_items, (!empty($items) ? $items : array())); // find items that have since been deleted
+	$deleted_items=array_diff($staged_items, (!empty($items) ? $items : [])); // find items that have since been deleted
 	foreach($deleted_items as $key=>$val) { // strip items we created
 		if (strpos($val, 'livewhale.')===0) {
 			unset($deleted_items[$key]);
@@ -361,7 +361,7 @@ if (!empty($items)) { // if items found
 				$this->stageFilesInDirectory($dir.'/'.$item); // recurse into directory
 			}
 			else { // else if approved for staging
-				$will_stage=$_LW->callHandlersByType('application', 'onValidateStage', array('host'=>$this->host['HTTP_HOST'], 'path'=>$relative_dir.$item, 'buffer'=>true)); // apply custom staging validation rules
+				$will_stage=$_LW->callHandlersByType('application', 'onValidateStage', ['host'=>$this->host['HTTP_HOST'], 'path'=>$relative_dir.$item, 'buffer'=>true]); // apply custom staging validation rules
 				if ($will_stage) { // if still staging after any custom rules
 					if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].$relative_dir.$item) || filemtime($_LW->INCLUDES_DIR_PATH.'/data/migration/hosts/'.$this->host['HTTP_HOST'].$relative_dir.$item)<$_LW->d_ftp->filemtime($dir.'/'.$item)) { // else if this is a file that doesn't already exist or file has been changed
 						$extension=strtolower(pathinfo($item, PATHINFO_EXTENSION)); // get filename extension
@@ -373,7 +373,7 @@ if (!empty($items)) { // if items found
 							$error=' FTP response was: '.$_LW->d_ftp->error; // give error
 						}
 						else { // else if no FTP error
-							if (in_array($extension, array('php', 'aspx')) && (strpos($source, '</html>')!==false || strpos($source, '<html xmlns')!==false || strpos($source, '<html>')!==false)) { // if page type that requires HTTP fetching, and file appears to be an HTML page
+							if (in_array($extension, ['php', 'aspx']) && (strpos($source, '</html>')!==false || strpos($source, '<html xmlns')!==false || strpos($source, '<html>')!==false)) { // if page type that requires HTTP fetching, and file appears to be an HTML page
 								$http_source=$_LW->getUrl('http://'.$this->host['HTTP_HOST'].$relative_dir.$item);
 								if ($_LW->last_code==401) { // if unauthorized response
 									$GLOBALS['status'].='<div class="migration_warning">&bull; Failed to fetch authenticated page via HTTP. Falling back on FTP. <span class="note">'.$this->host['FTP_HOST'].$relative_dir.$item.$error.'</span></div>'; // give error
@@ -535,11 +535,11 @@ if ($basename[0]!='.' || substr($basename, 0, 3)=='.ht') { // if valid file
 		$will_live=false;
 	};
 	if ($will_live) { // if approved
-		$live_path=$this->host['LIVE_DIR'].$relative_dir.substr($basename, 0, -1*(strlen(pathinfo($basename, PATHINFO_EXTENSION))+1)).(!empty($extension) ? '.'.(in_array($extension, array('html', 'htm', 'php', 'aspx')) ? 'php' : $extension) : ''); // set live path
-		if (in_array($extension, array('html', 'htm', 'php', 'aspx'))) { // if page, make it lowercase
+		$live_path=$this->host['LIVE_DIR'].$relative_dir.substr($basename, 0, -1*(strlen(pathinfo($basename, PATHINFO_EXTENSION))+1)).(!empty($extension) ? '.'.(in_array($extension, ['html', 'htm', 'php', 'aspx']) ? 'php' : $extension) : ''); // set live path
+		if (in_array($extension, ['html', 'htm', 'php', 'aspx'])) { // if page, make it lowercase
 			$live_path=substr($live_path, 0, -1*strlen(basename($live_path))).strtolower(basename($live_path));
 		};
-		$live_path=$_LW->callHandlersByType('application', 'onMigrationPath', array('host'=>$this->host['LIVE_HOST'], 'buffer'=>$live_path)); // apply custom migration path rules
+		$live_path=$_LW->callHandlersByType('application', 'onMigrationPath', ['host'=>$this->host['LIVE_HOST'], 'buffer'=>$live_path]); // apply custom migration path rules
 		$live_path=preg_replace('~[/]{2,}~', '/', $live_path); // fix redundant slashes
 		$live_path_dir=dirname($live_path); // get live path directory
 		$live_path_basename=basename($live_path); // get live path basename
@@ -550,12 +550,12 @@ if ($basename[0]!='.' || substr($basename, 0, 3)=='.ht') { // if valid file
 					$GLOBALS['status'].='<div class="migration_warning">&bull; <strong>FTP:</strong> '.$_LW->d_ftp->error.' <span class="note">'.$_LW->CONFIG['FTP_PUB'].$live_path_dir.'</span></div>';
 				};
 			};
-			if (!(strpos($basename, 'livewhale.')!==0 && in_array($extension, array('html', 'htm', 'php', 'aspx')) && file_exists(dirname($path).'/livewhale.'.substr($basename, 0, -1*strlen($extension)).'php'))) { // for all content that is not: an original page with a LiveWhale version
+			if (!(strpos($basename, 'livewhale.')!==0 && in_array($extension, ['html', 'htm', 'php', 'aspx']) && file_exists(dirname($path).'/livewhale.'.substr($basename, 0, -1*strlen($extension)).'php'))) { // for all content that is not: an original page with a LiveWhale version
 				$live_path=str_replace('/livewhale.', '/', $live_path); // format live paths
 				$live_path_basename=basename($live_path);
 				$live_path_ftp=$_LW->CONFIG['FTP_PUB'].$live_path;
 				$path_modified='';
-				if (in_array($extension, array('html', 'htm', 'php', 'aspx')) && strpos($path, '/livewhale.')===false) { // if this is not a migrated page
+				if (in_array($extension, ['html', 'htm', 'php', 'aspx']) && strpos($path, '/livewhale.')===false) { // if this is not a migrated page
 					$source=file_get_contents($path); // get page contents
 					$source=$this->rewriteUrls($relative_dir.$basename, $source); // modify urls in page contents
 					$path_modified=$_LW->d_ftp->save_upload_file($source); // save modified page contents
@@ -584,7 +584,7 @@ if ($basename[0]!='.' || substr($basename, 0, 3)=='.ht') { // if valid file
 								};
 								if (file_exists($original)) { // if original found
 									if ($original_contents=@file_get_contents($original)) { // get contents
-										$matches=array();
+										$matches=[];
 										preg_match('~<title>(.+?)</title>~', $original_contents, $matches); // find title
 										if (!empty($matches[1])) {
 											$matches[1]=preg_split('~\s*(·|•|&bull;|//)\s*~', $matches[1]); // format title to remove any prefixes and suffixes
@@ -599,7 +599,7 @@ if ($basename[0]!='.' || substr($basename, 0, 3)=='.ht') { // if valid file
 												$matches[1]='';
 											};
 											if (!empty($matches[1])) {
-												$_LW->dbo->query('update', 'livewhale_pages', array('short_title'=>$_LW->escape($matches[1])), 'id='.(int)$id)->run(); // update page title
+												$_LW->dbo->query('update', 'livewhale_pages', ['short_title'=>$_LW->escape($matches[1])], 'id='.(int)$id)->run(); // update page title
 											};
 										};
 									};
@@ -630,17 +630,17 @@ if ($basename[0]!='.' || substr($basename, 0, 3)=='.ht') { // if valid file
 protected function rewriteUrls($path, $source) { // rewrites urls in a page according to migration rules
 global $_LW;
 static $map;
-$find=array(); // init find/replace url arrays
-$replace=array();
+$find=[]; // init find/replace url arrays
+$replace=[];
 if (!isset($map['changed_hosts'])) { // if changed hosts not yet recorded
-	$map['changed_hosts']=array();
+	$map['changed_hosts']=[];
 	foreach($this->config['HOSTS'] as $config_host) { // record changed hosts
 		if ($config_host['HTTP_HOST']!=$config_host['LIVE_HOST']) {
 			$map['changed_hosts'][$config_host['HTTP_HOST']]=$config_host['LIVE_HOST'];
 		};
 	};
 };
-$matches=array();
+$matches=[];
 preg_match_all('~((?:src|href)=["\'])([^"\']+?)(["\'])~', $source, $matches); // match urls
 if (!empty($matches[0])) { // if there were urls
 	foreach($matches[0] as $key=>$val) { // for each url
@@ -666,11 +666,11 @@ if (!empty($matches[0])) { // if there were urls
 					$basename=basename($info['path']);
 					$extension=pathinfo($info['path'], PATHINFO_EXTENSION);
 					$live_path_before=$relative_dir.'/'.$basename; // get original live path
-					$live_path_after=$this->host['LIVE_DIR'].$relative_dir.'/'.(!empty($extension) ? substr($basename, 0, -1*(strlen($extension)+1)) : $basename).(!empty($extension) ? (in_array($extension, array('html', 'htm', 'php', 'aspx')) ? '.php' : '.'.$extension) : '');
-					if (in_array($extension, array('html', 'htm', 'php', 'aspx'))) { // if page, make it lowercase
+					$live_path_after=$this->host['LIVE_DIR'].$relative_dir.'/'.(!empty($extension) ? substr($basename, 0, -1*(strlen($extension)+1)) : $basename).(!empty($extension) ? (in_array($extension, ['html', 'htm', 'php', 'aspx']) ? '.php' : '.'.$extension) : '');
+					if (in_array($extension, ['html', 'htm', 'php', 'aspx'])) { // if page, make it lowercase
 						$live_path_after=substr($live_path_after, 0, -1*strlen(basename($live_path_after))).strtolower(basename($live_path_after));
 					};
-					$live_path_after=$_LW->callHandlersByType('application', 'onMigrationPath', array('host'=>$this->host['LIVE_HOST'], 'buffer'=>$live_path_after)); // apply custom migration path rules
+					$live_path_after=$_LW->callHandlersByType('application', 'onMigrationPath', ['host'=>$this->host['LIVE_HOST'], 'buffer'=>$live_path_after]); // apply custom migration path rules
 					$live_path_after=preg_replace('~[/]{2,}~', '/', $live_path_after); // fix redundant slashes
 					$info['path']=$live_path_after;
 				};
@@ -678,7 +678,7 @@ if (!empty($matches[0])) { // if there were urls
 					$info['host']=$this->host['HTTP_HOST'];
 				};
 				$url=$_LW->setFormatClean(((!empty($info['scheme']) && !empty($info['host'])) ? $info['scheme'].'://'.$info['host'] : '').(!empty($info['path']) ? preg_replace('~[/]{2,}~', '/', trim($info['path'])) : '').(!empty($info['query']) ? '?'.$info['query'] : '').(!empty($info['fragment']) ? '#'.$info['fragment'] : '')); // format final url
-				foreach(array('html', 'htm', 'php', 'aspx') as $ext) {
+				foreach(['html', 'htm', 'php', 'aspx'] as $ext) {
 					if (substr($url, -10, 10)=='/index.'.$ext) {
 						$url=substr($url, 0, -1*strlen('/index.'.$ext));
 					};
@@ -751,14 +751,14 @@ if (strpos($basename, 'livewhale.')!==0) { // if not a migrated page
 		$will_migrate=false;
 	};
 	$live_path_before=$relative_dir.$basename; // get original live path
-	$live_path_after=$this->host['LIVE_DIR'].$relative_dir.(!empty($extension) ? substr($basename, 0, -1*(strlen($extension)+1)) : $basename).(!empty($extension) ? '.'. (($will_migrate && in_array($extension, array('html', 'htm', 'php', 'aspx'))) ? 'php' : $extension) : '');
-	if (in_array($extension, array('html', 'htm', 'php', 'aspx'))) { // if page, make it lowercase
+	$live_path_after=$this->host['LIVE_DIR'].$relative_dir.(!empty($extension) ? substr($basename, 0, -1*(strlen($extension)+1)) : $basename).(!empty($extension) ? '.'. (($will_migrate && in_array($extension, ['html', 'htm', 'php', 'aspx'])) ? 'php' : $extension) : '');
+	if (in_array($extension, ['html', 'htm', 'php', 'aspx'])) { // if page, make it lowercase
 		$live_path_after=substr($live_path_after, 0, -1*strlen(basename($live_path_after))).strtolower(basename($live_path_after));
 	};
-	$live_path_after=$_LW->callHandlersByType('application', 'onMigrationPath', array('host'=>$this->host['LIVE_HOST'], 'buffer'=>$live_path_after)); // apply custom migration path rules
+	$live_path_after=$_LW->callHandlersByType('application', 'onMigrationPath', ['host'=>$this->host['LIVE_HOST'], 'buffer'=>$live_path_after]); // apply custom migration path rules
 	$live_path_after=preg_replace('~[/]{2,}~', '/', $live_path_after); // fix redundant slashes
 	if (!empty($live_path_after) && $live_path_after[0]=='/') { // if valid migration path
-		if (($basename[0]!='.' || substr($basename, 0, 3)=='.ht') && strpos($basename, 'livewhale.')!==0 && in_array($extension, array('html', 'htm', 'php', 'aspx'))) { // if valid file
+		if (($basename[0]!='.' || substr($basename, 0, 3)=='.ht') && strpos($basename, 'livewhale.')!==0 && in_array($extension, ['html', 'htm', 'php', 'aspx'])) { // if valid file
 			if ($will_migrate) { // if approved
 				$was_migrated=false; // default to unmigrated status
 				$migrate_path=$relative_dir.'livewhale.'.substr($basename, 0, -1*(strlen(pathinfo($basename, PATHINFO_EXTENSION))+1)).'.php'; // set migration path
@@ -767,7 +767,7 @@ if (strpos($basename, 'livewhale.')!==0) { // if not a migrated page
 					if (strpos($source, '</html>')!==false) { // check if file is an HTML page
 						if (!(strpos($source, '#if ')!==false && preg_match('~<!\-\-\s*#if\s+~', $source))) { // check if SSI conditionals found
 							if (!preg_match('~<meta\s+name=["]*ProgId["]*\s+content=["]*(?:Word\.Document|PowerPoint\.Slide)["]*~i', $source) && strpos($source, 'xmlns:o="urn:schemas-microsoft-com:"')===false && stripos($source, '<meta name="GENERATOR" content="Microsoft FrontPage')===false && strpos($source, 'xmlns:o="urn:schemas-microsoft-com:office:office"')===false) { // if page is not generated by Word/PowerPoint/FrontPage/Office
-								$will_migrate=$_LW->callHandlersByType('application', 'onValidateMigrate', array('host'=>$this->host['HTTP_HOST'], 'path'=>$relative_dir.$basename, 'source'=>$source, 'buffer'=>true)); // apply custom validation rules
+								$will_migrate=$_LW->callHandlersByType('application', 'onValidateMigrate', ['host'=>$this->host['HTTP_HOST'], 'path'=>$relative_dir.$basename, 'source'=>$source, 'buffer'=>true]); // apply custom validation rules
 								if ($will_migrate) { // if validated
 									$source=$this->migratePageContent($relative_dir.$basename, $source); // migrate page contents
 									if (strpos($source, '</html>')!==false) { // if page content is valid
@@ -831,10 +831,10 @@ static $cb;
 if (!isset($cb)) { // create callback
 	$cb=@create_function('$matches', 'return "<widget type=\"file\"><arg id=\"path\">".$GLOBALS["_LW"]->setFormatClean($matches[1])."</arg></widget>";');
 };
-$source=$_LW->callHandlersByType('application', 'onBeforeMigrate', array('host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$source)); // apply custom migration rules
+$source=$_LW->callHandlersByType('application', 'onBeforeMigrate', ['host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$source]); // apply custom migration rules
 $source=preg_replace('~<\?.+?\?>~s', '', $source); // strip PHP
 $source=preg_replace('~<%.+?%>~s', '', $source); // strip ASP
-$source=str_replace(array('href="http://'.$_LW->CONFIG['HTTP_HOST'].'"', 'href="http://'.$_LW->CONFIG['HTTP_HOST'].'/"'), 'href="/"', $source); // format homepage links
+$source=str_replace(['href="http://'.$_LW->CONFIG['HTTP_HOST'].'"', 'href="http://'.$_LW->CONFIG['HTTP_HOST'].'/"'], 'href="/"', $source); // format homepage links
 $source=preg_replace('~<html[^>]*>~', '<html>', $source); // standardize HTML tag
 $source=$this->formatComments($source); // format comments
 $source=preg_replace('~http:/([^/])~', 'http://\\1', $source); // fix http with missing slash
@@ -844,7 +844,7 @@ if (strpos($source, '#include ')!==false) { // convert Apache SSI includes
 };
 $xml=new DOMDocument;
 if (@$xml->loadXML(str_replace(' xmlns="http://www.w3.org/1999/xhtml"', '', $source))) { // if page parses as XML
-	$xml=$_LW->callHandlersByType('application', 'onBeforeMigrateDOM', array('host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$xml)); // apply custom migration rules
+	$xml=$_LW->callHandlersByType('application', 'onBeforeMigrateDOM', ['host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$xml]); // apply custom migration rules
 	$source=trim(str_replace('<'.'?xml version="1.0"?'.'>', '', $xml->saveXML())); // get page source from DOM
 	if (!empty($source) && strpos($source, '</html>')!==false) { // if source valid after DOM parsing
 		$source=preg_replace('~(<script type="text/javascript">\s*<!\[CDATA\[)~s', '<script type="text/javascript">/* <![CDATA[ */', $source); // fix DOM's CDATA nodes
@@ -897,8 +897,8 @@ if (@$xml->loadXML(str_replace(' xmlns="http://www.w3.org/1999/xhtml"', '', $sou
 			};
 			if (!empty($editable)) { // if editable regions were chosen
 				$had_editable=true; // flag as having editable regions to apply
-				$ids=array();
-				$optional=array();
+				$ids=[];
+				$optional=[];
 				if (!empty($editable[0]) && is_array($editable[0])) { // get ids and optional elements
 					$ids=array_merge($ids, $editable[0]);
 				};
@@ -923,7 +923,7 @@ if (@$xml->loadXML(str_replace(' xmlns="http://www.w3.org/1999/xhtml"', '', $sou
 			if (preg_match('~class=".*?editable.*?"~', $source)) { // strip inline JS, if there are editable elements in the page
 				$xml=$this->stripInlineJS($path, $xml);
 			};
-			$xml=$_LW->callHandlersByType('application', 'onAfterMigrateDOM', array('host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$xml)); // apply custom migration rules
+			$xml=$_LW->callHandlersByType('application', 'onAfterMigrateDOM', ['host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$xml]); // apply custom migration rules
 			$source=trim(str_replace('<'.'?xml version="1.0"?'.'>', '', $xml->saveXML())); // get page source from DOM
 			if (!empty($source) && strpos($source, '</html>')!==false) { // if source valid after DOM parsing
 				$source=preg_replace('~<style[^>]*>.*?</style>~s', '', $source); // strip inline style tags
@@ -931,7 +931,7 @@ if (@$xml->loadXML(str_replace(' xmlns="http://www.w3.org/1999/xhtml"', '', $sou
 					$source='<?php require \''.preg_replace('~[/]{2,}~', '/', $this->host['LIVE_INCLUDES_DIR'].'/cache.livewhale.php').'\';?>'."\n".$source;
 				};
 				$source=$this->rewriteUrls($path, $source); // modify urls in page contents
-				$source=$_LW->callHandlersByType('application', 'onAfterMigrate', array('host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$source)); // apply custom migration rules
+				$source=$_LW->callHandlersByType('application', 'onAfterMigrate', ['host'=>$this->host['HTTP_HOST'], 'path'=>$path, 'buffer'=>$source]); // apply custom migration rules
 				$source=$_LW->setFormatPage($source); // format page for LiveWhale again
 				if (@$xml->loadXML(str_replace(' xmlns="http://www.w3.org/1999/xhtml"', '', $source))) { // if page parses as XML
 					$this->getWhitelistHosts($source); // get hosts for whitelist
@@ -965,7 +965,7 @@ else {
 	$GLOBALS['status'].='<div class="migration_warning">&bull; Page skipped because unable to parse as XML. <span class="note">'.$path.'</span></div>';
 	$GLOBALS['status'].='<div class="migration_warning">XML errors were:</div>';
 	libxml_use_internal_errors(true); // don't display errors
-	$errors=array();
+	$errors=[];
 	if (!$sxe=simplexml_load_string($source)) { // if page fails to parse as XML, record each unique error
 		foreach(libxml_get_errors() as $error) {
 			if ($error=htmlentities($error->message)) {
@@ -987,7 +987,7 @@ if (!isset($cb)) { // create callback
 };
 $source=preg_replace('~\-\->\s*<!(\[[^\]]+\]>.+?)<!\[endif\]>~s', '--><!--\\1<![endif]-->', $source); // fix bad comments
 $source=preg_replace('~(<span.*?>)<!\[endif\]>(.*?</span>)~s', '\\1\\2', $source);
-$matches=array(); // init array of comments
+$matches=[]; // init array of comments
 preg_match_all('~<!--.+?-->~s', $source, $matches); // match comments
 foreach($matches[0] as $key=>$val) { // swap in comment placeholders
 	$source=str_replace($val, '%%comment_'.$key.'%%', $source);
@@ -1015,13 +1015,13 @@ if (!empty($matches[1])) { // if there were matches
 };
 }
 
-protected function addEditableElements($source, $ids, $optional=array()) { // makes elements editable
+protected function addEditableElements($source, $ids, $optional=[]) { // makes elements editable
 $source=str_replace(' class=""', '', $source); // clear any blank classes
 foreach($ids as $id) {
 	if (strpos($source, 'id="'.$id.'"')!==false) { // if element is in the document
-		$find=array(); // init arrays
-		$replace=array();
-		$matches=array();
+		$find=[]; // init arrays
+		$replace=[];
+		$matches=[];
 		$class=in_array($id, $optional) ? 'editable optional' : 'editable'; // choose the class to set
 		preg_match_all('~<[a-zA-Z0-9]+\s+.*?id="'.$id.'"[^>]*>~', $source, $matches); // match all elements with this id
 		if (!empty($matches[0])) {
@@ -1056,7 +1056,7 @@ if (file_exists($path)) { // if both files exist
 						$did_copy=false; // init success flag
 						if ($dest_nodes=$xpath_dest->query('//*[string(@id) and contains(@class,"editable") and not(./ancestor::*[contains(@class,"editable")])]')) foreach($dest_nodes as $dest_node) { // loop through dest's editable regions
 							if ($dest_id=$dest_node->getAttribute('id')) {
-								$ids=array();
+								$ids=[];
 								foreach($map as $key=>$val) { // get elements from src that should be copied
 									if ($val==$dest_id) {
 										$ids[]=$key;

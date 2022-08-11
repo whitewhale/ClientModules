@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['group_owned_content']=array(
+$_LW->REGISTERED_APPS['group_owned_content']=[
 	'title'=>'Group Owned Content',
-	'handlers'=>array('onLoad')
-); // configure this module
+	'handlers'=>['onLoad']
+]; // configure this module
 
 class LiveWhaleApplicationGroupOwnedContent {
 

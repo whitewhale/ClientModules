@@ -5,7 +5,7 @@
 $module=array_shift($LIVE_URL['REQUEST']); // get module
 require $LIVE_URL['DIR'].'/cache.livewhale.php'; // load LiveWhale
 $count=0;
-$params=array();
+$params=[];
 if ($tmp=@parse_url($LIVE_URL['REQUEST'][sizeof($LIVE_URL['REQUEST'])-1], PHP_URL_PATH)) {
 	if (!empty($tmp) && $tmp!=$LIVE_URL['REQUEST'][sizeof($LIVE_URL['REQUEST'])-1]) {
 		$LIVE_URL['REQUEST'][sizeof($LIVE_URL['REQUEST'])-1]=$tmp;
@@ -19,8 +19,8 @@ foreach($LIVE_URL['REQUEST'] as $val) { // convert request elements to args
 	}
 	else {
 		if (!isset($params[$key])) {
-			if (in_array($key, array('buildings', 'event_types', 'group_types', 'statuses'))) {
-				$params[$key]=array($_LW->setFormatClean($val));
+			if (in_array($key, ['buildings', 'event_types', 'group_types', 'statuses'])) {
+				$params[$key]=[$_LW->setFormatClean($val)];
 			}
 			else {
 				$params[$key]=$_LW->setFormatClean($val);
@@ -28,7 +28,7 @@ foreach($LIVE_URL['REQUEST'] as $val) { // convert request elements to args
 		}
 		else {
 			if (!is_array($params[$key])) {
-				$params[$key]=array($params[$key]);
+				$params[$key]=[$params[$key]];
 			};
 			$params[$key][]=$_LW->setFormatClean($val);
 		};
@@ -37,7 +37,7 @@ foreach($LIVE_URL['REQUEST'] as $val) { // convert request elements to args
 };
 if (!empty($params['group'])) { // if there are (LiveWhale) groups specified, convert LiveWhale group(s) to EMS group ID
 	if (!is_array($params['group'])) {
-		$params['group']=array($params['group']);
+		$params['group']=[$params['group']];
 	};
 	foreach($params['group'] as $key=>$val) {
 		$params['group'][$key]=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_groups', 'livewhale_groups.fullname='.$_LW->escape($val))->innerJoin('livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.name="ems_group" AND livewhale_custom_data.pid=livewhale_groups.id')->firstRow('value')->run();

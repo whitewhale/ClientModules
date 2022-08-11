@@ -1,9 +1,9 @@
 <?php
 
-$_LW->REGISTERED_APPS['form_grader']=array(
+$_LW->REGISTERED_APPS['form_grader']=[
 	'title'=>'Form Grader',
-	'handlers'=>array('onLoad', 'onFormsSuccess', 'onFormSubmissionEmailFormat', 'onFormsOutput')
-); // configure this module
+	'handlers'=>['onLoad', 'onFormsSuccess', 'onFormSubmissionEmailFormat', 'onFormsOutput']
+]; // configure this module
 
 class LiveWhaleApplicationFormGrader {
 
@@ -80,7 +80,7 @@ if (!empty($_LW->_POST['lw_form_id']) && $form_id==$_LW->_POST['lw_form_id']) { 
 		if (!empty($fields['is_graded']) && !empty($fields['correct_answer'])) { // if this is a graded form
 			if ($template=$this->getTemplate()) { // get the template for the score
 				$score=$this->getScore($fields, $template); // get the score
-				$buffer=str_replace(array('<p><strong>Submitted data:</strong></p>', '<strong>Submitted data:</strong><br/><br/>', '{submission}'), array('', '', $score), $buffer); // add it to email body
+				$buffer=str_replace(['<p><strong>Submitted data:</strong></p>', '<strong>Submitted data:</strong><br/><br/>', '{submission}'], ['', '', $score], $buffer); // add it to email body
 			};
 		};
 	};
@@ -104,17 +104,17 @@ global $_LW;
 if ($form=$_LW->dbo->query('select', 'title, structure', 'livewhale_forms', 'id='.(int)$_LW->_POST['lw_form_id'])->firstRow()->run()) { // get the form details
 	if ($form['structure']=@unserialize($form['structure'])) { // decode form structure
 		$li='';
-		$matches=array();
+		$matches=[];
 		preg_match_all('~<li[^>]*?>(?:(?!</li>).)*?</li>~s', $template, $matches);
 		if (!empty($matches[0]) && sizeof($matches[0])===1) { // get <li> from template
 			$li=$matches[0][0];
 			$template=str_replace($li, '<xphp var="form_grader_results"/>', $template); // swap variable in for li
 		};
-		$questions=array();
+		$questions=[];
 		$count_correct=0;
 		foreach($fields['correct_answer'] as $key=>$val) {
 			if (!empty($val) && $form['structure']['header'][$key]) { // if there is a correct answer configured and this is an actual question element
-				$question=array();
+				$question=[];
 				$question['correct_answer']=$val; // get correct answer
 				$question['actual_answer']=@$_LW->_POST['lw_form_'.$_LW->_POST['lw_form_id'].'_'.$key]; // get actual answer
 				if (is_array($question['actual_answer'])) {

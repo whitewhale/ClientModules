@@ -80,28 +80,28 @@ global $_LW;
 set_time_limit(0); // disable resource limits
 ini_set('display_errors', 1);
 ini_set('auto_detect_line_endings', true); // detect CSV line endings
-$output=array( // init required output
+$output=[ // init required output
 	'profile_type_id'=>false,
 	'profile_type_title'=>false,
-	'profiles'=>array(),
+	'profiles'=>[],
 	'key_field_title'=>false,
-	'required_columns'=>array(),
-	'custom_ids'=>array()
-);
+	'required_columns'=>[],
+	'custom_ids'=>[]
+];
 if ($file=fopen($path, 'r')) { // if CSV opens
-	$data=array();
+	$data=[];
 	while (($item=fgetcsv($file, 0, ',', '"'))!==false) { // read all data from the CSV
 		$data[]=$item;
 	};
 	fclose($file);
-	$required_columns=array('id', 'gid', 'firstname', 'middlename', 'lastname', 'title', 'description', 'url', 'contact_info', 'username'); // init the leading columns that are required in the header row
-	$required_custom_field_columns=array(); // init array of column indexes that correspond to custom fields that are required
-	$custom_fields=array(); // init array of custom fields and their attributes
+	$required_columns=['id', 'gid', 'firstname', 'middlename', 'lastname', 'title', 'description', 'url', 'contact_info', 'username']; // init the leading columns that are required in the header row
+	$required_custom_field_columns=[]; // init array of column indexes that correspond to custom fields that are required
+	$custom_fields=[]; // init array of custom fields and their attributes
 	$column_count=0; // init total column count
 	$count=0; // init CSV row counter, so we can distinguish the header row
-	$header=array(); // init list of all header columns
+	$header=[]; // init list of all header columns
 	$output['required_columns']=$required_columns; // add the required header columns to the output
-	$gids=array(); // init array of gids, for existance-checking
+	$gids=[]; // init array of gids, for existance-checking
 	foreach($data as $item) { // for each CSV row
 		if (empty($count)) { // if this is the header row
 			foreach($item as $key=>$val) { // standardize the column case
@@ -168,7 +168,7 @@ if ($file=fopen($path, 'r')) { // if CSV opens
 							die('A column was not provided for required profile field '.$_LW->setFormatClean($custom_field['title']).'.');
 						}
 						else { // else if required custom field is present in the header row
-							$required_custom_field_columns[]=array('title'=>$custom_field['title'], 'index'=>array_search('profiles_'.$custom_field['id'], $item)); // record the required custom field column so we can ensure that the subsequent profiles satisfy those requirements
+							$required_custom_field_columns[]=['title'=>$custom_field['title'], 'index'=>array_search('profiles_'.$custom_field['id'], $item)]; // record the required custom field column so we can ensure that the subsequent profiles satisfy those requirements
 						};
 					};
 				};
@@ -283,11 +283,11 @@ return $output;
 
 function importProfiles($info) { // imports the profiles
 global $_LW;
-$status=array('created'=>0, 'updated'=>0); // init return status
+$status=['created'=>0, 'updated'=>0]; // init return status
 $required_count=sizeof($info['required_columns']); // get the count of required core profile fields
 foreach($info['profiles'] as $profile) { // for each profile
-	$data=array(); // init array of import data
-	$data_original=array(); // and array of unescaped data for display
+	$data=[]; // init array of import data
+	$data_original=[]; // and array of unescaped data for display
 	foreach($info['required_columns'] as $key=>$val) { // format and add required core profile fields
 		$data[$val]=$_LW->escape($profile[$key]);
 		$data_original[$val]=$profile[$key];
@@ -318,7 +318,7 @@ foreach($info['profiles'] as $profile) { // for each profile
 			};
 		}
 		else { // else if updating the profile
-			$updates=array();
+			$updates=[];
 			foreach($data as $key=>$val) { // generate update syntax
 				$updates[]=$key.'='.$val;
 			};

@@ -1,16 +1,16 @@
 <?php
 
-$_LW->REGISTERED_APPS['login_test']=array(
+$_LW->REGISTERED_APPS['login_test']=[
 	'title'=>'Login Test',
-	'handlers'=>array('onLoad'),
-	'custom'=>array( // customize the login settings to override the defaults here
+	'handlers'=>['onLoad'],
+	'custom'=>[ // customize the login settings to override the defaults here
 		'LOGIN_MODE'=>'CAS', // for example...
 		'CAS_HOST'=>'xxx.host.edu',
 		'CAS_PORT'=>8443,
 		'CAS_CONTEXT'=>'/cas',
 		'CAS_CERTIFICATE_PATH'=>''
-	)
-); // configure this module
+	]
+]; // configure this module
 
 class LiveWhaleApplicationLoginTest {
 

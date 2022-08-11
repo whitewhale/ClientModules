@@ -1,12 +1,12 @@
 <?php
 
-$_LW->REGISTERED_APPS['stripe_js'] = array( // configure this application module
+$_LW->REGISTERED_APPS['stripe_js'] = [ // configure this application module
 	'title' => 'Stripe JS',
 	'handlers' => ['onLoad', 'onFormsOutput', 'onFormsSuccess'],
 	'custom'=>[
 		'checkout_icon' => 'https://www.templejc.edu/_ingredients/extras/logo.png'
 	]
-);
+];
 
 class LiveWhaleApplicationStripeJs {
 
@@ -14,7 +14,7 @@ class LiveWhaleApplicationStripeJs {
 public function onLoad() {
 global $_LW;
 	// Setup stripe price form config
-	$_LW->CONFIG['FORM_STYLES']['stripe-price'] = array('Stripe Price (SPECIAL)', 'stripe-price');
+	$_LW->CONFIG['FORM_STYLES']['stripe-price'] = ['Stripe Price (SPECIAL)', 'stripe-price'];
 }
 
 
@@ -63,10 +63,10 @@ public function onFormsSuccess($buffer, $form_id) {
 			
 			if ($info=$this->getStripeInfoForForm($_LW->_POST['stripeFormID'])) { // fetch the Stripe info
 				// Setup your Stripe connection
-				$stripe = array(
+				$stripe = [
 				  "secret_key"      => $info['private_key'],
 				  "publishable_key" => $info['public_key'],
-				);
+				];
 
 				Stripe::setApiKey($stripe['secret_key']);
 			
@@ -78,17 +78,17 @@ public function onFormsSuccess($buffer, $form_id) {
 
 				try {
 
-					$customer = Stripe_Customer::create(array(
+					$customer = Stripe_Customer::create([
 					  'email' => $email,
 					  'card'  => $token
-					));
+					]);
 
-					$charge = Stripe_Charge::create(array(
+					$charge = Stripe_Charge::create([
 					  'customer' => $customer->id,
 					  'description' => $description,
 					  'amount'   => $amount,
 					  'currency' => 'usd'
-					));
+					]);
 
 				} catch(\Stripe\Exception\CardException $e) {
   				  $_LW->logError('Stripe Error: Declined charge ' . $e->getError()->type);

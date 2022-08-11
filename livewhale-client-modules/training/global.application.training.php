@@ -1,16 +1,16 @@
 <?php
 
-$_LW->REGISTERED_APPS['training']=array(
+$_LW->REGISTERED_APPS['training']=[
 	'title'=>'Training',
-	'handlers'=>array('onBeforeLogin', 'onLoad')
-); // configure this module
+	'handlers'=>['onBeforeLogin', 'onLoad']
+]; // configure this module
 
 class LiveWhaleApplicationTraining {
 
 public function onBeforeLogin($username) { // on login
 global $_LW;
 if ($res2=$_LW->dbo->query('select', 'id, password', 'livewhale_users', 'username='.$_LW->escape($username).' AND last_login IS NULL')->firstRow()->run()) { // if this is the user's first login
-	$_LW->setCustomFields('users', $res2['id'], array('is_training' => $res2['password']), array()); // flag the user as in training
+	$_LW->setCustomFields('users', $res2['id'], ['is_training' => $res2['password']], []); // flag the user as in training
 };
 }
 
@@ -29,7 +29,7 @@ if ($_LW->isLiveWhaleUser()) { // if the user is logged in
 			else if ($_LW->page=='settings') { // else if on settings page
 				if ($_LW->dbo->query('select', '1', 'livewhale_users', 'id='.(int)$_SESSION['livewhale']['manage']['uid'].' AND password!='.$_LW->escape($_SESSION['livewhale']['manage']['is_training']))->exists()->run()) { // if user has reset their password
 					$_SESSION['livewhale']['manage']['is_training']=false; // reset their training flag
-					$_LW->setCustomFields('users', $_SESSION['livewhale']['manage']['uid'], array('is_training' => ''), array());
+					$_LW->setCustomFields('users', $_SESSION['livewhale']['manage']['uid'], ['is_training' => ''], []);
 				}
 				else { // else if user has not reset their password
 					$_LW->REGISTERED_MESSAGES['failure'][]='In order to proceed with training, you must choose a new user password for your LiveWhale account.'; // show instructional message

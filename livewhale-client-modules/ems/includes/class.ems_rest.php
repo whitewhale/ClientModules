@@ -1,7 +1,7 @@
 <?php
 
 class EMSRESTClient { // REST client for EMS
-public $ems_errors=array();
+public $ems_errors=[];
 
 function __construct($rest) { // creates a new REST server client
 global $_LW;
@@ -58,16 +58,16 @@ return false;
 
 public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // fetches EMS bookings by specified parameters (Note: group_types NOT SUPPORTED UNDER REST!)
 global $_LW;
-$this->ems_errors=array(); // reset errors
-foreach(array('Buildings'=>'buildings', 'Statuses'=>'statuses', 'Groups'=>'groups', 'EventTypes'=>'event_types') as $key=>$param) { // format other parameters
+$this->ems_errors=[]; // reset errors
+foreach(['Buildings'=>'buildings', 'Statuses'=>'statuses', 'Groups'=>'groups', 'EventTypes'=>'event_types'] as $key=>$param) { // format other parameters
 	if (!empty($$param)) {
 		if (!is_array($$param)) {
-			$$param=array($$param);
+			$$param=[$$param];
 		};
 		if (!empty($$param)) {
 			foreach($$param as $id) {
 				if (!preg_match('~^[0-9]+$~', $id)) {
-					$this->ems_errors=array('Invalid '.$param.'for bookings.');
+					$this->ems_errors=['Invalid '.$param.'for bookings.'];
 					return false;
 				};
 			};
@@ -76,7 +76,7 @@ foreach(array('Buildings'=>'buildings', 'Statuses'=>'statuses', 'Groups'=>'group
 };
 if (!empty($groups)) { // ensure groups is an array
 	if (!is_array($groups)) {
-		$groups=array($groups);
+		$groups=[$groups];
 	};
 	if (!isset($this->groups)) { // convert any group IDs to group titles
 		$this->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']);
@@ -87,9 +87,9 @@ if (!empty($groups)) { // ensure groups is an array
 		};
 	};
 };
-$params=array();
+$params=[];
 $params['pageSize']=2000;
-$payload=array();
+$payload=[];
 if (!empty($start_date)) {
 	$payload['minReserveStartTime']=$start_date;
 };
@@ -109,10 +109,10 @@ if (!empty($groups)) {
 	$payload['groupIds']=$groups;
 };
 if (!empty($group_id)) {
-	$payload['groupIds']=array((int)$group_id);
+	$payload['groupIds']=[(int)$group_id];
 };
 if ($response=$this->getResponse('/bookings/actions/search', $params, $payload)) { // get the response
-	$output=array();
+	$output=[];
 	if (!empty($response['results'])) { // fetch and format results
 		$page_count=1;
 		$page_max=3;
@@ -209,7 +209,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 			};
 		};
 	};
-	$hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
+	$hash=hash('md5', serialize([@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id])); // get hash for feed
 	if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems')) { // ensure EMS directory exists
 		@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems');
 	};
@@ -219,7 +219,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 	@file_put_contents($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash, serialize($output), LOCK_EX); // cache the results
 	return $output; // return all results
 };
-$hash=hash('md5', serialize(array(@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id))); // get hash for feed
+$hash=hash('md5', serialize([@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id])); // get hash for feed
 if ($tmp=@file_get_contents($_LW->INCLUDES_DIR_PATH.'/data/ems/feed_cache/'.$hash)) { // fall back on most recent cache if available (in case of EMS API failure)
 	if ($tmp=@unserialize($tmp)) {
 		$output=$tmp;
@@ -237,7 +237,7 @@ if (isset($this->statuses)) { // return cached response if possible
 };
 $this->statuses=$_LW->getVariable('ems_statuses'); // fetch statuses from cache
 if (empty($this->statuses)) { // if cached statuses not available
-	$this->statuses=array();
+	$this->statuses=[];
 	if ($response=$this->getResponse('/statuses')) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
 			foreach($response['results'] as $status) {
@@ -278,8 +278,8 @@ if (isset($this->groups)) { // return cached response if possible
 };
 $this->groups=$_LW->getVariable('ems_groups'); // fetch groups from cache
 if (empty($this->groups)) { // if cached groups not available
-	$this->groups=array();
-	$params=array();
+	$this->groups=[];
+	$params=[];
 	$params['pageSize']=2000;
 	if ($response=$this->getResponse('/groups', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
@@ -302,7 +302,7 @@ if (empty($this->groups)) { // if cached groups not available
 			};
 		};
 	};
-	uasort($this->groups, array($this, 'sortGroups')); // sort the groups
+	uasort($this->groups, [$this, 'sortGroups']); // sort the groups
 	$_LW->setVariable('ems_groups', $this->groups, 3600); // cache the groups
 };
 }
@@ -350,8 +350,8 @@ if (isset($this->event_types)) { // return cached response if possible
 };
 $this->event_types=$_LW->getVariable('ems_event_types'); // fetch event types from cache
 if (empty($this->event_types)) { // if cached event types not available
-	$this->event_types=array();
-	$params=array();
+	$this->event_types=[];
+	$params=[];
 	$params['pageSize']=2000;
 	if ($response=$this->getResponse('/eventtypes', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
@@ -379,7 +379,7 @@ public function getReservationById($id, $cache_key) { // fetches a reservation's
 global $_LW;
 static $map;
 if (!isset($map)) {
-	$map=array();
+	$map=[];
 };
 if (isset($map[$id])) { // return cached response if possible
 	return $map[$id];
@@ -394,15 +394,15 @@ if (@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400) { // return cached r
 		};
 	};
 };
-$reservation=@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400 ? @unserialize(file_get_contents($cache_path)) : array(); // fetch reservation from cache
+$reservation=@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400 ? @unserialize(file_get_contents($cache_path)) : []; // fetch reservation from cache
 if (empty($reservation)) { // if cached reservation not available
-	$reservation=array();
+	$reservation=[];
 	if ($response=$this->getResponse('/reservations/'.$id)) { // get the response
 		if (!empty($response['id'])) { // fetch result
 			$reservation=$response;
 		};
 	};
-	foreach(array($_LW->INCLUDES_DIR_PATH.'/data/ems', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1]) as $dir) {
+	foreach([$_LW->INCLUDES_DIR_PATH.'/data/ems', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1]] as $dir) {
 		if (!is_dir($dir)) {
 			@mkdir($dir);
 		};
@@ -417,8 +417,8 @@ return $reservation;
 
 public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs for a booking
 global $_LW;
-$output=array();
-$params=array('pageSize'=>2000);
+$output=[];
+$params=['pageSize'=>2000];
 if ($response=$this->getResponse('/bookings/'.(int)$parent_id.'/userdefinedfields', $params)) { // get the response
 	if (!empty($response['results'])) { // fetch and format results
 		foreach($response['results'] as $udf) {

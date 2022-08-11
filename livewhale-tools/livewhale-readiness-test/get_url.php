@@ -2,9 +2,9 @@
 
 function getUrl($arr, $response=true, $post=false, $curl_opts=false, $always_return=false) { // gets results from url
 if (!is_array($arr)) { // always use an array
-	$arr=array($arr);
+	$arr=[$arr];
 };
-$output=array(); // init array of output
+$output=[]; // init array of output
 $GLOBALS['first_code']=''; // reset first_code
 $GLOBALS['last_code']=''; // reset last_code
 $GLOBALS['last_error']=''; // reset last_error
@@ -31,7 +31,7 @@ if (!$response && !$curl_opts) { // if a server response isn't needed and not po
 	};
 }
 else { // else if using curl
-	$opts=array( // set base request config
+	$opts=[ // set base request config
 		CURLOPT_RETURNTRANSFER=>1,
 		CURLOPT_CONNECTTIMEOUT=>6,
 		CURLOPT_TIMEOUT=>15,
@@ -42,8 +42,8 @@ else { // else if using curl
 		CURLOPT_DNS_USE_GLOBAL_CACHE=>1,
 		CURLOPT_DNS_CACHE_TIMEOUT=>300,
 		CURLOPT_ENCODING=>1,
-		CURLOPT_HTTPHEADER=>array('Accept-Encoding: gzip,deflate')
-	);
+		CURLOPT_HTTPHEADER=>['Accept-Encoding: gzip,deflate']
+	];
 	if (!empty($curl_opts)) { // set/override curl opts if specified
 		foreach($curl_opts as $key=>$val) {
 			$opts[$key]=$val;
@@ -64,7 +64,7 @@ else { // else if using curl
 				return false;
 			};
 			if (preg_match('~http://.+?:.+?@~', $url)) { // if this is an authenticated request
-				$matches=array();
+				$matches=[];
 				preg_match('~http://(.+?:.+?)@~', $url, $matches); // extract username and password
 				$opts_auth=$opts; // init alternative opts array
 				$opts_auth[CURLOPT_HTTPAUTH]=CURLAUTH_DIGEST; // add authentication options
@@ -96,10 +96,10 @@ else { // else if using curl
 				$GLOBALS['last_error']=curl_error($ch);
 			};
 			$count=0; // init reattempt counter
-			while (in_array($code, array(301, 302, 303, 307)) && $count<3) { // reattempt if redirect given
+			while (in_array($code, [301, 302, 303, 307]) && $count<3) { // reattempt if redirect given
 				curl_setopt($ch, CURLOPT_HEADER, !($code==302 && $count==2)); // set opt to request header
 				$output[$key]=curl_exec($ch); // re-request url
-				$matches=array(); // init array of matches
+				$matches=[]; // init array of matches
 				preg_match('~Location: (.+?)\s+~', $output[$key], $matches); // match location
 				if (!empty($matches[1])) { // if there was a match
 					if (strpos($matches[1], '../')===0) { // fix relative urls

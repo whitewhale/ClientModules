@@ -1,19 +1,19 @@
 <?php
 
-$_LW->REGISTERED_APPS['ems']=array(
+$_LW->REGISTERED_APPS['ems']=[
 	'title'=>'EMS',
-	'handlers'=>array('onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost', 'onBeforeLogin'),
-	'flags'=>array('no_autoload'),
-	'commands'=>array('ems-debug'=>'debug'),
-	'custom'=>array( // these settings should all be set in global.config.php, not here
+	'handlers'=>['onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost', 'onBeforeLogin'],
+	'flags'=>['no_autoload'],
+	'commands'=>['ems-debug'=>'debug'],
+	'custom'=>[ // these settings should all be set in global.config.php, not here
 		'wsdl'=>'', // url to EMS WSDL (i.e. https://####.emscloudservice.com/emsapi/service.asmx?wsdl)
 		'rest'=>'', // url to EMS REST (i.e. https://####/EmsPlatform/api/v1)
 		'username'=>'', // EMS username
 		'password'=>'', // EMS password
-		'event_types_map'=>array(), // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type' (or an array of LiveWhale Event Types)
-		'default_statuses'=>array(), // default statuses (if none specified)
-		'default_group_types'=>array(), // default group types (if none specified)
-		'default_event_types'=>array(), // default event types (if none specified)
+		'event_types_map'=>[], // maps EMS event types to LiveWhale event types -- use format: 1=>'LiveWhale Event Type' (or an array of LiveWhale Event Types)
+		'default_statuses'=>[], // default statuses (if none specified)
+		'default_group_types'=>[], // default group types (if none specified)
+		'default_event_types'=>[], // default event types (if none specified)
 		'cafile'=>'', // specify path to .pem file to enable SSL validation (test with curl -v --cacert file.pem --capath /path/to/certs "https://<server>.emscloudservice.com/")
 		'capath'=>'', // specify path to the server's certificate directory for additional certifications in the chain
 		'hidden_by_default'=>false, // default to importing live events
@@ -21,8 +21,8 @@ $_LW->REGISTERED_APPS['ems']=array(
 		'udf_categories'=>'', // if capturing UDFs, set the name of the UDF cooresponding to categories that should be created/assigned to incoming EMS events
 		'udf_description'=>'', // if using UDFs as event description, set the name of the UDF cooresponding to description
 		'udf_tags'=>'' // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
-	)
-); // configure this module
+	]
+]; // configure this module
 
 class LiveWhaleApplicationEms { // implements EMS-related functionality in LiveWhale
 protected $client; // the EMS client
@@ -40,14 +40,14 @@ if (!isset($this->client)) { // if client not yet created
 		if (!class_exists('EMSSoapClient')) { // load the EMS class
 			require $_LW->INCLUDES_DIR_PATH.'/client/modules/ems/includes/class.ems_soap.php';
 		};
-		$opts=array( // set default opts
+		$opts=[ // set default opts
 			'soap_version'=>SOAP_1_2
-		);
+		];
 		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['cafile']) || !empty($_LW->REGISTERED_APPS['ems']['custom']['capath'])) { // enable SSL verification if certificate is specified
 			//$opts['cache_wsdl']=WSDL_CACHE_NONE; // uncomment if required by EMS server
 			$opts['stream_context']=stream_context_create(
-				array(
-					'ssl'=>array(
+				[
+					'ssl'=>[
 						'verify_peer'=>true,
 						'verify_peer_name'=>false,
 						'allow_self_signed'=>false,
@@ -55,8 +55,8 @@ if (!isset($this->client)) { // if client not yet created
 						'SNI_enabled'=>true,
 						'disable_compression'=>true,
 						'capath'=>!empty($_LW->REGISTERED_APPS['ems']['custom']['capath']) ? $_LW->REGISTERED_APPS['ems']['custom']['capath'] : false
-					)
-				)
+					]
+				]
 			);
 		};
 		try {
@@ -181,11 +181,11 @@ return $this->client->getBookings($username, $password, $start_date, $end_date, 
 public function getBookingsAsICAL($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
 global $_LW;
 $feed=$_LW->getNew('feed'); // get a feed object
-$ical=$feed->createFeed(array('title'=>'EMS Events'), 'ical'); // create new feed
+$ical=$feed->createFeed(['title'=>'EMS Events'], 'ical'); // create new feed
 $hostname=@parse_url((!empty($_LW->REGISTERED_APPS['ems']['custom']['wsdl']) ? $_LW->REGISTERED_APPS['ems']['custom']['wsdl'] : (!empty($_LW->REGISTERED_APPS['ems']['custom']['rest']) ? $_LW->REGISTERED_APPS['ems']['custom']['rest'] : '')), PHP_URL_HOST);
 if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id)) { // if bookings obtained
 	foreach($bookings as $booking) { // for each booking
-		$arr=array( // format the event
+		$arr=[ // format the event
 			'summary'=>$booking['title'],
 			'dtstart'=>$booking['date_ts'],
 			'dtend'=>(!empty($booking['date2_ts']) ? $booking['date2_ts'] : ''),
@@ -199,7 +199,7 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 			'X-LIVEWHALE-CONTACT-INFO'=>@$booking['contact_info'],
 			'X-EMS-STATUS-ID'=>@$booking['status_id'],
 			'X-EMS-EVENT-TYPE-ID'=>@$booking['event_type_id']
-		);
+		];
 		if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
 			$arr['X-LIVEWHALE-SKIP-SYNC']=1;
 		};
@@ -243,7 +243,7 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 				$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']);
 			};
 			if (!isset($event_types)) { // get the LiveWhale event types
-				$event_types=array();
+				$event_types=[];
 				foreach($_LW->dbo->query('select', 'id, title', 'livewhale_events_categories', false, 'title ASC')->run() as $event_type) {
 					$event_types[$event_type['id']]=$_LW->setFormatClean($event_type['title']);
 				};
@@ -292,7 +292,7 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 							};
 							if (!empty($val2_id) && isset($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id])) { // if the EMS event type was found in map
 								if (!is_array($buffer['items']['default'][$key]['categories'])) { // ensure that there is an array of known categories
-									$buffer['items']['default'][$key]['categories']=array();
+									$buffer['items']['default'][$key]['categories']=[];
 								};
 								$new_categories=$_LW->REGISTERED_APPS['ems']['custom']['event_types_map'][$val2_id];
 								if (!is_array($new_categories)) {
@@ -347,7 +347,7 @@ global $_LW;
 if ($_LW->page=='groups_edit') { // if on the group editor page
 	if ($type=='groups') { // if saving a group
 		if ($this->initEMS()) { // if EMS loaded
-			$_LW->setCustomFields($type, $id, array('ems_group'=>@$_LW->_POST['ems_group']), array()); // store the value entered for ems_group
+			$_LW->setCustomFields($type, $id, ['ems_group'=>@$_LW->_POST['ems_group']], []); // store the value entered for ems_group
 		};
 	};
 };

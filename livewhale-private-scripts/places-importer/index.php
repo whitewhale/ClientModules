@@ -14,8 +14,8 @@ Instructions:
 require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 
 ini_set('auto_detect_line_endings', true);
-$items=array();
-$tags=array();
+$items=[];
+$tags=[];
 if ($file=fopen('./places.csv', 'r')) {
 	$count=0;
 	while (($item=fgetcsv($file, 0, ',', '"'))!==false) {
@@ -29,7 +29,7 @@ if ($file=fopen('./places.csv', 'r')) {
 			foreach($item as $key=>$val) {
 				$item[$key]=$_LW->setFormatSanitize(trim($val));
 			};
-			$tmp=array();
+			$tmp=[];
 			$tmp['title']=$item[0];
 			$tmp['latitude']=$item[1];
 			$tmp['longitude']=$item[2];
@@ -43,13 +43,13 @@ if ($file=fopen('./places.csv', 'r')) {
 if (!empty($items)) {
 	foreach($items as $item) {
 		if (!empty($_LW->_GET['run'])) {
-			if ($id=$_LW->create('places', array(
+			if ($id=$_LW->create('places', [
 				'title'=>$item['title'],
 				'gid'=>'',
 				'latitude'=>$item['latitude'],
 				'longitude'=>$item['longitude'],
 				'keywords'=>$item['keywords']
-			))) {
+			])) {
 				echo 'Created place '.$id.'<br/>';
 			}
 			else {

@@ -1,10 +1,10 @@
 <?php
 
-$_LW->REGISTERED_APPS['appointments']=array(
+$_LW->REGISTERED_APPS['appointments']=[
 	'title'=>'Appointments',
-	'handlers'=>array('onPaymentsForm', 'onAfterRegisterEvent', 'onValidatePaymentsForm', 'onFormatMessageVars'),
-    'flags'=>array('no_autoload')
-);
+	'handlers'=>['onPaymentsForm', 'onAfterRegisterEvent', 'onValidatePaymentsForm', 'onFormatMessageVars'],
+    'flags'=>['no_autoload']
+];
 
 class LiveWhaleApplicationAppointments {
 
@@ -73,7 +73,7 @@ if (!empty($post['appointments'][0])) { // if an RSVP with an appointment has be
 	if ($appointment_id=$_LW->dbo->query('select', 'livewhale_appointments.id', 'livewhale_appointments', 'livewhale_appointments.title='.$_LW->escape($post['appointments'][0]))
 	->innerJoin('livewhale_appointments2any', 'livewhale_appointments2any.id1=livewhale_appointments.id AND livewhale_appointments2any.id2='.(int)$post['lw_payments_field_id'].' AND livewhale_appointments2any.type="events"')
 	->firstRow('id')->run()) { // get the appointment ID associated with the chosen slot
-		$_LW->dbo->query('update', 'livewhale_appointments2any', array('registration_id'=>(int)$id), 'id1='.(int)$appointment_id.' AND id2='.(int)$post['lw_payments_field_id'].' AND type="events"')->run(); // record the chosen appointment for this registration
+		$_LW->dbo->query('update', 'livewhale_appointments2any', ['registration_id'=>(int)$id], 'id1='.(int)$appointment_id.' AND id2='.(int)$post['lw_payments_field_id'].' AND type="events"')->run(); // record the chosen appointment for this registration
 	};
 };
 }
@@ -98,7 +98,7 @@ if (@$post['lw_payments_field_type']=='events') { // if an RSVP has been submitt
 
 protected function getAppointmentsForEvent($event_id) { // gets appointments for the event
 global $_LW;
-$output=array();
+$output=[];
 foreach($_LW->dbo->query('select', '
 livewhale_appointments.id,
 livewhale_appointments.title,

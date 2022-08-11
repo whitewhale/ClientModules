@@ -1,50 +1,50 @@
 <?php
 
-$_LW->REGISTERED_MODULES['appointments']=array(
+$_LW->REGISTERED_MODULES['appointments']=[
 	'title'=>'Appointments',
 	'link'=>'/livewhale/?appointments',
 	'revision'=>1,
 	'order'=>120,
-	'subnav'=>array(
-		array('title'=>'Your Events', 'url'=>'/livewhale/?events_list', 'id'=>'page_events'),
-		array('title'=>'Appointment Slots', 'url'=>'/livewhale/?appointments', 'id'=>'page_appointments')
-	),
-	'flags'=>array('has_js', 'has_css', 'is_always_authorized'),
-	'requires_permission'=>array('core_edit', 'core_globals'),
-	'handlers'=>array('onLogin'),
-	'ajax'=>array('saveAppointmentsTitle', 'getAppointmentsList', 'getAppointmentsListJSON'),
-	'data_types'=>array(
-		'appointments'=>array(
+	'subnav'=>[
+		['title'=>'Your Events', 'url'=>'/livewhale/?events_list', 'id'=>'page_events'],
+		['title'=>'Appointment Slots', 'url'=>'/livewhale/?appointments', 'id'=>'page_appointments']
+	],
+	'flags'=>['has_js', 'has_css', 'is_always_authorized'],
+	'requires_permission'=>['core_edit', 'core_globals'],
+	'handlers'=>['onLogin'],
+	'ajax'=>['saveAppointmentsTitle', 'getAppointmentsList', 'getAppointmentsListJSON'],
+	'data_types'=>[
+		'appointments'=>[
 			'table'=>'livewhale_appointments',
 			'term'=>'appointment',
 			'term_plural'=>'appointments',
 			'title_clause'=>'livewhale_appointments.title',
-			'managers'=>array(
-				'appointments'=>array(
-					'handlers'=>array(
+			'managers'=>[
+				'appointments'=>[
+					'handlers'=>[
 						'onManager'=>'onManagerAppointments',
 						'onManagerSubmit'=>'onManagerSubmitAppointments'
-					)
-				)
-			),
-			'fields'=>array('title'),
-			'fields_required'=>array('title'),
-			'handlers'=>array(
+					]
+				]
+			],
+			'fields'=>['title'],
+			'fields_required'=>['title'],
+			'handlers'=>[
 				'onValidate'=>'onValidateAppointments'
-			),
-			'flags'=>array('has_trash'),
-			'trash'=>array(
+			],
+			'flags'=>['has_trash'],
+			'trash'=>[
 				'title'=>'title',
-				'records'=>array(
-					array('livewhale_appointments2any', 'livewhale_appointments2any.id1={id}')
-				)
-			)
-		)
-	),
-	'reports'=>array(
-		'tables'=>array('livewhale_appointments', 'livewhale_appointments2any')
-	)
-); // configure this module
+				'records'=>[
+					['livewhale_appointments2any', 'livewhale_appointments2any.id1={id}']
+				]
+			]
+		]
+	],
+	'reports'=>[
+		'tables'=>['livewhale_appointments', 'livewhale_appointments2any']
+	]
+]; // configure this module
 
 class LiveWhaleDataAppointments {
 
@@ -54,7 +54,7 @@ $module_config=&$_LW->REGISTERED_MODULES['appointments']; // get the config for 
 if (!$revision=$_LW->isInstalledModule('appointments')) { // if module is not installed
 	$_LW->dbo->sql('CREATE TABLE IF NOT EXISTS livewhale_appointments (id int(11) NOT NULL auto_increment, title varchar(255) NOT NULL default "", date_created datetime NOT NULL, last_modified datetime NOT NULL, last_user int(11) NOT NULL, created_by int(11) default NULL, PRIMARY KEY (id), KEY title (title)) ENGINE=INNODB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;'); // install module tables
 	$_LW->dbo->sql('CREATE TABLE IF NOT EXISTS livewhale_appointments2any (id1 int(11) NOT NULL, id2 int(11) NOT NULL, type varchar(255) NOT NULL, registration_id int(11) default NULL, PRIMARY KEY (id1,id2,type), KEY id1 (id1), KEY id2 (id2)) ENGINE=INNODB DEFAULT CHARSET=utf8;');
-	if ($_LW->hasTables(array('livewhale_appointments', 'livewhale_appointments2any'))) { // register module in modules table
+	if ($_LW->hasTables(['livewhale_appointments', 'livewhale_appointments2any'])) { // register module in modules table
 		$_LW->dbo->sql('INSERT INTO livewhale_modules VALUES(NULL,"appointments",'.(float)$module_config['revision'].');');
 	};
 }
@@ -78,7 +78,7 @@ if (!empty($_LW->_POST['dropdown_checked']) && !empty($_LW->_POST['items'])) { /
 
 public function formatManager($input) { // formats data for the appointments manager
 global $_LW;
-usort($input, array($this, 'sortAppointmentsList')); // sort appointments
+usort($input, [$this, 'sortAppointmentsList']); // sort appointments
 foreach($input as $key=>$val) { // for each result	
 	$input[$key]['checkbox']='<input class="with_this" type="checkbox" name="items[]" value="'.$input[$key]['id'].'"/>';
 	$input[$key]['appointments']='<input type="hidden" name="appointments[]" value="'.$input[$key]['id'].'"/>';
@@ -110,7 +110,7 @@ return $q;
 public function multiSelector($module, $name) { // returns multiSelector for appointments, preselecting currently selected ones
 global $_LW;
 if (!isset($_LW->json['appointments'])) { // if there are no appointments set yet
-	$_LW->json['appointments']=array(); // init arrays
+	$_LW->json['appointments']=[]; // init arrays
 	$_LW->dbo->query('select',
 		'livewhale_appointments.id,
 		livewhale_appointments.title',
@@ -119,7 +119,7 @@ if (!isset($_LW->json['appointments'])) { // if there are no appointments set ye
 	$res=$_LW->dbo->run(); // get appointments
 	if ($res->hasResults()) {
 		while ($res2=$res->next()) { // loop through appointments
-			$_LW->json['appointments'][]=array('id'=>$res2['id'], 'title'=>$res2['title']); // add appointment
+			$_LW->json['appointments'][]=['id'=>$res2['id'], 'title'=>$res2['title']]; // add appointment
 		};
 	};
 };
@@ -132,7 +132,7 @@ function date_compare($a, $b) {
 }    
 usort($_LW->json['appointments'], 'date_compare');
 
-$_LW->json['editor']['values'][$name]=array(); // init array of form values
+$_LW->json['editor']['values'][$name]=[]; // init array of form values
 if (!empty($_LW->json['appointments'])) { // if there are appointments, loop through appointments, add value to field if there's a preselect value that exists as a appointment
 	foreach($_LW->json['appointments'] as $val) {
 		if (!empty($_LW->_POST[$name]) && is_array($_LW->_POST[$name]) && in_array($val['id'], $_LW->_POST[$name])) {
@@ -142,16 +142,16 @@ if (!empty($_LW->json['appointments'])) { // if there are appointments, loop thr
 };
 if (!empty($_LW->_POST['appointments_added'])) { // loop through added appointments and add values
 	foreach($_LW->_POST['appointments_added'] as $val) {
-		$_LW->json['editor']['values'][$name][]=array('title'=>$val);
+		$_LW->json['editor']['values'][$name][]=['title'=>$val];
 	};
 };
 }
 
 public function getAppointmentsListJSON() { // returns multiSelector for Appointments, preselecting currently selected ones
 global $_LW;
-$output=array();
+$output=[];
 foreach($_LW->dbo->query('select', 'id, title', 'livewhale_appointments', false, 'title ASC')->run() as $res2) { // loop through and add appointments
-	$output[]=array('id'=>$res2['id'], 'title'=>$res2['title']);
+	$output[]=['id'=>$res2['id'], 'title'=>$res2['title']];
 };
 return json_encode($output);
 }
@@ -170,14 +170,14 @@ return $_LW->xphp->parseString('<xphp var="manager_appointments"/>');
 
 public function saveAppointmentsTitle($id, $title) { // sets the title of a appointment
 global $_LW;
-$data=array('title'=>$title);
+$data=['title'=>$title];
 if (!empty($id)) { // if updating an existing appointment
 	$output=$_LW->update('appointments', $id, $data); // update the appointment
 }
 else { // else if creating a appointment
 	$output=$_LW->create('appointments', $data); // create the appointment
 };
-$output=!empty($output) ? array('id'=>$output) : array('error'=>$_LW->error);
+$output=!empty($output) ? ['id'=>$output] : ['error'=>$_LW->error];
 return json_encode($output);
 }
 
@@ -188,7 +188,7 @@ if (!empty($_LW->save_data['title'])) { // format title
 	$_LW->save_data['title']=preg_replace('~[^a-zA-Z0-9 \-\.,&;:\'"“”‘’]~', '', $_LW->save_data['title']); // strip disallowed chars from title
 	$_LW->save_data['title']=preg_replace('~&([^\s])|&$~', '\\1', $_LW->save_data['title']); // force amps to be followed by a space
 	$_LW->save_data['title']=$_LW->setFormatSanitize($_LW->save_data['title']); // sanitize title
-	$_LW->save_data['title']=str_replace(array('’', '”', '‘', '“'), array("'", '"', "'", '"'), $_LW->save_data['title']); // convert smart quotes
+	$_LW->save_data['title']=str_replace(['’', '”', '‘', '“'], ["'", '"', "'", '"'], $_LW->save_data['title']); // convert smart quotes
 	if ($_LW->save_mode=='update') { // if updating appointment
 		if ($_LW->dbo->query('select', '1', 'livewhale_appointments', 'id!='.(int)$_LW->save_id.' AND title='.$_LW->escape($_LW->save_data['title']))->exists()->run()) { // if there is already an appointment slot by that name
 			$_LW->REGISTERED_MESSAGES['failure'][]='An appointment slot by that name already exists.';
@@ -205,7 +205,7 @@ if (!empty($_LW->save_data['title'])) { // format title
 public function saveChecked($command, $items) { // post-processes checked items
 global $_LW;
 $command=explode(':', $command); // split command
-$queries=array(); // init query array
+$queries=[]; // init query array
 switch($command[0]) { // handle different command cases
 	case 'appointments_delete':
 		$count_deleted=0;
@@ -237,8 +237,8 @@ if (!empty($queries)) { // execute queries
 if (!empty($items)) { // loop through updated items
 	if ($command[0]!='appointments_delete') {
 		foreach($items as $id) {
-			$_LW->callHandler('data_type', 'appointments', 'onUpdate', array($id)); // call handler
-			$_LW->callHandlersByType('application', 'onAfterUpdate', array('appointments', $id)); // call handlers
+			$_LW->callHandler('data_type', 'appointments', 'onUpdate', [$id]); // call handler
+			$_LW->callHandlersByType('application', 'onAfterUpdate', ['appointments', $id]); // call handlers
 		};
 	};
 };
@@ -265,7 +265,7 @@ switch($id) { // get data for dropdown
 	case 'checked_appointments':
 		$id='dropdown_checked'; // make all checked menus use same id
 		$empty_val='With checked items...';
-		$arr[]=array('Delete', 'appointments_delete');
+		$arr[]=['Delete', 'appointments_delete'];
 		break;
 };
 if (!empty($arr)) { // if there are items to show
