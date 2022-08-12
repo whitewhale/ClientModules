@@ -79,6 +79,9 @@ return (isset($this->client) && $this->client!==false);
 
 public function debug() { // debug EMS connections, such as validating the login credentials after an install
 global $_LW;
+if (!$_LW->isLiveWhaleUser()) {
+	die(header('Location: /livewhale/')); // redirect to login page
+};
 echo '<h1>Debugging EMS</h1>';
 if ($this->initEMS()) { // if EMS loaded
 
@@ -157,6 +160,8 @@ if ($this->initEMS()) { // if EMS loaded
 		}
 	}
 
+} else {
+	echo '<h2>EMS connection failed to initialize.</h2>';
 };
 exit;
 }
