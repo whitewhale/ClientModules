@@ -42,7 +42,7 @@ if (!empty($contents)) { // if XML exists
 					};
 					$this->rows[$source['name']][]=$arr;
 					if (!empty($arr) && empty($count)) { // when the first entry is encountered, use that to track the field names
-						$this->fields[$source['name']]=array_keys($arr);
+						$this->fields[$source['name']]=array_flip(array_keys($arr));
 					};
 				};
 			};
