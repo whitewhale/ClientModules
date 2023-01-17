@@ -62,6 +62,9 @@ if (!isset($this->client)) { // if client not yet created
 		try {
 			$this->client=new EMSSoapClient($_LW->REGISTERED_APPS['ems']['custom']['wsdl'], $opts); // create client
 			$this->client->__setLocation($_LW->REGISTERED_APPS['ems']['custom']['wsdl']);
+			if (!$client->validateLogin($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'])) { // validate the login
+				$this->client=false;
+			};
 		}
 		catch (Exception $e) {
 			$_LW->logError('EMS: '.$e->getMessage(), false, true);

@@ -441,6 +441,16 @@ if ($response=$this->getResponse('/bookings/'.(int)$parent_id.'/userdefinedfield
 return $output;
 }
 
+public function validateLogin() { // validates the EMS login
+global $_LW;
+if ($response=$this->getResponse('/grouptypes')) {
+	if (!empty($response['results'])) {
+		return true;
+	};
+};
+return false;
+}
+
 }
 
 ?>
