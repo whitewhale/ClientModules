@@ -89,7 +89,7 @@ if (!empty($params['start_date']) && !empty($params['end_date']) && !empty($para
 		};
 	}
 	else {
-		die($this->httpResponse(404, true));
+		die($_LW->httpResponse(404, true));
 	};
 };
 header('Content-Type: text/calendar'); // send content encoding header
