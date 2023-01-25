@@ -62,6 +62,9 @@ if (!isset($this->client)) { // if client not yet created
 		try {
 			$this->client=new EMSSoapClient($_LW->REGISTERED_APPS['ems']['custom']['wsdl'], $opts); // create client
 			$this->client->__setLocation($_LW->REGISTERED_APPS['ems']['custom']['wsdl']);
+			if (!$this->client->validateLogin($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'])) { // validate the login
+				$this->client=false;
+			};
 		}
 		catch (Exception $e) {
 			$_LW->logError('EMS: '.$e->getMessage(), false, true);
@@ -72,6 +75,9 @@ if (!isset($this->client)) { // if client not yet created
 			require $_LW->INCLUDES_DIR_PATH.'/client/modules/ems/includes/class.ems_rest.php';
 		};
 		$this->client=new EMSRESTClient($_LW->REGISTERED_APPS['ems']['custom']['rest']); // create client
+		if (!$this->client->validateLogin($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'])) { // validate the login
+			$this->client=false;
+		};
 	};
 };
 return (isset($this->client) && $this->client!==false);

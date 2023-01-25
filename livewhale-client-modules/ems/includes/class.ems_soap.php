@@ -498,6 +498,27 @@ if (!empty($res)) { // if there was a valid response
 return $output;
 }
 
+public function validateLogin($username, $password) { // validates the EMS login
+global $_LW;
+$output=[];
+$opts=[ // set default parameters
+	'UserName'=>$username,
+	'Password'=>$password
+];
+try {
+	$res=@$this->__soapCall('GetGroupTypes', ['message'=>$opts]); // perform SOAP call
+}
+catch (Exception $e) {
+	$_LW->logError('EMS: '.$e->getMessage());
+}
+if (!empty($res)) { // if there was a valid response
+	if ($res2=$this->getResponse('GetGroupTypes', $res)) { // if the response parses
+		return true;
+	};
+};
+return false;
+}
+
 }
 
 ?>
