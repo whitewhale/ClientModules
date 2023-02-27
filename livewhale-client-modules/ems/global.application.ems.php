@@ -232,6 +232,7 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		if (!empty($booking['contact_name'])) { // add contact name if available
 			$arr['X-EMS-CONTACT-NAME']=$booking['contact_name'];
 		};
+		$arr=$_LW->callHandlersByType('application', 'onBeforeEMSFeed', ['buffer'=>$arr, 'booking'=>$booking]); // call handlers
 		foreach($arr as $key=>$val) { // clear empty entries
 			if (empty($val)) {
 				unset($arr[$key]);
