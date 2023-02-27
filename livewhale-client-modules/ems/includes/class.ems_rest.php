@@ -42,6 +42,9 @@ return false;
 
 public function getResponse($endpoint, $params=false, $payload=false) { // gets the response from EMS
 global $_LW;
+if ($endpoint=='/bookings/actions/search') { // relax memory limit for large booking responses
+	ini_set('memory_limit', '1G');
+};
 $response=@shell_exec('curl -m 15'.(!empty($payload) ? ' --request POST --data '.escapeshellarg(@json_encode($payload)).' -H "Content-Type: application/json"' : '').' -H '.escapeshellarg('x-ems-api-token: '.$this->token).' '.escapeshellarg($_LW->REGISTERED_APPS['ems']['custom']['rest'].$endpoint.(!empty($params) ? '?'.http_build_query($params) : ''))); // request response
 if (!empty($response)) { // fetch the result
 	if (@$response=@json_decode($response, true)) {
