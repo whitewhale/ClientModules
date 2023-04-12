@@ -2,7 +2,7 @@ This module generates navigation for handbook pages, as well as adds the corresp
 
 To setup initially:
 - Create a "Handbook" Page template that includes a `<xphp var="table_of_contents"/>` in the sidebar.
-- In the module, update handbook_path config to point to that file
+- In the module, update handbook_path config to point to that page template path
 - In the module, update element_id config to indicate the main editable area, e.g., `<div id="main-content-area" class="editable">` where you'll be putting your handbook text
 
 When using the template as an editor:
