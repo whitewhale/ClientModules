@@ -1,11 +1,11 @@
 This module generates navigation for handbook pages, as well as adds the corresponding anchor links to headers in the main content area. It is designed to allow for multiple handbooks in different LiveWhale CMS groups.
 
-To use:
+To setup initially:
 - Create a "Handbook" Page template that includes a `<xphp var="table_of_contents"/>` in the sidebar.
-- Update handbook_path config to point to that file
-- Update element_id to indicate the main editable area `<div id="main-content-area" class="editable">` where you'll be putting your handbook text
+- In the module, update handbook_path config to point to that file
+- In the module, update element_id config to indicate the main editable area, e.g., `<div id="main-content-area" class="editable">` where you'll be putting your handbook text
 
-When using the template:
+When using the template as an editor:
 - Each h2 or h3 (or h4/h5, see user options) in your main editable area will be added in the Table of Contents (TOC) as an anchor link.
 - If it detects an anchor link has already been added or pasted in for some header, it will try to use that instead.
 
