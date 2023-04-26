@@ -6,9 +6,12 @@ This /live/taxonomy/___ endpoint provides additional JSON results for different 
 - /live/taxonomy/all_tags = All Tags
 
 **Event Types (CMS and Calendar)**
-- /live/taxonomy/event_types = Event Types
-- /live/taxonomy/event_types/audience = Event Types: Audiences
-- /live/taxonomy/event_types/campus = Event Types: Campuses
+- /live/taxonomy/event_types = Starred Event Types
+- /live/taxonomy/event_types/audience = Starred Event Types: Audiences
+- /live/taxonomy/event_types/campus = Starred Event Types: Campuses
+- /live/taxonomy/all_event_types = Event Types
+- /live/taxonomy/all_event_types/audience = Event Types: Audiences
+- /live/taxonomy/all_event_types/campus = Event Types: Campuses
 
 **News Categories (CMS and Storyteller)**
 - /live/taxonomy/news_categories
