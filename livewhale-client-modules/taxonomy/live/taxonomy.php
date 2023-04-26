@@ -8,9 +8,12 @@
 	// /live/taxonomy/all_tags = All Tags
 
 // LiveWhale CMS / Calendar
-	// /live/taxonomy/event_types = Event Types
-	// /live/taxonomy/event_types/audience = Event Types: Audiences
-	// /live/taxonomy/event_types/campus = Event Types: Campuses
+	// /live/taxonomy/event_types = Starred Event Types
+	// /live/taxonomy/event_types/audience = Starred Event Types: Audiences
+	// /live/taxonomy/event_types/campus = Starred Event Types: Campuses
+	// /live/taxonomy/all_event_types = Event Types
+	// /live/taxonomy/all_event_types/audience = Event Types: Audiences
+	// /live/taxonomy/all_event_types/campus = Event Types: Campuses
 
 // LiveWhale CMS / Storyteller
 	// /live/taxonomy/news_categories
@@ -92,6 +95,30 @@ if (!empty($LIVE_URL['REQUEST'])) { // if valid request
 			if (empty($event_types)) { // if event_types not cached
 				$event_types=[];
 				foreach($_LW->dbo->query('select', 'livewhale_events_categories.id,livewhale_events_categories.title', 'livewhale_events_categories', 'livewhale_events_categories.is_starred IS NOT NULL AND livewhale_events_categories.type='.$type_id, 'livewhale_events_categories.title ASC')
+					->groupBy('livewhale_events_categories.title')->run() as $res2) { // fetch categories
+					$event_types[]=[
+						'id'=>$res2['id'],
+						'title'=>trim($res2['title'])
+					];
+				};
+				$_LW->setVariable($key, $event_types, 300); // cache for 5min
+			};
+			echo json_encode($event_types);
+		break;
+
+		case 'all_event_types':
+			// All Event Types
+
+			$type_id=1;
+			$request2=array_shift($LIVE_URL['REQUEST']); // get command name
+			if ($request2 == 'audience') {$type_id=2;}
+			if ($request2 == 'campus') {$type_id=3;}
+			
+			$key='taxonomy_calendar_categories'.$type_id;
+			$event_types = $_LW->getVariable($key);
+			if (empty($event_types)) { // if event_types not cached
+				$event_types=[];
+				foreach($_LW->dbo->query('select', 'livewhale_events_categories.id,livewhale_events_categories.title', 'livewhale_events_categories', 'livewhale_events_categories.type='.$type_id, 'livewhale_events_categories.title ASC')
 					->groupBy('livewhale_events_categories.title')->run() as $res2) { // fetch categories
 					$event_types[]=[
 						'id'=>$res2['id'],
