@@ -26,6 +26,9 @@
 
 if (!empty($LIVE_URL['REQUEST'])) { // if valid request
 	require $LIVE_URL['DIR'].'/livewhale.php'; // load LiveWhale
+	
+	header('Content-Type: application/json; charset=UTF-8'); // send content encoding header
+
 	$request=array_shift($LIVE_URL['REQUEST']); // get command name
 	switch($request) {
 		case 'tags':
