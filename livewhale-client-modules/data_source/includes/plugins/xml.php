@@ -159,8 +159,9 @@ if (!empty($output)) { // if there were results
 		if (is_array($args['sort_field'])) {
 			$args['sort_field']=current($args['sort_field']);
 		};
-		if (is_scalar($args['sort_field']) && isset($this->fields[$source['name']][$args['sort_field']])) {
-			$output=$_LW->sortByChild($output, $args['sort_field']);
+		$args['sort_field']=trim($args['sort_field']);
+		if (is_scalar($args['sort_field']) && isset($this->fields[$source['name']][str_replace([' ASC', ' DESC'], '', $args['sort_field'])])) {
+			$output=$_LW->sortByChild($output, str_replace([' ASC', ' DESC'], '', $args['sort_field']), (strpos($args['sort_field'], ' DESC')!==false ? true : false));
 		};
 	};
 	if (!empty($args['max']) && preg_match('~^[0-9]+$~', $args['max']) && sizeof($output)>(int)$args['max']) { // apply a max
