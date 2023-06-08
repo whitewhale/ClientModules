@@ -83,11 +83,14 @@ else { // else if filtering
 					else if (strpos($search_terms, '&lt;')!==false) {
 						$search_terms=preg_replace('~&lt;~', '<', $search_terms, 1);
 						$search_cmp='<';
+					}
+					else if (stripos($search_terms, ' contains ')!==false) {
+						$search_cmp=' contains ';
 					};
 					if (!empty($search_cmp)) { // if there was a search operator
 						$pos=strpos($search_terms, $search_cmp);
 						$search_field=substr($search_terms, 0, $pos);
-						$search_terms=substr($search_terms, $pos+1);
+						$search_terms=substr($search_terms, $pos+strlen($search_cmp));
 						if (strpos($search_field, ',')!==false && !isset($row[$search_field])) { // if it appears to be a multi-search field and not already a standard field
 							$multi_search_fields=preg_split('~\s*?,\s*?~', $search_field); // get all search fields
 							$tmp=[];
@@ -129,6 +132,10 @@ else { // else if filtering
 								else if ($search_cmp=='>' && !((float)$row[$search_field]>(float)$search_terms)) { // else do > comparison
 									$is_match=false;
 									break;
+								}
+								else if ($search_cmp==' contains ' && !in_array(strtolower($search_terms), preg_split('~\s*?[,|]\s*~', strtolower($row[$search_field])))) { // else do contains comparison
+									$is_match=false;
+									break;
 								};
 							}
 							else if ($search_mode==='OR') { // if any satisfied, declare a match
@@ -152,6 +159,10 @@ else { // else if filtering
 									break;
 								}
 								else if ($search_cmp=='>' && (float)$row[$search_field]>(float)$search_terms) { // else do > comparison
+									$is_match=true;
+									break;
+								}
+								else if ($search_cmp==' contains ' && !in_array(strtolower($search_terms), preg_split('~\s*?[,|]\s*~', strtolower($row[$search_field])))) { // else do contains comparison
 									$is_match=true;
 									break;
 								};
