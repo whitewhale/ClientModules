@@ -88,7 +88,7 @@ else { // else if filtering
 						$search_cmp=' contains ';
 					};
 					if (!empty($search_cmp)) { // if there was a search operator
-						$pos=strpos($search_terms, $search_cmp);
+						$pos=stripos($search_terms, $search_cmp);
 						$search_field=substr($search_terms, 0, $pos);
 						$search_terms=substr($search_terms, $pos+strlen($search_cmp));
 						if (strpos($search_field, ',')!==false && !isset($row[$search_field])) { // if it appears to be a multi-search field and not already a standard field
