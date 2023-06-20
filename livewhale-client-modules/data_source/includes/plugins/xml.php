@@ -88,11 +88,31 @@ else { // else if filtering
 					else if (strpos($search_terms, '&lt;')!==false) {
 						$search_terms=preg_replace('~&lt;~', '<', $search_terms, 1);
 						$search_cmp='<';
+					}
+					else if (stripos($search_terms, ' contains ')!==false) {
+						$search_cmp=' contains ';
 					};
 					if (!empty($search_cmp)) { // if there was a search operator
-						$pos=strpos($search_terms, $search_cmp);
+						$pos=stripos($search_terms, $search_cmp);
 						$search_field=substr($search_terms, 0, $pos);
-						$search_terms=substr($search_terms, $pos+1);
+						$search_terms=substr($search_terms, $pos+strlen($search_cmp));
+						if (strpos($search_field, ',')!==false && !isset($row[$search_field])) { // if it appears to be a multi-search field and not already a standard field
+							$multi_search_fields=preg_split('~\s*?,\s*?~', $search_field); // get all search fields
+							$tmp=[];
+							foreach($multi_search_fields as $val) { // get their values
+								if (isset($this->fields[$source['name']][$val])) {
+									$tmp[]=$row[$val];
+								};
+							};
+							if (sizeof($tmp)===sizeof($multi_search_fields)) { // if all fields were valid
+								$this->fields[$source['name']][$search_field]=''; // simulate a standard field for searching on
+								$row[$search_field]=implode(' ', $tmp);
+							}
+							else {
+								$this->fields[$source['name']][$search_field]='';
+								$row[$search_field]='';
+							};
+						};
 						if (!empty($search_terms) && !empty($search_field) && isset($this->fields[$source['name']][$search_field])) {
 							if ($search_mode==='AND') { // if any not satisfied, declare not a match
 								if ($search_cmp=='=') { // if equals
@@ -103,8 +123,8 @@ else { // else if filtering
 										};
 									}
 									else { // else do regex if wildcard comparison
-										$pattern='~^'.preg_quote(str_replace('*', '.*?', $search_terms), '~').'$~';
-										if (!preg_match($pattern, $$row[$search_field])) {
+										$pattern='~^'.str_replace('\*', '.*?', preg_quote($search_terms, '~')).'$~';
+										if (!preg_match($pattern, $row[$search_field])) {
 											$is_match=false;
 											break;
 										};
@@ -115,6 +135,10 @@ else { // else if filtering
 									break;
 								}
 								else if ($search_cmp=='>' && !((float)$row[$search_field]>(float)$search_terms)) { // else do > comparison
+									$is_match=false;
+									break;
+								}
+								else if ($search_cmp==' contains ' && !in_array(strtolower($search_terms), preg_split('~\s*?[,|]\s*~', strtolower($row[$search_field])))) { // else do contains comparison
 									$is_match=false;
 									break;
 								};
@@ -140,6 +164,10 @@ else { // else if filtering
 									break;
 								}
 								else if ($search_cmp=='>' && (float)$row[$search_field]>(float)$search_terms) { // else do > comparison
+									$is_match=true;
+									break;
+								}
+								else if ($search_cmp==' contains ' && !in_array(strtolower($search_terms), preg_split('~\s*?[,|]\s*~', strtolower($row[$search_field])))) { // else do contains comparison
 									$is_match=true;
 									break;
 								};
