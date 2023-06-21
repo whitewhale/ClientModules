@@ -117,14 +117,14 @@ else { // else if filtering
 							if ($search_mode==='AND') { // if any not satisfied, declare not a match
 								if ($search_cmp=='=') { // if equals
 									if (strpos($search_terms, '*')===false) { // and no wildcard
-										if ($row[$search_field]!=$search_terms) { // compare
+										if (strtolower($row[$search_field])!=strtolower($search_terms)) { // compare
 											$is_match=false;
 											break;
 										};
 									}
 									else { // else do regex if wildcard comparison
-										$pattern='~^'.str_replace('\*', '.*?', preg_quote($search_terms, '~')).'$~';
-										if (!preg_match($pattern, $row[$search_field])) {
+										$pattern='~^'.str_replace('\*', '.*?', preg_quote(strtolower($search_terms), '~')).'$~';
+										if (!preg_match($pattern, strtolower($row[$search_field]))) {
 											$is_match=false;
 											break;
 										};
@@ -146,13 +146,13 @@ else { // else if filtering
 							else if ($search_mode==='OR') { // if any satisfied, declare a match
 								if ($search_cmp=='=') { // if equals
 									if (strpos($search_terms, '*')===false) { // and no wildcard
-										if ($row[$search_field]==$search_terms) { // compare
+										if (strtolower($row[$search_field])==strtolower($search_terms)) { // compare
 											$is_match=true;
 											break;
 										};
 									}
 									else { // else do regex if wildcard comparison
-										$pattern='~^'.preg_quote(str_replace('*', '.*?', $search_terms), '~').'$~';
+										$pattern='~^'.str_replace('\*', '.*?', preg_quote(strtolower($search_terms), '~')).'$~';
 										if (preg_match($pattern, $$row[$search_field])) {
 											$is_match=true;
 											break;
