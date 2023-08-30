@@ -88,7 +88,7 @@ if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]) && !empty($_LW->CONFIG[
 		foreach($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['mappings'] as $key=>$val) { // for each mapping
 			if (!empty($params[$key])) { // if there is a cooresponding param
 				if (is_scalar($params[$key])) { // add it if single value
-					$mappings[]=$val.($key=='start_date' ? '>' : ($key=='end_date' ? '<' : '=')).((!in_array($params[$key], ['true', 'false']) && !preg_match('~^[0-9]+$~', $params[$key]) && !preg_match('~^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$~', $params[$key])) ? $_LW->escape($params[$key]) : $params[$key]);
+					$mappings[]=$val.($key=='start_date' ? '>' : ($key=='end_date' ? '<' : '=')).((!in_array($params[$key], ['true', 'false']) && !preg_match('~^[0-9]+$~', $params[$key]) && !preg_match('~^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$~', $params[$key])) ? (strtolower($params[$key])=='null' ? '""' : $_LW->escape($params[$key])) : $params[$key]);
 				}
 				else { // else use OR for multiple values
 					$tmp=[];
@@ -111,9 +111,10 @@ if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]) && !empty($_LW->CONFIG[
 		};
 	};
 	$where=implode(' AND ', $where);
-	$query=str_replace(['%2C', '%3D', '%21', '%2B', '%22', '%27', '%3E', '%3C'], [',', '=', '!', '+', '\'', '\'', '>', '<'], urlencode('SELECT '.implode(',', $fields).' FROM '.$_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['object_name'].(!empty($where) ? ' WHERE '.$where  : ''))); // build query
+	$order_by=(!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['order_by']) ? ' ORDER BY ' . $_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['order_by'] : ''); 
+	$query=str_replace(['%2C', '%3D', '%21', '%2B', '%22', '%27', '%3E', '%3C'], [',', '=', '!', '+', '\'', '\'', '>', '<'], urlencode('SELECT '.implode(',', $fields).' FROM '.$_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['object_name'].(!empty($where) ? ' WHERE '.$where  : '').$order_by)); // build query
+	// $_LW->logDebug('Salesforce SOQL query = ' . $query);
 	header('X-Salesforce-Query: '.$query);
-	// $_LW->logDebug('Salesforce Query = ' . $query);
 	if ($json=$_LW->getUrl($_LW->REGISTERED_APPS['salesforce']['custom']['api_base_url'].'/query/?q='.$query, true, false, [CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$this->token]])) { // fetch events from API
 		if ($json=@json_decode($json, true)) { // if valid response
 			if (empty($json['error'])) { // if no errors
@@ -163,12 +164,15 @@ if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]) && !empty($_LW->CONFIG[
 								'summary'=>$event['title'],
 								'dtstart'=>$_LW->toTS(!empty($event['datetime']) ? $event['datetime'] : (!empty($event['time']) ? $event['time'].' ' : '').$event['date']),
 								'dtend'=>((!empty($event['end_date']) || !empty($event['end_datetime'])) ? $_LW->toTS(!empty($event['end_datetime']) ? $event['end_datetime'] :  (!empty($event['end_time']) ? $event['end_time'].' ' : '').$event['end_date']) : ''),
-								'description'=>$event['description'],
+								'description'=>(!empty($event['description']) ? $event['description'] : ''),
 								'uid'=>$event['uid'],
-								'categories'=>$event['categories'],
-								'location'=>$event['location'],
+								'categories'=>(!empty($event['categories']) ? $event['categories'] : ''),
+								'location'=>(!empty($event['location']) ? $event['location'] : ''),
 								'X-LIVEWHALE-TYPE'=>'event'
 							];
+							if (!empty($event['tags'])) {
+								$arr['X-LIVEWHALE-TAGS']=$event['tags'];
+							};
 							if (empty($event['time'])) {
 								$arr['X-LIVEWHALE-IS-ALL-DAY']=1;
 							};
@@ -214,50 +218,83 @@ label {display: block; margin: 0.25em 0;}
 <h1>Debugging Salesforce</h1>';
 if ($this->initSalesforce()) { // if Salesforce loaded
 
-	echo '<form method="get"><input type="hidden" name="livewhale" value="salesforce-debug"/>';
-	echo '<label>Event name (exact): <input type="text" name="event_name" /></label>';
-	echo '<label>Start Date (YYYY-MM-DD): <input type="text" name="start_date" /></label>';
-	// echo '<label>End Date (YYYY-MM-DD): <input type="text" name="end_date" /></label>';
-	echo '<input type="submit" value="Search"/></form>';
 
-	// #FIXME: To do, add a checkbox or radio for All fields (limit 200) vs only the fields LW is seeing/configured for
+	echo '<h3>Example Queries:</h3><p>Click a query name to copy the full syntax into the form, or build your own using Salesforce Object Query Language (<a href="https://developer.salesforce.com/docs/atlas.en-us.240.0.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm">SOQL documentation</a>).</p>';
+	$queries=[];
 
 	foreach ($_LW->CONFIG['SALESFORCE']['OBJECTS'] as $type=>$object) {
 
-		$where = [];
+		$queries['All ' . $type . ' fields']='FIELDS(ALL) FROM '.$object['object_name'].' LIMIT 200';
 
-		if (!empty($_GET['event_name'])) {
-			$where[] = "Name='".urlencode($_GET['event_name']);
-		}
-		// #FIXME: this mapping isn't quite working 100%
-		if (!empty($_GET['start_date'])) {
-			if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['fields']['date'])) {
-				$where[] = $_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['fields']['date'].'>'.urlencode($_GET['start_date']);
-			}
-			else if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['fields']['datetime'])) {
-				$where[] = $_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['fields']['datetime'].'>'.urlencode($_GET['start_date']);
-			}
-		}
+		$fields=array_unique(array_filter(array_values($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['fields'])));
+		$where=[];
+		if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['default_filters']) || !empty($mappings)) { // construct where clause
+			if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['default_filters'])) {
+				$where[]=$_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['default_filters'];
+			};
+			if (!empty($mappings)) {
+				$where=array_merge($where, $mappings);
+			};
+		};
+		$where=implode(' AND ', $where);
+		$query=str_replace(['%2C', '%3D', '%21', '%2B', '%22', '%27', '%3E', '%3C'], [',', '=', '!', '+', '\'', '\'', '>', '<'], urlencode(implode(', ', $fields).' FROM '.$_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['object_name'].(!empty($where) ? ' WHERE '.$where  : ''))); // build query
 
-		$query='SELECT+FIELDS(ALL)+FROM+'.$object['object_name'];
-		if (!empty($where)) {
-			$query.='+WHERE+'.implode('+AND+',$where);
-		}
-		$query.='+LIMIT+200';
+		$queries['Default ' . $type . ' request']=$query;
 
-		if ($json=$_LW->getUrl($_LW->REGISTERED_APPS['salesforce']['custom']['api_base_url'].'/query/?q='.$query, true, false, [CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$this->token]])) { // fetch events from API
+	}
 
-			echo '<h3>'.$type.' results: '.$query.'</h3>';
+	echo '<ul class="sample_queries">';
+	foreach ($queries as $name => $query) {
+		echo '<li><a href="#" class="example_query" data-query="' . $query . '"><strong>' . $name . '</strong></a> – ' . ((strlen($query) > 50) ? (substr($query,0,50).'...') : $query) . '</li>';
+	}
+	echo '</ul>';
+
+	echo '<br/><form method="get"><input type="hidden" name="livewhale" value="salesforce-debug"/>';
+	echo '<label for="query" style="font-size: 120%; font-weight: bold;">Salesforce Query:</label>
+	SELECT <textarea id="query" name="query" style="width: 800px; height: 120px; margin: 0 0 0.5em; vertical-align: top;">' . (!empty($_GET['query']) ? $_GET['query'] : '') . '</textarea>';
+	echo '<br/><input type="submit" value="Run Query"/></form>';
+
+
+	if (!empty($_GET['query'])) {
+
+		$_GET['query'] = str_replace('ORDERBY','ORDER BY',$_GET['query']); // get past WAF
+
+		echo '<!-- <h2>Running: SELECT '.$_GET['query'].'</h2> -->';
+
+		if ($json=$_LW->getUrl($_LW->REGISTERED_APPS['salesforce']['custom']['api_base_url'].'/query/?q=SELECT+'.urlencode($_GET['query']), true, false, [CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$this->token]], true)) { // fetch events from API
+
+			echo '<h2>Results: SELECT '.$_GET['query'].'</h2>';
 
 			$json_decode = json_decode($json);
 
 			echo '<textarea style="width: 100%; height: 800px">';
 			print_r($json_decode);
 			echo '</textarea>';
-
 		}
+		//  else {
+		// 	echo 'Query failed: ' . $_LW->REGISTERED_APPS['salesforce']['custom']['api_base_url'].'/query/?q=SELECT+'.urlencode($_GET['query']);
+		// 	echo '<br><br>To test from command line:<br/>
+		// 	<code>curl "'.$_LW->REGISTERED_APPS['salesforce']['custom']['api_base_url'].'/query/?q=SELECT+'.urlencode($_GET['query']).'" -H "Authorization: Bearer ' . $this->token . '"</code>';
+		// }
 
 	}
+
+	echo "<!-- load jQuery -->
+	<script src=\"/live/resource/js/livewhale/thirdparty/backend.js\"></script>
+	<script>
+	function urldecode(str) {
+	   return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+	}
+
+	$('.example_query').on('click',function(e) {
+		e.preventDefault();
+		var query = $(this).attr('data-query');
+		$('textarea#query').val(urldecode(query));
+	});</script>
+	<style>
+	.sample_queries li {margin: 0.5em 0;}
+	</style>";
+	
 
 
 
