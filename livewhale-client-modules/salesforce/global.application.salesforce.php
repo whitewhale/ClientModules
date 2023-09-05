@@ -128,7 +128,7 @@ if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]) && !empty($_LW->CONFIG[
 						};
 					};
 					foreach($json['records'] as $record) { // for each record
-						$event=[];	
+						$event=[];
 						foreach($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['fields'] as $key=>$val) { // convert record to event
 							if (!empty($record[$val]) && is_scalar($record[$val])) {
 								$event[$key]=$_LW->setFormatSanitize($record[$val]);
@@ -160,10 +160,23 @@ if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]) && !empty($_LW->CONFIG[
 								};
 								$event['categories']=$new_val;
 							};
+
+							// translate Salesforce Timezone "(GMT-07:00) Pacific Daylight Time (America/Los_Angeles)" to "America/Los_Angeles"
+							if (!empty($event['timezone'])) {
+								$matches=[];
+								preg_match('~\(([^\)]+?)\)\s*?$~', $event['timezone'], $matches);
+								if (!empty($matches[1])) {
+									$event['timezone'] = $matches[1]; // use final () value for timezone
+								};
+								if ($event['timezone']=='Europe/GMT') { // fix invalid TZ
+									$event['timezone']='Europe/London';
+								};
+							};
+
 							$arr=[ // format the event for ICAL
 								'summary'=>$event['title'],
-								'dtstart'=>$_LW->toTS(!empty($event['datetime']) ? $event['datetime'] : (!empty($event['time']) ? $event['time'].' ' : '').$event['date']),
-								'dtend'=>((!empty($event['end_date']) || !empty($event['end_datetime'])) ? $_LW->toTS(!empty($event['end_datetime']) ? $event['end_datetime'] :  (!empty($event['end_time']) ? $event['end_time'].' ' : '').$event['end_date']) : ''),
+								'dtstart'=>$_LW->toTS(!empty($event['datetime']) ? $event['datetime'] : (!empty($event['time']) ? $event['time'].' ' : '').$event['date'], (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['use_utc']) ? 'UTC' : false)),
+								'dtend'=>((!empty($event['end_date']) || !empty($event['end_datetime'])) ? $_LW->toTS(!empty($event['end_datetime']) ? $event['end_datetime'] :  (!empty($event['end_time']) ? $event['end_time'].' ' : '').$event['end_date'], (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['use_utc']) ? 'UTC' : false)) : ''),
 								'description'=>(!empty($event['description']) ? $event['description'] : ''),
 								'uid'=>$event['uid'],
 								'categories'=>(!empty($event['categories']) ? $event['categories'] : ''),
@@ -176,11 +189,15 @@ if (!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]) && !empty($_LW->CONFIG[
 							if (empty($event['time'])) {
 								$arr['X-LIVEWHALE-IS-ALL-DAY']=1;
 							};
+							if (!empty($event['timezone'])) {
+								$arr['X-LIVEWHALE-TIMEZONE']=$event['timezone'];
+							};
 							foreach($event as $key=>$val) {
 								if (strpos($key, 'custom_')===0) {
 									$arr['X-LIVEWHALE-'.str_replace('_', '-', strtoupper($key))]=$val;
 								};
 							};
+
 							$feed->addFeedItem($ical, $arr, 'ical'); // add event to feed
 						};
 					};
@@ -237,7 +254,8 @@ if ($this->initSalesforce()) { // if Salesforce loaded
 			};
 		};
 		$where=implode(' AND ', $where);
-		$query=str_replace(['%2C', '%3D', '%21', '%2B', '%22', '%27', '%3E', '%3C'], [',', '=', '!', '+', '\'', '\'', '>', '<'], urlencode(implode(', ', $fields).' FROM '.$_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['object_name'].(!empty($where) ? ' WHERE '.$where  : ''))); // build query
+		$order_by=(!empty($_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['order_by']) ? ' ORDER BY ' . $_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['order_by'] : ''); 
+		$query=str_replace(['%2C', '%3D', '%21', '%2B', '%22', '%27', '%3E', '%3C'], [',', '=', '!', '+', '\'', '\'', '>', '<'], urlencode(implode(', ', $fields).' FROM '.$_LW->CONFIG['SALESFORCE']['OBJECTS'][$type]['object_name'].(!empty($where) ? ' WHERE '.$where  : '').$order_by)); // build query
 
 		$queries['Default ' . $type . ' request']=$query;
 
