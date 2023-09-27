@@ -134,6 +134,10 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 		};
 		foreach($response['results'] as $booking) {
 			if (!empty($booking)) { // sanitize result data
+				if ($booking['room']['isAssociatedRoom'] == '1') {
+					// skip isAssociatedRoom=1 bookings, they show up twice and the isAssociatedRoom=0 has the more detailed room info
+					continue;
+				};
 				foreach($booking as $key=>$val) {
 					switch($key) {
 						case 'id':
