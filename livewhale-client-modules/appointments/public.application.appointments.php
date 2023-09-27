@@ -26,7 +26,7 @@ if ($type=='events') { // if this is an RSVP form for an event
 			$a=preg_replace('~[^a-z0-9]~', '', strtolower($a['title']));
 			$b=preg_replace('~[^a-z0-9]~', '', strtolower($b['title']));
 		}
-		return $a==$b ? 0 : ($a<$b) ? -1 : 1;
+		return ($a==$b ? 0 : ($a<$b ? -1 : 1));
 		});
        /* foreach($rows as $row) {
             $str .= '<span data-time="' . $row['title'] . '" data-filled="'.$row['is_filled'].'"></span>';
