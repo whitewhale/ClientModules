@@ -95,7 +95,7 @@ if ((strtotime($a['title']) !== false) && (strtotime($b['title']) !== false)) { 
 	$a=preg_replace('~[^a-z0-9]~', '', strtolower($a['title']));
 	$b=preg_replace('~[^a-z0-9]~', '', strtolower($b['title']));
 }
-return $a==$b ? 0 : ($a<$b) ? -1 : 1;
+return ($a==$b ? 0 : ($a<$b ? -1 : 1));
 }
 
 public function managerQuery() { // returns query info
