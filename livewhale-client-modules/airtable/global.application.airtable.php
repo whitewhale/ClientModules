@@ -66,7 +66,7 @@ private function getFacultyResults($email,$type) {
 	$html_show_more = ''; // extra results to go under pagination controls
 	$debug = '';
 
-	if (!empty($full_list)) { // regenerate if something has gone wrong
+	if (empty($full_list)) { // regenerate if something has gone wrong
 		$_LW->logDebug('Airtable results empty: attempting to regenerate');
 		$this->getAirtableResults();
 		$full_list = $_LW->getVariable('airtable_'.$type);
