@@ -1,0 +1,3 @@
+This module (built for Penn Law) connects to Airtable using their API. Using the config array, you can connect to multiple "tables" in Airtable, pull multiple "fields" from each table, cache the results and then assemble them into formatted results.
+
+For Penn Law, this involved pulling publications (books, chapters, articles, and other) and then displaying them on faculty details pages using an XPHP variable. This could be adapted to work for other cases, though, using this code as a starting point.

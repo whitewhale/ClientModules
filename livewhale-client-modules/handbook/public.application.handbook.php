@@ -2,21 +2,7 @@
 
 /*
 
-This module generates navigation for handbook pages, as well as adds the corresponding anchor links to headers in the main content area. It is designed to allow for multiple handbooks in different LiveWhale CMS groups.
-
-To use:
-- Create a "Handbook" Page template that includes a <xphp var="table_of_contents"/> in the sidebar.
-- Update handbook_path config to point to that file
-- Update element_id to indicate the main editable area <div id="main-content-area" class="editable"> where you'll be putting your handbook text
-
-When using the template:
-- Each h2 or h3 (or h4/h5, see user options) in your main editable area will be added in the Table of Contents (TOC) as an anchor link.
-- If it detects an anchor link has already been added or pasted in for some header, it will try to use that instead.
-
-User options:
-- By default, h2 and h3s are included in the TOC. If you add the page tag "Include H4" or "Include H5", those header levels will be added to the TOC.
-- By default, each link in the TOC will match its corresponding header text exactly. To override this on a per-header basis, use <h2 data-title="Short Name for Nav">Much Longer Name That We Don't Want in the Nav</h2>
-- This is designed to work across multiple sibling or parent/child pages that all use the Handbook template. Therefore, you can split your handbook across multiple pages, but the TOC nav will link between them seamlessly, going by the page order in the nav. However, you can also use a page tag "Single Page Handbook" to bypass this nav-scanning. When that tag is used on the page, the TOC will only show anchor links on the current page.
+This module generates navigation for handbook pages, as well as adds the corresponding anchor links to headers in the main content area.
 
 */
 
@@ -25,7 +11,7 @@ $_LW->REGISTERED_APPS['handbook']=[ // configure this module
 	'handlers'=>['onBeforeOutput'],
 	'custom'=>[
 		'element_id'=>'main-content-area', // ID of the element in which to consider anchors
-		//'handbook_tid'=>2659 // Optional: ID of the handbook template for restricting by template usage. Suggested to use handbook_path instead, since tid can differ from dev to prod.
+		//'handbook_tid'=>2659 // ID of the handbook template for restricting by template usage
 		'handbook_path'=>'/_ingredients/templates/pages/global/handbook.php' // path to the handbook template
 	]
 ];
@@ -78,25 +64,30 @@ global $_LW;
 $pages=[];
 if ($tid=$this->getHandbookTemplateID()) {
 	// If page is tagged "Single Page Handbook", don't traverse page
-	$single_page_handbook=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')->innerJoin('livewhale_tags', 'livewhale_tags.title="Single Page Handbook" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);
+	$single_page_handbook=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))
+	->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')
+	->innerJoin('livewhale_tags', 'livewhale_tags.title="Single Page Handbook" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);
 	if (!empty($single_page_handbook)) {
 		$pages[]=$_SERVER['PHP_SELF']; // use only the current page
 		return $pages;
-	}
+	};
 	// Otherwise, traverse nav to find pages
 	if ($res2=$_LW->dbo->query('select', 'livewhale_pages_navs_items.pid, livewhale_pages_navs_items.depth, livewhale_pages_navs_items.position, livewhale_pages_navs_items.path', 'livewhale_pages_navs_items', 'livewhale_pages_navs_items.path='.$_LW->escape($_SERVER['PHP_SELF']).' AND livewhale_pages_navs_items.status=1 AND livewhale_pages_navs_items.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']))
-	->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.tid='.(int)$tid)
+	->innerJoin('livewhale_pages_navs', 'livewhale_pages_navs.id=livewhale_pages_navs_items.pid')
+	->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.gid=livewhale_pages_navs.gid AND livewhale_pages.tid='.(int)$tid)
 	->firstRow()->run()) { // select handbook page from a navigation
 		$pages[$res2['position']]=$res2['path']; // add the current page
 		$position=(int)$res2['position'];
 		$nav=$res2['pid'];
-		// add preceeding pages at the same depth that use the handbook template
+		// add preceding pages at the same depth that use the handbook template
 		if ($position>0) {
 			for ($i=$position-1;$i>=0;$i--) {
 				if ($res3=$_LW->dbo->query('select', 'livewhale_pages_navs_items.position, livewhale_pages_navs_items.path', 'livewhale_pages_navs_items', 'livewhale_pages_navs_items.status=1 AND livewhale_pages_navs_items.pid='.$nav.' AND livewhale_pages_navs_items.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages_navs_items.path IS NOT NULL AND livewhale_pages_navs_items.position='.$i)
-				->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.tid='.(int)$tid)
+				->innerJoin('livewhale_pages_navs', 'livewhale_pages_navs.id=livewhale_pages_navs_items.pid')
+				->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.gid=livewhale_pages_navs.gid AND livewhale_pages.tid='.(int)$tid)
 				->firstRow()->run()) {
 					$pages[$res3['position']]=$res3['path'];
+					if (!empty($_LW->_GET['test'])) $_LW->logDebug('Adding '.$res3['path'].' ('.$i.')');
 				}
 				else {
 					break;
@@ -106,7 +97,8 @@ if ($tid=$this->getHandbookTemplateID()) {
 		// add subsequent pages at the same depth that use the handbook template
 		for ($i=$position+1,$max=$position+30;$i<=$max;$i++) {
 			if ($res3=$_LW->dbo->query('select', 'livewhale_pages_navs_items.position, livewhale_pages_navs_items.path', 'livewhale_pages_navs_items', 'livewhale_pages_navs_items.status=1 AND livewhale_pages_navs_items.pid='.$nav.' AND livewhale_pages_navs_items.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages_navs_items.path IS NOT NULL AND livewhale_pages_navs_items.position='.$i)
-			->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.tid='.(int)$tid)
+			->innerJoin('livewhale_pages_navs', 'livewhale_pages_navs.id=livewhale_pages_navs_items.pid')
+			->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.gid=livewhale_pages_navs.gid AND livewhale_pages.tid='.(int)$tid)
 			->firstRow()->run()) {
 				$pages[$res3['position']]=$res3['path'];
 			}
@@ -117,7 +109,8 @@ if ($tid=$this->getHandbookTemplateID()) {
 		// add any children that use the handbook template in case this is a parent
 		for ($i=$position+1,$max=$position+30;$i<=$max;$i++) {
 			if ($res3=$_LW->dbo->query('select', 'livewhale_pages_navs_items.position, livewhale_pages_navs_items.path', 'livewhale_pages_navs_items', 'livewhale_pages_navs_items.status=1 AND livewhale_pages_navs_items.pid='.$nav.' AND livewhale_pages_navs_items.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages_navs_items.depth='.$_LW->escape($res2['depth']+1).' AND livewhale_pages_navs_items.path IS NOT NULL AND livewhale_pages_navs_items.position='.$i)
-			->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.tid='.(int)$tid)
+			->innerJoin('livewhale_pages_navs', 'livewhale_pages_navs.id=livewhale_pages_navs_items.pid')
+			->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.gid=livewhale_pages_navs.gid AND livewhale_pages.tid='.(int)$tid)
 			->firstRow()->run()) {
 				$pages[$res3['position']]=$res3['path'];
 			}
@@ -127,8 +120,10 @@ if ($tid=$this->getHandbookTemplateID()) {
 		};
 		// add parent if there may be one that uses the handbook template
 		if ($res2['depth']!=0) {
-			if ($res3=$_LW->dbo->query('select', 'livewhale_pages_navs_items.position, livewhale_pages_navs_items.path', 'livewhale_pages_navs_items', 'livewhale_pages_navs_items.pid='.(int)$res2['pid'].' AND livewhale_pages_navs_items.status=1 AND livewhale_pages_navs_items.pid='.$nav.' AND livewhale_pages_navs_items.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages_navs_items.depth='.$_LW->escape($res2['depth']-1).' AND livewhale_pages_navs_items.position<'.(int)$res2['position'])->orderBy('livewhale_pages_navs_items.position DESC')
-			->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.tid='.(int)$tid)
+			if ($res3=$_LW->dbo->query('select', 'livewhale_pages_navs_items.position, livewhale_pages_navs_items.path', 'livewhale_pages_navs_items', 'livewhale_pages_navs_items.pid='.(int)$res2['pid'].' AND livewhale_pages_navs_items.status=1 AND livewhale_pages_navs_items.pid='.$nav.' AND livewhale_pages_navs_items.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages_navs_items.depth='.$_LW->escape($res2['depth']-1).' AND livewhale_pages_navs_items.position<'.(int)$res2['position'])
+			->innerJoin('livewhale_pages_navs', 'livewhale_pages_navs.id=livewhale_pages_navs_items.pid')
+			->innerJoin('livewhale_pages', 'livewhale_pages.host=livewhale_pages_navs_items.host AND livewhale_pages.path=livewhale_pages_navs_items.path AND livewhale_pages.gid=livewhale_pages_navs.gid AND livewhale_pages.tid='.(int)$tid)
+			->orderBy('livewhale_pages_navs_items.position DESC')
 			->firstRow()
 			->run()) {
 				$pages[$res3['position']]=$res3['path'];
@@ -136,7 +131,7 @@ if ($tid=$this->getHandbookTemplateID()) {
 		};
 	}
 	else { // else if the page is not found in any nav
-		if ($_LW->dbo->query('select', '1', 'livewhale_pages', 'host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND path='.$_LW->escape($_SERVER['PHP_SELF']).' AND tid='.(int)$tid)
+		if ($_LW->dbo->query('select', '1', 'livewhale_pages', 'host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND path='.$_LW->escape($_SERVER['PHP_SELF']).' AND livewhale_pages.tid='.(int)$tid)
 		->exists()
 		->run()) {
 			$pages[]=$_SERVER['PHP_SELF'];
@@ -168,10 +163,9 @@ if ($buffer=@file_get_contents($path)) { // if file contents obtained
 		$nodes=$xml->elements(($_LW->REGISTERED_APPS['handbook']['custom']['element_id'][0]!='#' ? '#' : '').$_LW->REGISTERED_APPS['handbook']['custom']['element_id']); // get content within element_id only
 		if (isset($nodes[0])) {
 			$buffer2=$nodes[0]->toXHTML();
-			$use_h4=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')->innerJoin('livewhale_tags', 'livewhale_tags.title="Include H4" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);
-			$use_h5=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')->innerJoin('livewhale_tags', 'livewhale_tags.title="Include H5" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);
+			$use_h4=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')->innerJoin('livewhale_tags', 'livewhale_tags.title="Include H4" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);			
 			$matches=[];
-			preg_match_all('~<h([23'.(!empty($use_h4) ? '4' : '').(!empty($use_h5) ? '5' : '').'])[^>]*?>((?:(?!</h\\1>).)+?)</h\\1>~s', $buffer2, $matches); // get all headers
+			preg_match_all('~<h([23'.(!empty($use_h4) ? '4' : '').'])[^>]*?>((?:(?!</h\\1>).)+?)</h\\1>~s', $buffer2, $matches); // get all headers
 			if (!empty($matches[1])) {
 				foreach($matches[1] as $key=>$val) {
 					if (strpos($matches[0][$key], ' data-title')!==false) { // if a data-title was used
@@ -196,14 +190,6 @@ if ($buffer=@file_get_contents($path)) { // if file contents obtained
 					}
 					else { // else if there is no anchor yet
 						$anchor['id']=preg_replace(['~[\s_]~', '~[^a-z0-9\-]~', '~[\-]{2,}~', '-amp-'], ['-', '', '-', '-'], strtolower($anchor['title'])); // set the ID
-						if (isset($anchors[$anchor['id']])) { // ensure anchor is unique
-							for ($i=2;$i<100;$i++) {
-								if (!isset($anchors[$anchor['id'].$i])) {
-									$anchor['id']=$anchor['id'].$i;
-									break;
-								};
-							};
-						};
 						if (!empty($get_buffer)) { // if getting page buffer
 							$find[]=$matches[0][$key]; // add each anchor to the page contents
 							$replace[]=substr($matches[0][$key], 0, -5).'<a id="'.$anchor['id'].'"></a>'.substr($matches[0][$key], -5, 5);
@@ -216,16 +202,12 @@ if ($buffer=@file_get_contents($path)) { // if file contents obtained
 			};
 			if (!empty($find)) { // swap all anchors into page contents
 				foreach($find as $key=>$val) {
-					$find[$key]=preg_replace('~(<h[23'.(!empty($use_h4) ? '4' : '').(!empty($use_h5) ? '5' : '').'][^>]*?>)\s*(.+?)\s*(</h[23'.(!empty($use_h4) ? '4' : '').(!empty($use_h5) ? '5' : '').']>)~s', '\\1\\2\\3', $val);
-					$find[$key]=str_replace('–', '&#x2013;', $find[$key]);
-					$find[$key]=str_replace('’', '&#x2019;', $find[$key]);
+					$find[$key]=preg_replace('~(<h[23][^>]*?>)\s*(.+?)\s*(</h[23]>)~s', '\\1\\2\\3', $val);
 				};
-				$buffer=preg_replace('~(<h[23'.(!empty($use_h4) ? '4' : '').(!empty($use_h5) ? '5' : '').'][^>]*?>)\s*(.+?)\s*(</h[23'.(!empty($use_h4) ? '4' : '').(!empty($use_h5) ? '5' : '').']>)~s', '\\1\\2\\3', $buffer);				
+				$buffer=preg_replace('~(<h[23][^>]*?>)\s*(.+?)\s*(</h[23]>)~s', '\\1\\2\\3', $buffer);
 				$buffer=str_replace($find, $replace, $buffer);
 				if (!empty($_LW->_GET['debug_handbook'])) { // support debugger
-					$buffer.='<pre>'.htmlentities(var_export([$find, $replace], true)).'</pre>';
-					$buffer.='<pre>'.htmlentities(var_export($anchors, true)).'</pre>';
-					$buffer.='<pre>'.htmlentities($buffer).'</pre>';
+					$buffer='<pre>'.htmlentities(var_export([$find, $replace], true)).'</pre>';
 				};
 			};
 		};
@@ -242,8 +224,7 @@ protected function getNav($pages) { // gets the nav for the current handbook
 global $_LW;
 $will_recache=false; // default to cached response
 $use_h4=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')->innerJoin('livewhale_tags', 'livewhale_tags.title="Include H4" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);
-$use_h5=($_LW->dbo->query('select', '1', 'livewhale_pages', 'livewhale_pages.host='.$_LW->escape($_LW->CONFIG['HTTP_HOST']).' AND livewhale_pages.path='.$_LW->escape($_SERVER['PHP_SELF']))->innerJoin('livewhale_tags2any', 'livewhale_tags2any.id2=livewhale_pages.id AND livewhale_tags2any.type="pages"')->innerJoin('livewhale_tags', 'livewhale_tags.title="Include H5" AND livewhale_tags.id=livewhale_tags2any.id1')->exists()->run() ? true : false);
-$hash='handbook_'.hash('md5', serialize($pages).'_'.(!empty($use_h4) ? 'h4' : 'noh4').(!empty($use_h5) ? 'h5' : 'noh5'));
+$hash='handbook_'.hash('md5', serialize($pages).'_'.(!empty($use_h4) ? 'h4' : 'noh4'));
 $mtime=(int)$_LW->getVariableMTime($hash);
 foreach($pages as $path) { // for each page
 	if ($mtime2=@filemtime($_LW->WWW_DIR_PATH.$path)) {
