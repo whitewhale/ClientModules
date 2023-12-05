@@ -1,3 +1,19 @@
-This module (built for Penn Law) connects to Airtable using their API. Using the config array, you can connect to multiple "tables" in Airtable, pull multiple "fields" from each table, cache the results and then assemble them into formatted results.
+** All functions and configuration options are in global.application.airtable.php unless otherwise indicated.**
 
-For Penn Law, this involved pulling publications (books, chapters, articles, and other) and then displaying them on faculty details pages using an XPHP variable. This could be adapted to work for other cases, though, using this code as a starting point.
+The Airtable integration connects to the "api_base" URL using the personal access token set in core/config.
+
+It connects to multiple tables (set in "tables") and pulls fields from each table (set in "fields".
+
+On the faculty profile page, email address is used to filter + generate formatted airtable results for display, those are populated in the template as
+
+	<xphp var="airtable_books" />
+	<xphp var="airtable_chapters" />
+	<xphp var="airtable_articles" />
+	<xphp var="airtable_other" />
+
+To edit the HTML formatting of those results, see the HTML set in formatFacultyResult for each table type.
+
+Cache and refreshing:
+- Cached JSON results of each table's data are in /livewhale/data/airtable
+- There is an hourly sync process that runs automatically (in the livewhale scheduler) to run exec/airtable_hourly.php and refreshes the cache
+- There's also two failsafes when faculty pages load: if it can't find cached results, it will automatically pull and use the direct results. Also, if it finds cached results >90min old, it will use them once and then regenerate the complete cache for next time.

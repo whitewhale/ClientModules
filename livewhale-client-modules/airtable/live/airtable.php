@@ -25,10 +25,11 @@ if (!empty($LIVE_URL['REQUEST'])) { // if valid request
 
 		case 'debug-results':
 		
-			$type = 'books';
-			$email = 'hhovenka@law.upenn.edu';
+			$type = 'articles';
+			$email = 'rshuldiner@law.upenn.edu';
 
-			$full_list = $_LW->getVariable('airtable_'.$type);
+			// $full_list = $_LW->getVariable('airtable_'.$type);
+			$full_list=json_decode(@file_get_contents($_LW->INCLUDES_DIR_PATH.'/data/airtable/airtable_'.$type.'.json'));
 
 			echo 'Full list: <pre>';
 			print_r($full_list);
