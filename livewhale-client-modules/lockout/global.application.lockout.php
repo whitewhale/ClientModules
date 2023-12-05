@@ -27,6 +27,9 @@ if (!empty($_LW->is_private_request)) { // if on backend
 	};
 	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if backend request and there are approved_editors
 		if ($_LW->isLiveWhaleUser() || $_LW->isSSOAuthOnlyUser()) { // if there is an active login
+			if (!in_array('livewhale', $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // livewhale user must always be allowed
+				$_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'][]='livewhale';
+			};
 			if (!in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if user is a non-approved editor
 				die(header('Location: /')); // redirect to frontend
 			};
