@@ -267,7 +267,7 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 							$val2=$_LW->setFormatClean($val2);
 							$val2_id='';
 							foreach($this->client->event_types as $key3=>$val3) { // convert the category to the EMS event type ID
-								if (strtolower($val3['title'])==strtolower($val2)) {
+								if (strtolower($val3['title'])==strtolower($event_types[$val2])) { // since categories are saved as LWC IDs, check against $event_types map
 									$val2_id=$val3['id'];
 									break;
 								};
@@ -297,7 +297,7 @@ if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if t
 							$val2=$_LW->setFormatClean($val2);
 							$val2_id='';
 							foreach($this->client->event_types as $key3=>$val3) { // convert the unknown category to the EMS event type ID
-								if (strtolower($val3['title'])==strtolower($val2)) {
+								if (strtolower($val3['title'])==strtolower($val2)) { // since unknown_categories are saved as strings, check against string directly
 									$val2_id=$val3['id'];
 									break;
 								};

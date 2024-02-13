@@ -41,13 +41,13 @@ class LiveWhaleApplicationAirTable {
 public function onBeforeOutput() {
 	global $_LW;
 	// if we're on a faculty profile page, check for Airtable results
-	if (($_LW->page=='/_ingredients/templates/details/facultyprofiles.php' || $_LW->page=='/_ingredients/templates/details/facultyprofiles-old.php') && !empty($_LW->_GET['id'])) {
+	if (($_LW->page=='/_ingredients/templates/details/facultyprofiles.php' || $_LW->page=='/_ingredients/templates/details/facultyprofiles-old.php' || $_LW->page=='/_ingredients/templates/details/facultyprofiles-new.php') && !empty($_LW->_GET['id'])) {
 		$contact_info=$_LW->dbo->query('select', 'contact_info', 'livewhale_profiles', 'id='.(int)$_LW->_GET['id'])->firstRow('contact_info')->run();
 		if (!empty($contact_info)) {
 			$matches=[];
 			preg_match('~[a-zA-Z0-9\-_\.]+?@law.upenn.edu~', $contact_info, $matches);
 			if (!empty($matches[0])) {
-				$email=$matches[0];
+				$email=strtolower($matches[0]);
 				$GLOBALS['airtable_books'] = $this->getFacultyResults($email,'books');
 				$GLOBALS['airtable_chapters'] = $this->getFacultyResults($email,'chapters');
 				$GLOBALS['airtable_articles'] = $this->getFacultyResults($email,'articles');
@@ -60,49 +60,62 @@ public function onBeforeOutput() {
 private function getFacultyResults($email,$type) {
 	global $_LW;
 	
-	$full_list = $_LW->getVariable('airtable_'.$type);
+	$cache_filename=$_LW->INCLUDES_DIR_PATH.'/data/airtable/airtable_'.$type.'.json';
+	$cache_ts=@filemtime($cache_filename);
+
+	// $full_list = $_LW->getVariable('airtable_'.$type);
+	$full_list=json_decode(@file_get_contents($cache_filename));
 	$faculty_results = [];
 	$html = '';
 	$html_show_more = ''; // extra results to go under pagination controls
 	$debug = '';
 
-	if (empty($full_list)) { // regenerate if something has gone wrong
+	if (empty($full_list) || !is_array($full_list)) { // regenerate if something has gone wrong
 		$_LW->logDebug('Airtable results empty: attempting to regenerate');
-		$this->getAirtableResults();
-		$full_list = $_LW->getVariable('airtable_'.$type);
+		$full_list = $this->getAirtable($type); // pull directly and cache/use
+		// $full_list = $_LW->getVariable('airtable_'.$type);
+		// $full_list=@file_get_contents($cache_filename);
 	};
 
-	foreach ($full_list as $item) {
-		// $faculty_result .= '<br>Checking ' . print_r($item->fields->{$_LW->REGISTERED_APPS['airtable']['custom']['filter_by'][$type]},true);
-		if (in_array($email,$item->fields->{$_LW->REGISTERED_APPS['airtable']['custom']['filter_by'][$type]})) {
-			$key = (property_exists($item->fields,$_LW->REGISTERED_APPS['airtable']['custom']['sort_by'][$type]) ? $item->fields->{$_LW->REGISTERED_APPS['airtable']['custom']['sort_by'][$type]} : '9999-99-99'); // use sort_by field
-			$key .= $item->id; // add as fallback, but also to cover duplicate years
-			$faculty_results[$key] = $item;
-			// $debug .= 'Found  '.$key . ': ' .print_r($item,true) . '<br><br>';
-		};
-	};
-	ksort($faculty_results); // sorts by date chronologically
-	$reversed_chronological = array_reverse($faculty_results); // reverses ordering
-
-	$results_max = 9; // max number of results to show in design
-	$results_total = 0;
-	$pagination_number = 12;
-
-	foreach ($reversed_chronological as $item) { // format as HTML to display
-		$format = $this->formatFacultyResult($item,$type);
-		if (!empty($format)) { // skip empty results
-			$results_total++; // increment total
-			if ($results_total <= $results_max) {
-				$html .= '<div class="flex-3 other-post">' . $format . '</div>';
-			} else { // after max_results put everythign into html_show_more
-				$html_show_more .= '<div class="flex-3 other-post">' . $format . '</div>';
+	if (!empty($full_list) && is_array($full_list)) {
+		foreach ($full_list as $item) {
+			// $faculty_result .= '<br>Checking ' . print_r($item->fields->{$_LW->REGISTERED_APPS['airtable']['custom']['filter_by'][$type]},true);
+			if (in_array($email,$item->fields->{$_LW->REGISTERED_APPS['airtable']['custom']['filter_by'][$type]})) {
+				$key = (property_exists($item->fields,$_LW->REGISTERED_APPS['airtable']['custom']['sort_by'][$type]) ? $item->fields->{$_LW->REGISTERED_APPS['airtable']['custom']['sort_by'][$type]} : '9999-99-99'); // use sort_by field
+				$key .= $item->id; // add as fallback, but also to cover duplicate years
+				$faculty_results[$key] = $item;
+				// $debug .= 'Found  '.$key . ': ' .print_r($item,true) . '<br><br>';
 			};
 		};
+		ksort($faculty_results); // sorts by date chronologically
+		$reversed_chronological = array_reverse($faculty_results); // reverses ordering
+
+		$results_max = 9; // max number of results to show in design
+		$results_total = 0;
+		$pagination_number = 12;
+
+		foreach ($reversed_chronological as $item) { // format as HTML to display
+			$format = $this->formatFacultyResult($item,$type);
+			if (!empty($format)) { // skip empty results
+				$results_total++; // increment total
+				if ($results_total <= $results_max) {
+					$html .= '<div class="flex-3 other-post">' . $format . '</div>';
+				} else { // after max_results put everythign into html_show_more
+					$html_show_more .= '<div class="flex-3 other-post">' . $format . '</div>';
+				};
+			};
+		};
+		if (!empty($html_show_more)) {
+			$html .= '<div class="lw_hidden additional-results">' . $html_show_more . '</div>';
+			$html .= '<a href="#" class="publications-show-more">Show ' . ($results_total - $results_max > $pagination_number ? $pagination_number : $results_total - $results_max) . ' more...</a>';
+			$html .= '<a href="#" class="publications-show-all">View all ' . $results_total . '</a>';
+		};
+
 	};
-	if (!empty($html_show_more)) {
-		$html .= '<div class="lw_hidden additional-results">' . $html_show_more . '</div>';
-		$html .= '<a href="#" class="publications-show-more">Show ' . ($results_total - $results_max > $pagination_number ? $pagination_number : $results_total - $results_max) . ' more...</a>';
-		$html .= '<a href="#" class="publications-show-all">View all ' . $results_total . '</a>';
+
+	// if we used a stale cache entry, regenerate all for next time on this node
+	if (!empty($cache_ts) && $cache_ts<$_SERVER['REQUEST_TIME']-5400) { // when >90min old
+		$this->getAirtable(); // regenerate cache
 	};
 
 	return $html;
@@ -198,10 +211,65 @@ private function formatFacultyResult($item,$type) {
 
 
 
-public function getAirtable() { // requests and caches all Airtable values we'll be using
+public function getAirtable($type=false) { // requests and caches all Airtable values we'll be using
 	global $_LW;
 
-	// $_LW->logDebug("getAirtable 1 - " . serialize($_LW->REGISTERED_APPS['airtable']['custom']));
+	// $_LW->logDebug("getAirtable 1");
+
+	// Use FS /data/ caching instead of set/getVariable
+	$cache_path = $_LW->INCLUDES_DIR_PATH.'/data/airtable/';
+	if (!is_dir($cache_path)) { // init 25live directory
+		@mkdir($cache_path);
+	};
+
+	foreach($_LW->REGISTERED_APPS['airtable']['custom']['tables'] as $name => $table) {
+
+		if (!empty($type) && $name!=$type) { // if restricting by type
+			continue; // skip other types
+		}
+
+		$key = 'airtable_'.$name;
+		
+		$result = $this->getAirtableResults($this->getAirtableQuery($name));
+
+		// $_LW->logDebug("getAirtable 2 - Results for " . $key . " -- First 200 chars: " . substr(serialize($results), 0, 200));
+
+		// echo '<h1>'.$key.'</h1>';
+		// echo '<pre style="display: block; overflow: auto; height: 300px; border: 1px solid black">' . print_r($result, true) . '</pre>';
+
+		if ($result) {
+			/* If new query was successful, cache the $result indefinitely */
+			// $_LW->setVariable($key, $result, 0, true);
+			@file_put_contents($cache_path.$key.'.json', json_encode($result), LOCK_EX); // cache this result to FS
+			// echo '<h2>Saving new ' . $key . '</h2>';
+
+			if (!empty($type)) { 
+				return $result;
+			}
+			// $_LW->logDebug("getAirtable 3 - caching results for " . $key);
+		} else {
+			/* In all other cases, fall back to the cached variable */
+			// echo '<h2>Wants to fall back to cached ' . $key . '</h2>';
+			$result=@file_get_contents($cache_path.$key.'.json');
+			// $result=$_LW->getVariable($key);
+			/* Re-cache that result to reset the 60min clock, so as not to run failing code over and over again */
+			// $_LW->setVariable($key, $result, 0, true);
+
+			// $_LW->logDebug("getAirtable 3B - re-caching old results for " . $key);
+		};
+		
+		
+	};
+
+}
+
+
+public function testAirtable() { // requests and caches all Airtable values we'll be using
+	global $_LW;
+
+	echo '<h1>Testing Airtable (not caching)</h1>';
+
+	// $_LW->logDebug("getAirtable 1");
 
 	foreach($_LW->REGISTERED_APPS['airtable']['custom']['tables'] as $name => $table) {
 
@@ -213,19 +281,6 @@ public function getAirtable() { // requests and caches all Airtable values we'll
 
 		echo '<h1>'.$key.'</h1>';
 		echo '<pre style="display: block; overflow: auto; height: 300px; border: 1px solid black">' . print_r($result, true) . '</pre>';
-
-		if ($result) {
-			/* If new query was successful, cache the $result indefinitely */
-			$_LW->setVariable($key, $result, 0, true);
-			echo '<h2>Saving new ' . $key . '</h2>'; 
-		} else {
-			/* In all other cases, fall back to the cached variable */
-			echo '<h2>Wants to fall back to cached ' . $key . '</h2>';
-			$result=$_LW->getVariable($key);
-			/* Re-cache that result to reset the 60min clock, so as not to run failing code over and over again */
-			$_LW->setVariable($key, $result, 0, true);
-		};
-		
 		
 	};
 
@@ -260,6 +315,8 @@ public function getAirtableResults($query,$offset='') { // Gets Airtable results
 		return $json->records;
 
 	};
+
+	$_LW->logDebug('Airtable connection failed for query ' . $query);
 
 	return '';
 }
