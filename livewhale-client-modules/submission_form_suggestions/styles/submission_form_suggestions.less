@@ -1,0 +1,67 @@
+// Suggestion to calendars dropdown
+
+#lw_submission_form_suggestions {
+    position: relative;
+    border-radius: 0;
+    padding: 0;
+    cursor: pointer;
+    background: #FFFFFF;
+    box-sizing: border-box;
+
+	.filter-label {
+		width: 100%;
+		border:1px solid #ced4da;
+		text-align:left;
+		margin-bottom:3px;
+		padding: 10px;
+	}
+
+	.filter-icon{
+		position:absolute;
+		right:12px;
+	}
+
+	fieldset {
+		margin:0;
+		padding:0;
+		border:0;
+	}
+
+	.filter-dropdown {
+		background-color:#fff;
+		display: none;
+		position:absolute;
+		left:0;
+		right:0;
+		top:calc(100% - 1px);
+		border: 1px solid #ced4da;
+		border-radius: 0 0 3px 3px;
+		padding: 16px;
+		z-index: 15;
+		box-sizing: border-box;
+		max-height: 400px;
+		overflow: hidden;
+		overflow-y: auto;
+
+		ul {
+			list-style:none;
+			margin:0;
+			padding:0;
+		}
+	}
+
+	.filter-option {
+		margin-bottom:0px;
+
+		label {
+			margin-bottom:10px;
+			cursor: pointer;
+		}
+
+		input {
+			margin-right: 8px;
+		}
+	}
+
+
+}
