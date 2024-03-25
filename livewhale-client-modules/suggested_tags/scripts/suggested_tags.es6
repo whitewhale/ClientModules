@@ -167,11 +167,11 @@
           change: function(a, b, c) {
             livewhale.manager.manager_state.set($(this).closest('li')); // tell manager this item has changed
             livewhale.lib.changedData.show();
-            $.each($(this).find('input[name^="suggested_tags_added"]'), function(i, added_tag) { // update format of suggested_tags_added so that we can create/associate them
-        if (!$(this).val().match('-')) {
-          $(this).val(id+'-'+$(this).val());
-        };
-            });
+  	      	$.each($(this).find('input[name^="suggested_tags_added"]'), function(i, added_tag) { // update format of suggested_tags_added so that we can create/associate them
+				if (!$(this).val().match('-')) {
+					$(this).val(id+'-'+$(this).val());
+				};
+  	      	});
           }
         });
       }
