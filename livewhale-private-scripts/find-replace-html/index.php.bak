@@ -1,0 +1,96 @@
+
+<?php
+
+require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
+
+$html_before='<div class="mceNonEditable">
+	<blockquote>
+		<span class="mceEditable">%%</span>
+		%%
+		<cite class="citation mceEditable">%%</cite>
+	</blockquote>
+</div>';
+
+$html_after='
+		<div class="content_layout mceNonEditable widget-pull-quote-testimonial content-first" data-type="pull-quote-testimonial" data-type-name="Pull Quote, Testimonial">
+
+		<div class="testimonial-big">
+				<div class="mceEditable main-quote">
+						<h3>%%</h3>
+				</div>
+				%%
+				<div class="mceEditable quote-source">
+						<h5>%%</h5>
+				</div>
+		</div>
+</div>
+';
+
+$html_before=preg_quote(trim($html_before), '~');
+$html_before=preg_replace(['~\s+~', '~%%~'], ['\s*?', '(.*?)'], $html_before);
+
+$html_after=trim($html_after);
+$count=0;
+while (strpos($html_after, '%%')!==false) {
+	$count++;
+	$html_after=preg_replace('~%%~', '\\\\'.$count, $html_after, 1);
+};
+
+/*
+Can't regexp for matches within MySQL itself due to "Timeout exceeded in regular expression match" even with "SET GLOBAL regexp_time_limit=1024;"
+i.e. REGEXP_LIKE(elements, '.$_LW->escape(str_replace(['\\s+?', '.*?'], ['[[:space:]]+', '.*'], $html_before)).', "inm")
+*/
+
+echo '<style>textarea {white-space: pre;}</style><h3>Find and Replace HTML</h3>
+<form style="margin-bottom: 2em;">
+	<div class="row" style="margin-bottom: 1em;">
+		<div class="col-sm-6">
+			<h4>Find code:</h4>
+			<textarea class="form-control" name="html_before" style="height: 200px;"></textarea>
+		</div>
+		<div class="col-sm-6">
+			<h4>Replace with:</h4>
+			<textarea class="form-control" name="html_after" style="height: 200px;"></textarea>
+		</div>
+	</div>
+	<button class="btn btn-primary">Preview</button>
+	<button class="btn btn-success">Run</button>
+	</form>';
+
+
+$_LW->d_ftp->load($_LW->CONFIG['FTP_MODE']);
+if ($_LW->d_ftp->connect()) {
+	$total_crawled=0;
+	$total_matched=0;
+	$total_updated=0;
+	echo 'Searching with pattern ~'.htmlentities($html_before).'~s<br/><br/>';
+	foreach($_LW->dbo->query('select', 'path, elements', 'livewhale_pages', false)->run() as $res2) {
+		$total_crawled++;
+		if (preg_match('~'.$html_before.'~s', $res2['elements'])) {
+			$total_matched++;
+			echo '<strong>'.$res2['path'].'</strong><br/><br/>';
+			if (!empty($_LW->_GET['preview']) || !empty($_LW->_GET['run'])) {
+				if ($content_before=@file_get_contents($_LW->WWW_DIR_PATH.$res2['path'])) {
+					$content_after=preg_replace('~'.$html_before.'~s', $html_after, $content_before);
+					if ($content_after!=$content_before) {
+						$total_updated++;
+						if (!empty($_LW->_GET['preview'])) {
+							echo 'BEFORE: <pre>'.htmlentities($content_before).'</pre><br/><br/>';
+							echo 'AFTER: <pre>'.htmlentities($content_after).'</pre><br/><br/>';
+						};
+						if (!empty($_LW->_GET['run'])) {
+							if ($tmp=$_LW->d_ftp->save_upload_file($content_after)) {
+								$_LW->d_ftp->upload_file($tmp, $_LW->CONFIG['FTP_PUB'].$res2['path'], true);
+								@unlink($tmp);
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+	echo '<p>'.$total_crawled.' crawled, '.$total_matched.' matched, '.$total_updated.' to be updated</p>';
+	$_LW->d_ftp->disconnect();
+};
+
+?>
