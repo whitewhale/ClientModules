@@ -190,7 +190,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							$booking['status_id']=(int)$val['id'];
 							$booking['status']=$_LW->setFormatClean($val['description']);
 							$booking['status_type']=$_LW->setFormatClean($val['statusType']);
-							if ($booking['status_type']=='Canceled' || $booking['status_type']=='Cancelled') {
+							if ($booking['status_type']=='Canceled' || $booking['status_type']=='Cancelled' || $booking['status_type']=='Cancel') {
 								$booking['canceled']=1;
 							};
 							break;
