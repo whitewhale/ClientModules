@@ -220,7 +220,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 					unset($booking['room']);
 				};
 				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['id'])) {
-					$booking['udfs']=$this->getUDFs($username, $password, $booking['id'], -42);
+					$booking['udfs']=$this->getUDFs($username, $password, $booking['id'], 'bookings');
 				};
 				foreach($booking as $key=>$val) { // sanitize result data
 					if (!is_array($val)) {
@@ -441,7 +441,10 @@ public function getUDFs($username, $password, $parent_id, $parent_type) { // fet
 global $_LW;
 $output=[];
 $params=['pageSize'=>2000];
-if ($response=$this->getResponse('/bookings/'.(int)$parent_id.'/userdefinedfields', $params)) { // get the response
+if (!in_array($parent_type,['bookings','reservations'])) {
+	return false; // only permit for supported types
+};
+if ($response=$this->getResponse('/'.$parent_type.'/'.(int)$parent_id.'/userdefinedfields', $params)) { // get the response
 	if (!empty($response['results'])) { // fetch and format results
 		foreach($response['results'] as $udf) {
 			if (!empty($udf)) { // sanitize result data

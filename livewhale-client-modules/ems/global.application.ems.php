@@ -100,10 +100,30 @@ if ($this->initEMS()) { // if EMS loaded
 			} else { // else display any errors
 				print_r($this->client->ems_errors);
 			};
+			if ($response=$this->client->getResponse('/bookings/'.(int)$_GET['booking_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
+			};
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			exit;
 		} else { // show booking form
 			echo '<form method="get"><label>Search for booking ID: <input type="hidden" name="livewhale" value="ems-debug"/><input type="text" name="booking_id" autocomplete="false" data-lpignore="true"/></label> <input type="submit" value="Go"/></form>';
+		}
+
+		echo '<h2>Look up a reservation</h2>';
+		if (!empty($_GET['reservation_id'])) { // searching for individual booking 
+			echo '<a href="?livewhale=ems-debug">&lt; back to EMS debug home</a><h2>Reservation #' . $_GET['reservation_id'] . '</h2>';
+			if ($response=$this->client->getReservationByID((int)$_GET['reservation_id'],'debug')) { // get the response
+				echo '<pre>'.var_export($response, true).'</pre>';
+			} else { // else display any errors
+				print_r($this->client->ems_errors);
+			};
+			if ($response=$this->client->getResponse('/reservations/'.(int)$_GET['reservation_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
+			};
+			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
+			exit;
+		} else { // show booking form
+			echo '<form method="get"><label>Search for reservation ID: <input type="hidden" name="livewhale" value="ems-debug"/><input type="text" name="reservation_id" autocomplete="false" data-lpignore="true"/></label> <input type="submit" value="Go"/></form>';
 		}
 	}
 
