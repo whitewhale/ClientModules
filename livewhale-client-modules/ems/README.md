@@ -46,6 +46,8 @@ Configuration:
 	$_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']=true;
 - Optionally configure EMS to define a UDF as the source of tags to import and assign to LiveWhale events:
 	$_LW->REGISTERED_APPS['ems']['custom']['udf_tags']='My UDF Title';
+- Optionally configure EMS to include cancelled events in the getBookings payload:
+	$_LW->REGISTERED_APPS['ems']['custom']['include_cancelled']=true;
 
 - Open your config.php.
 - Add an entry to the CREDENTIALS array for your EMS credentials (username/password or client ID /secret):

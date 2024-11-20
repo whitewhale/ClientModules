@@ -108,6 +108,9 @@ if (!empty($groups)) { // ensure groups is an array
 $params=[];
 $params['pageSize']=2000;
 $payload=[];
+if (!empty($_LW->REGISTERED_APPS['ems']['custom']['include_cancelled'])) { // if importing cancelled events
+	$payload['includeCancelled']=true; 
+};
 if (!empty($start_date)) {
 	$payload['minReserveStartTime']=$start_date;
 };
