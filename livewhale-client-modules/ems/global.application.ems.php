@@ -175,13 +175,32 @@ if ($this->initEMS()) { // if EMS loaded
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			$this->client->getStatuses($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS statuses
 			echo '<div style="display:flex; flex-wrap: wrap;">';
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Statuses:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->statuses, true).'</pre></div></div>'; // display the statuses
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Statuses:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->statuses, true).'</pre></div>
+				<div style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Statuses</h3><ul>';
+			foreach ($this->client->statuses as $res) {
+				echo '<li>'.$res['description']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the statuses
 			$this->client->getGroupTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS group types
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Group Types:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->group_types, true).'</pre></div></div>'; // display the group types
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Groups:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->groups, true).'</pre></div></div>'; // display the groups
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Group Types:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->group_types, true).'</pre></div>
+				<div style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Group Types</h3><ul>';
+			foreach ($this->client->group_types as $res) {
+				echo '<li>'.$res['title']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the group types	
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Groups:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->groups, true).'</pre></div>
+				<div style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Groups</h3><ul>';
+			foreach ($this->client->groups as $res) {
+				echo '<li>'.$res['title']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the groups
 			$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS event types
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Event Types:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->event_types, true).'</pre></div></div>'; // display the event types
-			echo '</div>';
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Event Types:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->event_types, true).'</pre></div>
+				<div style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Event Types</h3><ul>';
+			foreach ($this->client->event_types as $res) {
+				echo '<li>'.$res['title']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the event types	
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 		}
 	}
