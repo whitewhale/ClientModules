@@ -225,6 +225,9 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['id'])) {
 					$booking['udfs']=$this->getUDFs($username, $password, $booking['id'], 'bookings');
 				};
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_reservation_udfs']) && !empty($booking['reservation']['id'])) {
+					$booking['reservation_udfs']=$this->getUDFs($username, $password, $booking['reservation']['id'], 'reservations');
+				};
 				foreach($booking as $key=>$val) { // sanitize result data
 					if (!is_array($val)) {
 						$booking[$key]=$_LW->setFormatSanitize($val);
@@ -440,7 +443,7 @@ if (empty($reservation)) { // if cached reservation not available
 return $reservation;
 }
 
-public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs for a booking
+public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs
 global $_LW;
 $output=[];
 $params=['pageSize'=>2000];
@@ -452,14 +455,23 @@ if ($response=$this->getResponse('/'.$parent_type.'/'.(int)$parent_id.'/userdefi
 		foreach($response['results'] as $udf) {
 			if (!empty($udf)) { // sanitize result data
 				if (!empty($udf['definition']['description'])) {
-					if ((!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && $udf['definition']['description'] == $_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_tags']) &&  $udf['definition']['description'] == $_LW->REGISTERED_APPS['ems']['custom']['udf_tags'])) { // save categories/tags as array
-						$vals=explode("\n", $udf['value']);
-						foreach($vals as $val) {
-							$output[$udf['definition']['description']][]=$_LW->setFormatClean($val);
+					if ($udf['definition']['fieldType']=='Text' || $udf['definition']['fieldType']=='Date') {
+						if ((!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) && $udf['definition']['description'] == $_LW->REGISTERED_APPS['ems']['custom']['udf_categories']) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['udf_tags']) &&  $udf['definition']['description'] == $_LW->REGISTERED_APPS['ems']['custom']['udf_tags'])) { // save categories/tags as array
+							$vals=explode("\n", $udf['value']);
+							foreach($vals as $val) {
+								$output[$udf['definition']['description']][]=$_LW->setFormatClean($val);
+							};
+						}
+						else { // save description and all others as HTML
+							$output[$udf['definition']['description']]=nl2br($udf['value']);
 						};
 					}
-					else { // save description and all others as HTML
-						$output[$udf['definition']['description']]=nl2br($udf['value']);
+					else if ($udf['definition']['fieldType']=='List') { // translate option from picklist
+						foreach ($udf['definition']['options'] as $udf_option) {
+							if ($udf_option['id']==$udf['value']) {
+								$output[$udf['definition']['description']]=$udf_option['description']; // take first matching value
+							};
+						};
 					};
 				};
 			};

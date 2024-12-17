@@ -11,6 +11,7 @@ if ($tmp=@parse_url($LIVE_URL['REQUEST'][sizeof($LIVE_URL['REQUEST'])-1], PHP_UR
 		$LIVE_URL['REQUEST'][sizeof($LIVE_URL['REQUEST'])-1]=$tmp;
 	};
 };
+if ($LIVE_URL['REQUEST'][sizeof($LIVE_URL['REQUEST'])-1]!=@parse_url())
 foreach($LIVE_URL['REQUEST'] as $val) { // convert request elements to args
 	$val=str_replace('\\', '/', rawurldecode($val));
 	if (!$count) {
