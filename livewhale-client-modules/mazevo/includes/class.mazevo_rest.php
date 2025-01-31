@@ -17,7 +17,32 @@ if (empty($_LW->CONFIG['MAZEVO']['API_KEY'])) { // bail on missing API key
 public function getResponse($endpoint, $params=false, $payload=false) { // gets the response from Mazevo
 global $_LW;
 ini_set('memory_limit', '1G');
-$response=@shell_exec('curl -m 30 --location'.(!empty($payload) ? ' --request POST --data '.escapeshellarg(@json_encode($payload)).' -H "Content-Type: application/json"' : '').' -H '.escapeshellarg('X-API-Key: '.$_LW->CONFIG['CREDENTIALS']['MAZEVO']['API_KEY']).' '.escapeshellarg($_LW->REGISTERED_APPS['mazevo']['custom']['rest'].$endpoint.(!empty($params) ? '?'.http_build_query($params) : ''))); // request response
+$command='curl -m 60 --location'.(!empty($payload) ? ' --request POST --data '.escapeshellarg(@json_encode($payload)).' -H "Content-Type: application/json"' : '').' -H '.escapeshellarg('X-API-Key: '.$_LW->CONFIG['CREDENTIALS']['MAZEVO']['API_KEY']).' '.escapeshellarg($_LW->REGISTERED_APPS['mazevo']['custom']['rest'].$endpoint.(!empty($params) ? '?'.http_build_query($params) : '')); // set API command
+if ($endpoint=='/PublicEvent/geteventswithquestions') { // if this is a bookings request
+	$hash=[$params, $payload];
+	if (isset($hash[0]['group'])) { // strip group param from cache ID because all groups share the same cache
+		unset($hash[0]['group']);
+	};
+	$hash=hash('md5', serialize($hash));
+	$response=false;
+	if (@filemtime($_LW->INCLUDES_DIR_PATH.'/data/mazevo/endpoint_cache/bookings_'.$hash.'.json')>$_SERVER['REQUEST_TIME']-3600) { // if cache is valid
+		$response=@file_get_contents($_LW->INCLUDES_DIR_PATH.'/data/mazevo/endpoint_cache/bookings_'.$hash.'.json'); // get cached response
+	}
+	else { // else if cache has expired
+		$response=@shell_exec($command); // refresh response
+		if (!empty($response)) { // if there was a response
+			if (@json_decode($response, true)) {
+				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/mazevo/endpoint_cache')) {
+					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/mazevo/endpoint_cache');
+				};
+				@file_put_contents($_LW->INCLUDES_DIR_PATH.'/data/mazevo/endpoint_cache/bookings_'.$hash.'.json', $response);
+			};
+		};
+	};
+}
+else { // else just request response w/o caching
+	$response=@shell_exec($command);
+};
 if (!empty($response)) { // fetch the result
 	if (@$response=@json_decode($response, true)) {
 		if (empty($this->mazevo_errors)) { // if there were no errors
@@ -28,7 +53,7 @@ if (!empty($response)) { // fetch the result
 return false;
 }
 
-public function getBookings($start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $filter_by_question=false) { // fetches Mazevo bookings by specified parameters
+public function getBookings($start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_id=false) { // fetches Mazevo bookings by specified parameters
 global $_LW;
 $this->mazevo_errors=[]; // reset errors
 foreach(['Buildings'=>'buildings', 'Statuses'=>'statuses', 'Groups'=>'groups', 'EventTypes'=>'event_types'] as $key=>$param) { // format other parameters
@@ -63,113 +88,120 @@ if (!empty($buildings)) {
 if (!empty($event_types)) {
 	$payload['eventTypeIds']=$event_types;
 };
-if (!empty($groups)) {
-	$payload['organizationId']=$groups[0];
-};
-if ($response=$this->getResponse('/PublicEvent/getevents', $params, $payload)) { // get the response
+if ($response=$this->getResponse('/PublicEvent/geteventswithquestions', $params, $payload)) { // get the response
 	$output=[];
 	if (!empty($response) && is_array($response)) { // fetch and format results
-		foreach($response as $booking) {
-			if (!empty($booking)) { // sanitize result data
-				foreach(['collectionId', 'userId', 'setupMinutes', 'teardownMinutes', 'customerAccessMinutes', 'statusColor', 'setupStyle', 'setupCount', 'setupNotes', 'dateChanged', 'componentRoomIds', 'hasDiagram', 'externalData'] as $key) { // clear unused data
-					unset($booking[$key]);
-				};
-				foreach($booking as $key=>$val) {
-					switch($key) {
-						case 'bookingId':
-							$booking['booking_id']=(int)$val;
-							break;
-						case 'eventName':
-							$booking['title']=$_LW->setFormatClean($val);
-							break;
-						case 'organizationId':
-							$booking['group_id']=(int)$val;
-							break;
-						case 'organizationName':
-							$booking['group_title']=$_LW->setFormatClean($val);
-							break;
-						case 'roomId':
-							$booking['room']=$_LW->setFormatClean($booking['roomDescription']);
-							$booking['building_id']=$_LW->setFormatClean($booking['buildingId']);
-							$booking['location']=$_LW->setFormatClean($booking['buildingDescription']);
-							$booking['timezone']=$_LW->getSupportedTimezone($booking['timeZone']);
-							if (empty($booking['timezone'])) {
-								$booking['timezone']=!empty($_LW->CONFIG['TIMEZONE']) ? $_LW->CONFIG['TIMEZONE'] : ini_get('date.timezone');
+		foreach($response as $collection) {
+			if (!empty($collection['bookings']) && is_array($collection['bookings'])) {
+				$question_categories='';
+				if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_categories']) && preg_match('~^[0-9]+$~', $_LW->REGISTERED_APPS['mazevo']['custom']['question_categories'])) { // if enabling question for categories
+					if (!empty($collection['eventQuestions']) && is_array($collection['eventQuestions'])) { // get the value of the associated question for this collection
+						foreach($collection['eventQuestions'] as $event_question) {
+							if ($event_question['eventQuestionId']==$_LW->REGISTERED_APPS['mazevo']['custom']['question_categories']) {
+								$question_categories=$event_question['answer'];
+								$question_categories=implode('|', array_filter(preg_split('~\s*?\([A-Z0-9]+?\)(?:,\s*|$)~', $question_categories)));
+								break;
 							};
-							break;
-						case 'eventTypeId':
-							$booking['event_type_id']=$val;
-							$booking['event_type']=$_LW->setFormatClean($this->getEventTypeById($val));
-							break;
-						case 'dateTimeStart':
-							$booking['date_ts']=$_LW->toTS($val);
-							$booking['date_dt']=$_LW->toDate('Y-m-d H:i:00', $booking['date_ts'], 'UTC');
-							break;
-						case 'dateTimeEnd':
-							$booking['date2_ts']=$_LW->toTS($val);
-							$booking['date2_dt']=$_LW->toDate('Y-m-d H:i:00', $booking['date2_ts'], 'UTC');
-							break;
-						case 'statusId':
-							$booking['status_id']=(int)$val;
-							$booking['status']=(int)$booking['statusId'];
-							$booking['status_type']=$_LW->setFormatClean($booking['statusDescription']);
-							if (in_array($booking['status_id'], [45, 50])) {
-								$booking['canceled']=1;
+						};
+					};
+					
+				};
+				$question_description='';
+				if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_description']) && preg_match('~^[0-9]+$~', $_LW->REGISTERED_APPS['mazevo']['custom']['question_description'])) { // if enabling question for description
+					if (!empty($collection['eventQuestions']) && is_array($collection['eventQuestions'])) { // get the value of the associated question for this collection
+						foreach($collection['eventQuestions'] as $event_question) {
+							if ($event_question['eventQuestionId']==$_LW->REGISTERED_APPS['mazevo']['custom']['question_description']) {
+								$question_description=$event_question['answer'];
+								$question_description=preg_replace('~<br\s?/>\s*<br\s?/>~i', "\n</p>\n<p>", nl2br($question_description, true));
+								break;
 							};
-							break;
-					};
-				};
-			};
-			if (!empty($booking['title'])
-				&& !empty($booking['group_title'])
-				&& (empty($group_id) || $booking['group_id']==$group_id) 
-				&& (empty($groups) || (is_array($groups) && in_array($booking['group_id'], $groups))) 
-				&& (empty($buildings) || in_array($booking['building_id'], $buildings))
-				&& (empty($statuses) || in_array($booking['status_id'], $statuses))
-				&& (empty($event_types) || in_array($booking['event_type_id'], $event_types))
-				) { // if each result is valid
-				if (!empty($booking['location']) && !empty($booking['room'])) { // merge room into location
-					$booking['location'].=', '.$booking['room'];
-				};
-				if (!empty($booking['room'])) {
-					unset($booking['room']);
-				};
-				foreach($booking as $key=>$val) { // sanitize result data
-					if (!is_array($val)) {
-						$booking[$key]=$_LW->setFormatSanitize($val);
-					};
-				};
-				$output[$booking['bookingId']]=$booking; // add it to the results to return
-			};
-		};
-	};
-	if (!empty($output)) { // if there were bookings
-		if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['enable_questions'])) { // if questions are enabled
-			if (!empty($filter_by_question) && !empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_include_in_feed']) && preg_match('~^[0-9]+$~', $_LW->REGISTERED_APPS['mazevo']['custom']['question_include_in_feed'])) { // if filtering by question
-				foreach($this->getBookingsByQuestion($params, $payload, $_LW->REGISTERED_APPS['mazevo']['custom']['question_include_in_feed']) as $booking_for_question) {
-					if (!empty($output[$booking_for_question['bookingId']]) && $booking_for_question['eventQuestionAnswer']!='Yes') { // and filter out any that are not to be included
-						unset($output[$booking_for_question['bookingId']]);
-					};
-				};
-			};
-			if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_categories']) && is_array($_LW->REGISTERED_APPS['mazevo']['custom']['question_categories'])) { // if enabling question for event types
-				foreach($_LW->REGISTERED_APPS['mazevo']['custom']['question_categories'] as $question_for_booking=>$question_for_booking_value) {
-					foreach($this->getBookingsByQuestion($params, $payload, $question_for_booking) as $booking_for_question) {
-						if (!empty($output[$booking_for_question['bookingId']]) && $booking_for_question['eventQuestionAnswer']=='Yes') { // and record them
-							if (!isset($output[$booking_for_question['bookingId']]['question_categories'])) {
-								$output[$booking_for_question['bookingId']]['question_categories']=[];
-							};
-							$output[$booking_for_question['bookingId']]['question_categories'][]=$question_for_booking_value;
 						};
 					};
 				};
-			};
-			if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_description']) && preg_match('~^[0-9]+$~', $_LW->REGISTERED_APPS['mazevo']['custom']['question_description'])) { // if enabling question for description
-				foreach($this->getBookingsByQuestion($params, $payload, $_LW->REGISTERED_APPS['mazevo']['custom']['question_description']) as $booking_for_question) {
-					if (!empty($output[$booking_for_question['bookingId']])) { // and record them
-						$output[$booking_for_question['bookingId']]['question_description']=$booking_for_question['eventQuestionAnswer'];
+				foreach($collection['bookings'] as $booking) {
+					if (!empty($booking)) { // sanitize result data
+						foreach(['collectionId', 'userId', 'setupMinutes', 'teardownMinutes', 'customerAccessMinutes', 'statusColor', 'setupStyle', 'setupCount', 'setupNotes', 'dateChanged', 'componentRoomIds', 'hasDiagram', 'externalData'] as $key) { // clear unused data
+							unset($booking[$key]);
+						};
+						foreach($booking as $key=>$val) {
+							switch($key) {
+								case 'bookingId':
+									$booking['booking_id']=(int)$val;
+									break;
+								case 'eventName':
+									$booking['title']=$_LW->setFormatClean($val);
+									break;
+								case 'organizationId':
+									$booking['group_id']=(int)$val;
+									break;
+								case 'organizationName':
+									$booking['group_title']=$_LW->setFormatClean($val);
+									break;
+								case 'roomId':
+									$booking['room']=$_LW->setFormatClean($booking['roomDescription']);
+									$booking['building_id']=$_LW->setFormatClean($booking['buildingId']);
+									$booking['location']=$_LW->setFormatClean($booking['buildingDescription']);
+									$booking['timezone']=$_LW->getSupportedTimezone($booking['timeZone']);
+									if (empty($booking['timezone'])) {
+										$booking['timezone']=!empty($_LW->CONFIG['TIMEZONE']) ? $_LW->CONFIG['TIMEZONE'] : ini_get('date.timezone');
+									};
+									break;
+								case 'eventTypeId':
+									$booking['event_type_id']=$val;
+									$booking['event_type']=$_LW->setFormatClean($this->getEventTypeById($val));
+									break;
+								case 'dateTimeStart':
+									$booking['date_ts']=$_LW->toTS($val);
+									$booking['date_dt']=$_LW->toDate('Y-m-d H:i:00', $booking['date_ts'], 'UTC');
+									break;
+								case 'dateTimeEnd':
+									$booking['date2_ts']=$_LW->toTS($val);
+									$booking['date2_dt']=$_LW->toDate('Y-m-d H:i:00', $booking['date2_ts'], 'UTC');
+									break;
+								case 'statusId':
+									$booking['status_id']=(int)$val;
+									$booking['status']=(int)$booking['statusId'];
+									$booking['status_type']=$_LW->setFormatClean($booking['statusDescription']);
+									if (in_array($booking['status_id'], [45, 50])) {
+										$booking['canceled']=1;
+									};
+									break;
+							};
+						};
+					};
+					if (!empty($booking['title'])
+						&& !empty($booking['group_title'])
+						&& (empty($groups) || (is_array($groups) && in_array($booking['group_id'], $groups))) 
+						&& (empty($group_id) || $booking['group_id']==$group_id) 
+						&& (empty($buildings) || in_array($booking['building_id'], $buildings))
+						&& (empty($statuses) || in_array($booking['status_id'], $statuses))
+						&& (empty($event_types) || in_array($booking['event_type_id'], $event_types))
+						) { // if each result is valid
+						if (!empty($booking['location']) && !empty($booking['room'])) { // merge room into location
+							$booking['location'].=', '.$booking['room'];
+						};
+						if (!empty($booking['room'])) {
+							unset($booking['room']);
+						};
+						if (!empty($question_description)) { // and apply to all bookings in the collection
+							foreach($output as $key=>$val) {
+								$booking['description']=$question_description;
+							};
+						};
+						if (!empty($question_categories)) { // and apply to all bookings in the collection
+							foreach($output as $key=>$val) {
+								$booking['categories']=$question_categories;
+							};
+						};
+						foreach($booking as $key=>$val) { // sanitize result data
+							if (!is_array($val)) {
+								$booking[$key]=$_LW->setFormatSanitize($val);
+							};
+						};
+						$output[$booking['bookingId']]=$booking; // add it to the results to return
 					};
 				};
+				
 			};
 		};
 	};
@@ -193,22 +225,6 @@ if ($tmp=@file_get_contents($_LW->INCLUDES_DIR_PATH.'/data/mazevo/feed_cache/'.$
 	return $output;
 };
 return false;
-}
-
-public function getBookingsByQuestion($params, $payload, $question_id) { // gets bookings with an answer to the specified question
-global $_LW;
-$output=[];
-$payload['eventQuestionId']=(int)$question_id;
-if ($response=$this->getResponse('/PublicEvent/getEventsByQuestion', $params, $payload)) { // get the response for the question
-	if (!empty($response) && is_array($response)) {
-		foreach($response as $booking_for_question) {
-			if (!empty($booking_for_question['eventQuestionAnswer'])) {
-				$output[]=$booking_for_question;
-			};
-		};
-	};
-};
-return $output;
 }
 
 public function getStatuses() { // fetches Mazevo statuses
