@@ -48,7 +48,7 @@ if ($endpoint=='/bookings/actions/search') { // relax memory limit for large boo
 $response=@shell_exec('curl -m 30'.(!empty($payload) ? ' --request POST --data '.escapeshellarg(@json_encode($payload)).' -H "Content-Type: application/json"' : '').' -H '.escapeshellarg('x-ems-api-token: '.$this->token).' '.escapeshellarg($_LW->REGISTERED_APPS['ems']['custom']['rest'].$endpoint.(!empty($params) ? '?'.http_build_query($params) : ''))); // request response
 if (!empty($response)) { // fetch the result
 	if (@$response=@json_decode($response, true)) {
-		if (!empty($response['errorCode']) && strpos($endpoint,'userdefinedfields') == false) { // don't log errors for /userdefinedfields requests, since "NotFound" is an okay result for UDFs
+		if (!empty($response['errorCode']) && strpos($endpoint, '/userdefinedfields') == false && strpos($endpoint, '/attachments') == false) { // don't log errors for /userdefinedfields or /attachments requests, since "NotFound" is an okay result for these
 			$this->ems_errors[]='EMS: Error code '.$response['errorCode'].(!empty($response['message']) ? ' ('.$response['message'].')' : '');
 		};
 		if (empty($this->ems_errors)) { // if there were no errors
@@ -205,7 +205,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 								$booking['contact_name']=$val['contactName'];
 							};
 							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
-								if ($reservation=$this->getReservationByID($val['id'], $val['webUserId'].'-'.$val['contactName'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
+								if ($reservation=$this->getReservationByID($val['id'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) {
 										$booking['contact_info']=$reservation['contact']['name'].' (<a href="mailto:'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'">'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'</a>)';
 									};
@@ -222,11 +222,16 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 				if (!empty($booking['room'])) {
 					unset($booking['room']);
 				};
-				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['id'])) {
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_udfs']) && !empty($booking['id'])) { // add booking UDFs if enabled
 					$booking['udfs']=$this->getUDFs($username, $password, $booking['id'], 'bookings');
 				};
-				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_reservation_udfs']) && !empty($booking['reservation']['id'])) {
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['enable_reservation_udfs']) && !empty($booking['reservation']['id'])) { // add reservation UDFs if enabled
 					$booking['reservation_udfs']=$this->getUDFs($username, $password, $booking['reservation']['id'], 'reservations');
+				};
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['image_attachment_type']) && !empty($booking['reservation']['id']) && preg_match('~^[0-9]+$~', $_LW->REGISTERED_APPS['ems']['custom']['image_attachment_type'])) { // add first attachment of the configured type
+					if ($attachments=$this->getAttachments($username, $password, $booking['reservation']['id'], 'reservations')) {
+						$booking['attachment']=$attachments[0];
+					};
 				};
 				foreach($booking as $key=>$val) { // sanitize result data
 					if (!is_array($val)) {
@@ -403,7 +408,7 @@ if (empty($this->event_types)) { // if cached event types not available
 };
 }
 
-public function getReservationById($id, $cache_key) { // fetches a reservation's info
+public function getReservationById($id) { // fetches a reservation's info
 global $_LW;
 static $map;
 if (!isset($map)) {
@@ -412,7 +417,7 @@ if (!isset($map)) {
 if (isset($map[$id])) { // return cached response if possible
 	return $map[$id];
 };
-$cache_key=hash('md5', $cache_key); // hash the cache key
+$cache_key=hash('md5', $id); // hash the cache key
 $cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
 if (@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400) { // return cached response if possible
 	if ($reservation=@file_get_contents($cache_path)) {
@@ -422,12 +427,19 @@ if (@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400) { // return cached r
 		};
 	};
 };
-$reservation=@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400 ? @unserialize(file_get_contents($cache_path)) : []; // fetch reservation from cache
+$reservation=(@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-86400 ? @unserialize(file_get_contents($cache_path)) : []); // fetch reservation from cache
 if (empty($reservation)) { // if cached reservation not available
 	$reservation=[];
 	if ($response=$this->getResponse('/reservations/'.$id)) { // get the response
 		if (!empty($response['id'])) { // fetch result
 			$reservation=$response;
+			if (!empty($_LW->REGISTERED_APPS['ems']['custom']['image_attachment_type']) && !empty($reservation['id']) && preg_match('~^[0-9]+$~', $_LW->REGISTERED_APPS['ems']['custom']['image_attachment_type'])) { // add first attachment of the configured type
+				$username=$_LW->REGISTERED_APPS['ems']['custom']['username'];
+				$password=$_LW->REGISTERED_APPS['ems']['custom']['password'];
+				if ($attachments=$this->getAttachments($username, $password, $reservation['id'], 'reservations')) {
+					$reservation['attachment']=$attachments[0];
+				};
+			};
 		};
 	};
 	foreach([$_LW->INCLUDES_DIR_PATH.'/data/ems', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations', $_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$cache_key[0].$cache_key[1]] as $dir) {
@@ -447,7 +459,7 @@ public function getUDFs($username, $password, $parent_id, $parent_type) { // fet
 global $_LW;
 $output=[];
 $params=['pageSize'=>2000];
-if (!in_array($parent_type,['bookings','reservations'])) {
+if (!in_array($parent_type,['bookings', 'reservations'])) {
 	return false; // only permit for supported types
 };
 if ($response=$this->getResponse('/'.$parent_type.'/'.(int)$parent_id.'/userdefinedfields', $params)) { // get the response
@@ -474,6 +486,43 @@ if ($response=$this->getResponse('/'.$parent_type.'/'.(int)$parent_id.'/userdefi
 						};
 					};
 				};
+			};
+		};
+	};
+};
+return $output;
+}
+
+public function getAttachments($username, $password, $parent_id, $parent_type) { // fetches EMS attachments
+global $_LW;
+$output=[];
+$params=['pageSize'=>100];
+if (!in_array($parent_type,['bookings', 'reservations'])) {
+	return false; // only permit for supported types
+};
+if ($response=$this->getResponse('/'.$parent_type.'/'.(int)$parent_id.'/attachments', $params)) { // get the response
+	if (!empty($response['results'])) { // fetch and format results
+		foreach($response['results'] as $attachment) {
+			if (!empty($attachment['id']) && !empty($attachment['fileName']) && !empty($attachment['attachment'])) {
+				if (empty($attachment['attachmentType']['id']) || $attachment['attachmentType']['id']!=$_LW->REGISTERED_APPS['ems']['custom']['image_attachment_type']) { // require configured attachment type
+					continue;
+				};
+				if (empty($attachment['displayOnWeb'])) { // require displayOnWeb
+					continue;
+				};
+				$attachment=[ // restrict to fields we need
+					'id'=>$attachment['id'],
+					'filename'=>$attachment['fileName'],
+					'data'=>$attachment['attachment']
+				];
+				array_walk_recursive($attachment, function($item, $key) { // sanitize result data
+					global $_LW;
+					if (is_scalar($item)) {
+						$item=$_LW->setFormatClean($item);
+					};
+					return $item;
+				});
+				$output[]=$attachment;
 			};
 		};
 	};

@@ -2,7 +2,7 @@
 
 $_LW->REGISTERED_APPS['ems']=[
 	'title'=>'EMS',
-	'handlers'=>['onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost', 'onBeforeLogin'],
+	'handlers'=>['onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost', 'onBeforeLogin', 'onAfterSync'],
 	'flags'=>['no_autoload'],
 	'commands'=>['ems-debug'=>'debug'],
 	'custom'=>[ // these settings should all be set in global.config.php, not here
@@ -21,6 +21,7 @@ $_LW->REGISTERED_APPS['ems']=[
 		'enable_reservation_udfs'=>false, // set to true to capture UDFs on reservations
 		'udf_categories'=>'', // if capturing UDFs, set the name of the UDF cooresponding to categories that should be created/assigned to incoming EMS events
 		'udf_description'=>'', // if using UDFs as event description, set the name of the UDF cooresponding to description
+		'reservation_udf_description'=>'', // if using reservation UDFs as event description, set the name of the reservation UDF cooresponding to description
 		'udf_tags'=>'' // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
 	]
 ]; // configure this module
@@ -101,8 +102,11 @@ if ($this->initEMS()) { // if EMS loaded
 			} else { // else display any errors
 				print_r($this->client->ems_errors);
 			};
-			if ($response=$this->client->getResponse('/bookings/'.(int)$_GET['booking_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
-				echo '<h3>User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
+			if ($response2=$this->client->getResponse('/bookings/'.(int)$_GET['booking_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>Booking User Defined Fields</h3><pre>'.var_export($response2, true).'</pre>';
+			};
+			if ($response3=$this->client->getResponse('/reservations/'.(int)$response['reservation']['id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>Reservation User Defined Fields</h3><pre>'.var_export($response3, true).'</pre>';
 			};
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			exit;
@@ -113,13 +117,13 @@ if ($this->initEMS()) { // if EMS loaded
 		echo '<h2>Look up a reservation</h2>';
 		if (!empty($_GET['reservation_id'])) { // searching for individual booking 
 			echo '<a href="?livewhale=ems-debug">&lt; back to EMS debug home</a><h2>Reservation #' . $_GET['reservation_id'] . '</h2>';
-			if ($response=$this->client->getReservationByID((int)$_GET['reservation_id'],'debug')) { // get the response
+			if ($response=$this->client->getReservationByID((int)$_GET['reservation_id'])) { // get the response
 				echo '<pre>'.var_export($response, true).'</pre>';
 			} else { // else display any errors
 				print_r($this->client->ems_errors);
 			};
 			if ($response=$this->client->getResponse('/reservations/'.(int)$_GET['reservation_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
-				echo '<h3>User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
+				echo '<h3>Reservation User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
 			};
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			exit;
@@ -267,15 +271,31 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 			'categories'=>$booking['event_type'],
 			'location'=>$booking['location'],
 			'X-LIVEWHALE-TYPE'=>'event',
-			'X-LIVEWHALE-TIMEZONE'=>@$booking['timezone'],
-			'X-LIVEWHALE-CANCELED'=>@$booking['canceled'],
-			'X-LIVEWHALE-CONTACT-INFO'=>@$booking['contact_info'],
-			'X-EMS-STATUS-ID'=>@$booking['status_id'],
-			'X-EMS-EVENT-TYPE-ID'=>@$booking['event_type_id']
+			'X-LIVEWHALE-TIMEZONE'=>(!empty($booking['timezone']) ? $booking['timezone'] : ''),
+			'X-LIVEWHALE-CANCELED'=>(!empty($booking['canceled']) ? $booking['canceled'] : ''),
+			'X-LIVEWHALE-CONTACT-INFO'=>(!empty($booking['contact_info']) ? $booking['contact_info'] : ''),
+			'X-EMS-STATUS-ID'=>(!empty($booking['status_id']) ? $booking['status_id'] : ''),
+			'X-EMS-EVENT-TYPE-ID'=>(!empty($booking['event_type_id']) ? $booking['event_type_id'] : '')
 		];
-		if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
-			$arr['X-LIVEWHALE-SKIP-SYNC']=1;
+		if (!empty($booking['attachment']['id']) && !empty($booking['attachment']['filename']) && !empty($booking['attachment']['data'])) { // if there is an attachment
+			$cache_key=hash('md5', $booking['attachment']['id']); // hash the cache key
+			$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
+			if (!file_exists($cache_path)) {
+				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments')) {
+					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments');
+				};
+				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1])) {
+					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1]);
+				};
+				@file_put_contents($cache_path, $booking['attachment']['filename']."\n".$booking['attachment']['data']); // save the attachment
+			};
+			if (file_exists($cache_path)) { // add the attachment to the feed
+				$arr['X-EMS-ATTACHMENT-ID']=$booking['attachment']['id'];
+			};
 		};
+		// if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
+		// 	$arr['X-LIVEWHALE-SKIP-SYNC']=1;
+		// };
 		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['hidden_by_default'])) { // if importing hidden events, flag them
 			$arr['X-LIVEWHALE-HIDDEN']=1;
 		};
@@ -287,6 +307,9 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		};
 		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']])) { // if assigning UDF value as event description
 			$arr['description']=$booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']];
+		};
+		if (!empty($booking['reservation_udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_description']) && !empty($booking['reservation_udfs'][$_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_description']])) { // if assigning reservation UDF value as event description
+			$arr['description']=$booking['reservation_udfs'][$_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_description']];
 		};
 		if (!empty($booking['contact_info'])) { // add contact info if available
 			$arr['X-EMS-CONTACT-INFO']=$booking['contact_info'];
@@ -443,7 +466,7 @@ if ($_LW->page=='groups_edit') { // if on the group editor page
 		};
 	};
 }
-else if ($_LW->page=='events_subscriptions_edit') { // if on the linked calendar editor page
+else if ($_LW->page=='events_subscriptions_edit' && !empty($_SESSION['livewhale']['manage']['gid'])) { // if on the linked calendar editor page
 	if ($this->initEMS()) { // if EMS loaded
 		$ems_group=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.pid='.(int)$_SESSION['livewhale']['manage']['gid'].' AND livewhale_custom_data.name="ems_group"')->firstRow('value')->run(); // get the EMS group for the current LiveWhale group
 		if (!empty($ems_group)) { // get the EMS groups
@@ -482,19 +505,21 @@ $_LW->dbo->sql('UPDATE livewhale_events SET subscription_id=REPLACE(subscription
 public function onBeforeLogin() { // on before login
 global $_LW;
 $ts=strtotime('-1 month'); // set TS for 1 month ago
-if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
-	if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check') || filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check')<$ts) { // once a month
-		touch($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check'); // mark as cleaned
-		if ($res_dirs=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) { // clear cached reservations not updated within the last 1 month
-			foreach($res_dirs as $dir) {
-				if ($dir[0]!='.') {
-					if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
-						if ($files=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
-							foreach($files as $file) {
-								if ($file[0]!='.') {
-									if ($file_ts=@filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file)) {
-										if ($file_ts<$ts) {
-											@unlink($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file);
+foreach(['reservations', 'attachments'] as $type) {
+	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
+		if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check') || filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check')<$ts) { // once a month
+			touch($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check'); // mark as cleaned
+			if ($res_dirs=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) { // clear cached reservations and attachments not updated within the last 1 month
+				foreach($res_dirs as $dir) {
+					if ($dir[0]!='.') {
+						if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
+							if ($files=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
+								foreach($files as $file) {
+									if ($file[0]!='.') {
+										if ($file_ts=@filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file)) {
+											if ($file_ts<$ts) {
+												@unlink($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file);
+											};
 										};
 									};
 								};
@@ -503,6 +528,58 @@ if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
 					};
 				};
 			};
+		};
+	};
+};
+}
+
+public function onAfterSync($type, $subscription_id, $event_id, $mode, $event) { // on linked calendar sync
+global $_LW;
+if ($type=='events' && $mode=='create' && !empty($event['X-EMS-ATTACHMENT-ID'])) { // if event is being created with an attachment
+	$cache_key=hash('md5', $event['X-EMS-ATTACHMENT-ID']); // get the cache key
+	$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
+	if ($gid=$_LW->dbo->query('select', 'gid', 'livewhale_events', 'id='.(int)$event_id)->firstRow('gid')->run()) { // if gid for event obtained
+		if (file_exists($cache_path)) { // if the attachment exists
+			if ($data=@file_get_contents($cache_path)) { // if attachment data obtained
+				$pos=strpos($data, "\n");
+				$filename=substr($data, 0, $pos); // get the tmp filename
+				$content=substr($data, $pos+1); // get the tmp content
+				if ($content=@base64_decode($content)) { // if valid tmp content
+					$tmp_path=$_LW->INCLUDES_DIR_PATH.'/data/uploads/'.$filename; // set the tmp path
+					if (@file_put_contents($tmp_path, $content)) { // if tmp file created
+						$image_id=$_LW->create('images', [
+							'gid'=>(int)$gid,
+							'description'=>$filename,
+							'date'=>$_LW->toDate('m/d/Y'),
+							'path'=>$tmp_path
+						]); // create the image
+						if (strpos($_LW->error, 'already exists in the file library')!==false) {
+							$image_id=$_LW->save_duplicate_id;
+						};
+						if (!empty($image_id)) { // if the image was created
+							$_LW->update('events', $event_id, [ // attach image to event
+								'associated_data'=>[
+									'images'=>[
+										[
+											'id'=>$image_id,
+											'caption'=>'',
+											'is_thumb'=>1,
+											'only_thumb'=>'',
+											'full_crop'=>'',
+											'full_src_region'=>'',
+											'thumb_crop'=>1,
+											'thumb_src_region'=>'',
+											'is_decoration'=>1
+										]
+									]
+								]
+							]);
+						};
+						@unlink($tmp_path); // delete tmp file
+					};
+				};
+			};
+			@unlink($cache_path); // delete attachment file
 		};
 	};
 };
