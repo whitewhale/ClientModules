@@ -130,6 +130,19 @@ if ($this->initEMS()) { // if EMS loaded
 		} else { // show booking form
 			echo '<form method="get"><label>Search for reservation ID: <input type="hidden" name="livewhale" value="ems-debug"/><input type="text" name="reservation_id" autocomplete="false" data-lpignore="true"/></label> <input type="submit" value="Go"/></form>';
 		}
+
+		if (!empty($_GET['reservation_udf'])) { // Test searching by reservation_udf
+			$date_start = (!empty($_GET['date_start']) ? $_GET['date_start'] : '-2 months');
+			$date_end = (!empty($_GET['date_end']) ? $_GET['date_end'] : '+2 months');
+			echo '<h3>Bookings from Reservation UDF ' . $_GET['reservation_udf'] . '</h3>';
+
+			if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($date_start)), $_LW->toDate(DATE_W3C, $_LW->toTS($date_end)), false, false, false, false, false, false, false, $_GET['reservation_udf'])) {
+				echo '<pre>'.var_export($bookings, true).'</pre>'; // display the events
+			}
+			else { // else display any errors
+				echo '<h4>Error</h4><pre>'.var_export($this->client->ems_errors, true).'</pre>';
+			};
+		};
 	}
 
 	$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS groups
@@ -238,7 +251,7 @@ if ($this->initEMS()) { // if EMS loaded
 exit;
 }
 
-public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // accesses the EMS API GetBookings or GetGroupBookings API call
+public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false, $udf=false, $reservation_udfs=false, $booking_udfs=false, $custom_filter=false) { // accesses the EMS API GetBookings or GetGroupBookings API call
 global $_LW;
 if (!isset($this->client)) { // require the client
 	return false;
@@ -252,15 +265,15 @@ if (empty($group_types)) { // use default group types if none specified
 if (empty($event_types)) { // use default event types if none specified
 	$event_types=$_LW->REGISTERED_APPS['ems']['custom']['default_event_types'];
 };
-return $this->client->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id); // perform the API call
+return $this->client->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id, $udf, $reservation_udfs, $booking_udfs, $custom_filter); // perform the API call
 }
 
-public function getBookingsAsICAL($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
+public function getBookingsAsICAL($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false, $udf=false, $reservation_udfs=false, $booking_udfs=false, $custom_filter=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
 global $_LW;
 $feed=$_LW->getNew('feed'); // get a feed object
 $ical=$feed->createFeed(['title'=>'EMS Events'], 'ical'); // create new feed
 $hostname=@parse_url((!empty($_LW->REGISTERED_APPS['ems']['custom']['wsdl']) ? $_LW->REGISTERED_APPS['ems']['custom']['wsdl'] : (!empty($_LW->REGISTERED_APPS['ems']['custom']['rest']) ? $_LW->REGISTERED_APPS['ems']['custom']['rest'] : '')), PHP_URL_HOST);
-if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id)) { // if bookings obtained
+if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id, $udf, $reservation_udfs, $booking_udfs, $custom_filter)) { // if bookings obtained
 	foreach($bookings as $booking) { // for each booking
 		$arr=[ // format the event
 			'summary'=>$booking['title'],
@@ -334,7 +347,7 @@ public function onGetFeedDataFilter($buffer) { // on parsing of a feed
 global $_LW;
 static $event_types;
 if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if there is an event type map
-	if (!empty($buffer) && @$buffer['type']=='ical' && strpos(@$buffer['url'], $_LW->CONFIG['LIVE_URL'].'/ems/')!==false && !empty($buffer['items']['default'])) { // if the feed is an EMS ICAL feed with items
+	if (!empty($buffer) && @$buffer['type']=='ical' && strpos(@$buffer['url'], $_LW->CONFIG['LIVE_URL'].'/ems')!==false && !empty($buffer['items']['default'])) { // if the feed is an EMS ICAL feed with items
 		if ($this->initEMS()) { // if EMS loaded
 			if (!isset($this->client->event_types)) { // get the EMS event types
 				$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']);

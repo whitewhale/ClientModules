@@ -59,7 +59,7 @@ if (!empty($response)) { // fetch the result
 return false;
 }
 
-public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // fetches EMS bookings by specified parameters (Note: group_types NOT SUPPORTED UNDER REST!)
+public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false, $udf=false, $reservation_udfs=false, $booking_udfs=false, $custom_filter=false) { // fetches EMS bookings by specified parameters (Note: group_types NOT SUPPORTED UNDER REST!)
 global $_LW;
 $this->ems_errors=[]; // reset errors
 foreach(['Buildings'=>'buildings', 'Statuses'=>'statuses', 'Groups'=>'groups', 'EventTypes'=>'event_types'] as $key=>$param) { // format other parameters
@@ -131,6 +131,46 @@ if (!empty($groups)) {
 };
 if (!empty($group_id)) {
 	$payload['groupIds']=[(int)$group_id];
+};
+/*
+if (!empty($udf)) {
+	$payload['udfSearch']=$udf; // #FIXME: try filtering by UDF
+	// Search user-defined fields for an exact match of any of the values. Values should be in the form of key:value, so in a query string, that looks like: ?udf=key:value. For cases where they key or value must itself include a colon (the key-value separator), the key and/or value may be surrounded by double-quotes. For example, when the key name is dessert:pie, this can be searched with ?udf="dessert:pie":blueberry.
+};
+*/
+if (!empty($reservation_udfs) && !empty($_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_mappings'])) { // if there are reservation UDF mappings configured
+	if (!is_array($reservation_udfs)) {
+		$reservation_udfs=[$reservation_udfs];
+	};
+	foreach($reservation_udfs as $key=>$val) { // apply mappings from config
+		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_mappings'][$key])) {
+			$reservation_udfs[$key]=$_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_mappings'][$key].':'.str_replace('&amp;', '&', $val[0]);
+		}
+		else { // and unset any unrecognized UDfs
+			unset($reservation_udfs[$key]);
+		};
+	};
+	if (!empty($reservation_udfs)) {
+		$payload['reservationUDFSearch']=array_values($reservation_udfs); // #FIXME: try filtering by reservation UDF
+	};
+	// Search reservation level user-defined fields for an exact match of any of the values. Values should be in the form of key:value, so in a query string, that looks like: ?udf=key:value. For cases where they key or value must itself include a colon (the key-value separator), the key and/or value may be surrounded by double-quotes. For example, when the key name is dessert:pie, this can be searched with ?reservationUDF="dessert:pie":blueberry.
+	// Source: https://wesleyan.emscloudservice.com/platform/api/v1/static/swagger-ui/
+};
+if (!empty($booking_udfs) && !empty($_LW->REGISTERED_APPS['ems']['custom']['booking_udf_mappings'])) { // if there are booking UDF mappings configured
+	if (!is_array($booking_udfs)) {
+		$booking_udfs=[$booking_udfs];
+	};
+	foreach($booking_udfs as $key=>$val) { // apply mappings from config
+		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['booking_udf_mappings'][$key])) {
+			$booking_udfs[$key]=$_LW->REGISTERED_APPS['ems']['custom']['booking_udf_mappings'][$key];
+		}
+		else { // and unset any unrecognized UDfs
+			unset($booking_udfs[$key]);
+		};
+	};
+	if (!empty($booking_udfs)) {
+		$payload['bookingUDFSearch']=array_values($booking_udfs); // #FIXME: try filtering by booking UDF
+	};
 };
 if ($response=$this->getResponse('/bookings/actions/search', $params, $payload)) { // get the response
 	$output=[];
@@ -242,7 +282,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 			};
 		};
 	};
-	$hash=hash('md5', serialize([@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id])); // get hash for feed
+	$hash=hash('md5', serialize([@$groups, @$buildings, @$statuses, @$event_types, @$group_types, @$group_id, @$udf, @$reservation_udfs, @$booking_udfs, @$custom_filter])); // get hash for feed
 	if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems')) { // ensure EMS directory exists
 		@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems');
 	};
