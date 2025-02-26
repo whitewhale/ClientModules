@@ -48,26 +48,8 @@ if (!empty($params['group'])) { // if there are (LiveWhale) groups specified, co
 	};
 };
 $is_single_group=(!empty($params['group']) && sizeof($params['group'])==1); // check if this is a single group request
-if (!empty($is_single_group) || !empty($params['custom_reservation_udf_request'])) { // if this is a single group request or a custom reservation udf request
-	if (empty($params['start_date'])) { // default to -1 year if no start_date given
-		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 year'));
-	};
-	if (empty($params['end_date'])) { // default to +1 year if no end_date given
-		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+1 year'));
-	};
-}
-else { // else if this is not a single group request
-	if (empty($params['start_date'])) { // default to -1 month if no start_date given
-		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 month'));
-	};
-	if (empty($params['end_date'])) { // default to +1 month if no end_date given
-		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+1 month'));
-	};
-};
-
 $reservation_udfs=[];
 $booking_udfs=[];
-$custom_filter=[];
 foreach($params as $key=>$val) { // capture all reservation and booking UDFs
 	if (strpos($key, 'reservation_udf_')===0) {
 		$reservation_udfs[substr($key, 16)]=$val;
@@ -76,6 +58,32 @@ foreach($params as $key=>$val) { // capture all reservation and booking UDFs
 		$booking_udfs[substr($key, 12)]=$val;
 	};
 };
+if (!empty($is_single_group)) { // if this is a single group request
+	if (empty($params['start_date'])) { // default to -1 year if no start_date given
+		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 year'));
+	};
+	if (empty($params['end_date'])) { // default to +1 year if no end_date given
+		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+1 year'));
+	};
+}
+else if (!empty($params['custom_reservation_udf_request']) || !empty($reservation_udfs) || !empty($booking_udfs)) { // if this is a udf request
+	if (empty($params['start_date'])) { // default to -6 months if no start_date given
+		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-6 months'));
+	};
+	if (empty($params['end_date'])) { // default to +6 months if no end_date given
+		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+6 months'));
+	};
+}
+else { // else if this is not a single group request or a udf request
+	if (empty($params['start_date'])) { // default to -1 month if no start_date given
+		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 month'));
+	};
+	if (empty($params['end_date'])) { // default to +1 month if no end_date given
+		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+1 month'));
+	};
+};
+
+$custom_filter=[];
 if (!empty($params['custom_reservation_udf_request']) && is_array($_LW->REGISTERED_APPS['ems']['custom']['custom_reservation_udf_request']) && array_key_exists($params['custom_reservation_udf_request'][0],$_LW->REGISTERED_APPS['ems']['custom']['custom_reservation_udf_request'])) { // use custom request if set
 	$custom_filter=['reservationUDFSearch' => $_LW->REGISTERED_APPS['ems']['custom']['custom_reservation_udf_request'][$params['custom_reservation_udf_request'][0]]]; // pass configured custom filter through to request
 };
