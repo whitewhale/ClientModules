@@ -44,7 +44,7 @@ if ($_LW->widget['type']=='navigation' && (!empty($_LW->REGISTERED_APPS['simplif
 						$add_attributes[$selector]=[];
 					};
 					foreach($attributes as $attribute=>$values) { // record attributes to add
-						$add_attributes[$selector][$attribute]=array_merge((!empty($add_attributes[$selector][$attribute]) ? $add_attributes[$selector][$attribute] : []), $values);
+						$add_attributes[$selector][$attribute]=array_merge((!empty($add_attributes[$selector][$attribute]) ? $add_attributes[$selector][$attribute] : []), [$values]);
 					};
 				};
 			};
@@ -61,7 +61,7 @@ if ($_LW->widget['type']=='navigation' && (!empty($_LW->REGISTERED_APPS['simplif
 								$add_attributes[$selector]=[];
 							};
 							foreach($attributes as $attribute=>$values) { // record attributes to add
-								$add_attributes[$selector][$attribute]=array_merge((!empty($add_attributes[$selector][$attribute]) ? $add_attributes[$selector][$attribute] : []), $values);
+								$add_attributes[$selector][$attribute]=array_merge((!empty($add_attributes[$selector][$attribute]) ? $add_attributes[$selector][$attribute] : []), [$values]);
 							};
 						};
 					};
