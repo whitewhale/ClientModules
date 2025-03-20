@@ -2,7 +2,7 @@
 
 $_LW->REGISTERED_APPS['ems']=[
 	'title'=>'EMS',
-	'handlers'=>['onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost', 'onBeforeLogin'],
+	'handlers'=>['onSaveSuccess', 'onAfterEdit', 'onOutput', 'onGetFeedDataFilter', 'onChangeDatabaseHost', 'onBeforeLogin', 'onAfterSync'],
 	'flags'=>['no_autoload'],
 	'commands'=>['ems-debug'=>'debug'],
 	'custom'=>[ // these settings should all be set in global.config.php, not here
@@ -18,8 +18,10 @@ $_LW->REGISTERED_APPS['ems']=[
 		'capath'=>'', // specify path to the server's certificate directory for additional certifications in the chain
 		'hidden_by_default'=>false, // default to importing live events
 		'enable_udfs'=>false, // set to true to capture UDFs on events
+		'enable_reservation_udfs'=>false, // set to true to capture UDFs on reservations
 		'udf_categories'=>'', // if capturing UDFs, set the name of the UDF cooresponding to categories that should be created/assigned to incoming EMS events
 		'udf_description'=>'', // if using UDFs as event description, set the name of the UDF cooresponding to description
+		'reservation_udf_description'=>'', // if using reservation UDFs as event description, set the name of the reservation UDF cooresponding to description
 		'udf_tags'=>'' // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
 	]
 ]; // configure this module
@@ -100,11 +102,47 @@ if ($this->initEMS()) { // if EMS loaded
 			} else { // else display any errors
 				print_r($this->client->ems_errors);
 			};
+			if ($response2=$this->client->getResponse('/bookings/'.(int)$_GET['booking_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>Booking User Defined Fields</h3><pre>'.var_export($response2, true).'</pre>';
+			};
+			if ($response3=$this->client->getResponse('/reservations/'.(int)$response['reservation']['id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>Reservation User Defined Fields</h3><pre>'.var_export($response3, true).'</pre>';
+			};
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			exit;
 		} else { // show booking form
 			echo '<form method="get"><label>Search for booking ID: <input type="hidden" name="livewhale" value="ems-debug"/><input type="text" name="booking_id" autocomplete="false" data-lpignore="true"/></label> <input type="submit" value="Go"/></form>';
 		}
+
+		echo '<h2>Look up a reservation</h2>';
+		if (!empty($_GET['reservation_id'])) { // searching for individual booking 
+			echo '<a href="?livewhale=ems-debug">&lt; back to EMS debug home</a><h2>Reservation #' . $_GET['reservation_id'] . '</h2>';
+			if ($response=$this->client->getReservationByID((int)$_GET['reservation_id'])) { // get the response
+				echo '<pre>'.var_export($response, true).'</pre>';
+			} else { // else display any errors
+				print_r($this->client->ems_errors);
+			};
+			if ($response=$this->client->getResponse('/reservations/'.(int)$_GET['reservation_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
+				echo '<h3>Reservation User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
+			};
+			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
+			exit;
+		} else { // show booking form
+			echo '<form method="get"><label>Search for reservation ID: <input type="hidden" name="livewhale" value="ems-debug"/><input type="text" name="reservation_id" autocomplete="false" data-lpignore="true"/></label> <input type="submit" value="Go"/></form>';
+		}
+
+		if (!empty($_GET['reservation_udf'])) { // Test searching by reservation_udf
+			$date_start = (!empty($_GET['date_start']) ? $_GET['date_start'] : '-2 months');
+			$date_end = (!empty($_GET['date_end']) ? $_GET['date_end'] : '+2 months');
+			echo '<h3>Bookings from Reservation UDF ' . $_GET['reservation_udf'] . '</h3>';
+
+			if ($bookings=$this->getBookings($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($date_start)), $_LW->toDate(DATE_W3C, $_LW->toTS($date_end)), false, false, false, false, false, false, false, $_GET['reservation_udf'])) {
+				echo '<pre>'.var_export($bookings, true).'</pre>'; // display the events
+			}
+			else { // else display any errors
+				echo '<h4>Error</h4><pre>'.var_export($this->client->ems_errors, true).'</pre>';
+			};
+		};
 	}
 
 	$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS groups
@@ -155,13 +193,54 @@ if ($this->initEMS()) { // if EMS loaded
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			$this->client->getStatuses($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS statuses
 			echo '<div style="display:flex; flex-wrap: wrap;">';
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Statuses:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->statuses, true).'</pre></div></div>'; // display the statuses
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Statuses:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->statuses, true).'</pre></div>
+				<div id="ems-clean-list1" style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Statuses</h3><ul>';
+			foreach ($this->client->statuses as $res) {
+				echo '<li>'.$res['description']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the statuses
 			$this->client->getGroupTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS group types
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Group Types:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->group_types, true).'</pre></div></div>'; // display the group types
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Groups:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->groups, true).'</pre></div></div>'; // display the groups
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Group Types:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->group_types, true).'</pre></div>
+				<div id="ems-clean-list2" style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Group Types</h3><ul>';
+			foreach ($this->client->group_types as $res) {
+				echo '<li>'.$res['title']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the group types	
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Groups:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->groups, true).'</pre></div>
+				<div id="ems-clean-list3" style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Groups</h3><ul>';
+			foreach ($this->client->groups as $res) {
+				echo '<li>'.$res['title']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the groups
 			$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get the EMS event types
-			echo '<div style="flex: 1 0; padding: 10px;"><h2>Event Types:</h2><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($this->client->event_types, true).'</pre></div></div>'; // display the event types
-			echo '</div>';
+			echo '<div style="flex: 1 0; padding: 10px;"><h2>Event Types:</h2><div style="max-height:200px;overflow:scroll;border:1px solid black; padding: 10px; margin-bottom: 15px;"><pre>'.var_export($this->client->event_types, true).'</pre></div>
+				<div id="ems-clean-list4" style="max-height:100px;overflow:scroll;border:1px solid black; padding: 10px;"><h3>Event Types</h3><ul>';
+			foreach ($this->client->event_types as $res) {
+				echo '<li>'.$res['title']. ' (id: '.$res['id'].')</li>';
+			};
+			echo '</ul></div></div>'; // display the event types	
+			echo '</div><button id="copyButton">Copy clean lists to clipboard</button>
+		    <script>
+			        document.getElementById("copyButton").addEventListener("click", function () {
+			            // Combine the rich text content of the four divs
+			            const div1Content = document.getElementById("ems-clean-list1").innerHTML;
+			            const div2Content = document.getElementById("ems-clean-list2").innerHTML;
+			            const div3Content = document.getElementById("ems-clean-list3").innerHTML;
+			            const div4Content = document.getElementById("ems-clean-list4").innerHTML;
+			            const combinedContent = div1Content + div2Content + div3Content + div4Content;
+
+			            // Create a Blob with the combined HTML
+			            const blob = new Blob([combinedContent], { type: "text/html" });
+
+			            // Use the Clipboard API to write the content
+		                navigator.clipboard.write([
+		                    new ClipboardItem({
+		                        "text/html": blob,
+		                        "text/plain": new Blob([combinedContent], { type: "text/plain" }) // Fallback to plain text
+		                    })
+		                ]);
+			        });
+			    </script>';
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 		}
 	}
@@ -172,7 +251,7 @@ if ($this->initEMS()) { // if EMS loaded
 exit;
 }
 
-public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // accesses the EMS API GetBookings or GetGroupBookings API call
+public function getBookings($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false, $udf=false, $reservation_udfs=false, $booking_udfs=false, $custom_filter=false) { // accesses the EMS API GetBookings or GetGroupBookings API call
 global $_LW;
 if (!isset($this->client)) { // require the client
 	return false;
@@ -186,15 +265,15 @@ if (empty($group_types)) { // use default group types if none specified
 if (empty($event_types)) { // use default event types if none specified
 	$event_types=$_LW->REGISTERED_APPS['ems']['custom']['default_event_types'];
 };
-return $this->client->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id); // perform the API call
+return $this->client->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id, $udf, $reservation_udfs, $booking_udfs, $custom_filter); // perform the API call
 }
 
-public function getBookingsAsICAL($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
+public function getBookingsAsICAL($username, $password, $start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_types=false, $group_id=false, $udf=false, $reservation_udfs=false, $booking_udfs=false, $custom_filter=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
 global $_LW;
 $feed=$_LW->getNew('feed'); // get a feed object
 $ical=$feed->createFeed(['title'=>'EMS Events'], 'ical'); // create new feed
 $hostname=@parse_url((!empty($_LW->REGISTERED_APPS['ems']['custom']['wsdl']) ? $_LW->REGISTERED_APPS['ems']['custom']['wsdl'] : (!empty($_LW->REGISTERED_APPS['ems']['custom']['rest']) ? $_LW->REGISTERED_APPS['ems']['custom']['rest'] : '')), PHP_URL_HOST);
-if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id)) { // if bookings obtained
+if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_types, $group_id, $udf, $reservation_udfs, $booking_udfs, $custom_filter)) { // if bookings obtained
 	foreach($bookings as $booking) { // for each booking
 		$arr=[ // format the event
 			'summary'=>$booking['title'],
@@ -205,15 +284,31 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 			'categories'=>$booking['event_type'],
 			'location'=>$booking['location'],
 			'X-LIVEWHALE-TYPE'=>'event',
-			'X-LIVEWHALE-TIMEZONE'=>@$booking['timezone'],
-			'X-LIVEWHALE-CANCELED'=>@$booking['canceled'],
-			'X-LIVEWHALE-CONTACT-INFO'=>@$booking['contact_info'],
-			'X-EMS-STATUS-ID'=>@$booking['status_id'],
-			'X-EMS-EVENT-TYPE-ID'=>@$booking['event_type_id']
+			'X-LIVEWHALE-TIMEZONE'=>(!empty($booking['timezone']) ? $booking['timezone'] : ''),
+			'X-LIVEWHALE-CANCELED'=>(!empty($booking['canceled']) ? $booking['canceled'] : ''),
+			'X-LIVEWHALE-CONTACT-INFO'=>(!empty($booking['contact_info']) ? $booking['contact_info'] : ''),
+			'X-EMS-STATUS-ID'=>(!empty($booking['status_id']) ? $booking['status_id'] : ''),
+			'X-EMS-EVENT-TYPE-ID'=>(!empty($booking['event_type_id']) ? $booking['event_type_id'] : '')
 		];
-		if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
-			$arr['X-LIVEWHALE-SKIP-SYNC']=1;
+		if (!empty($booking['attachment']['id']) && !empty($booking['attachment']['filename']) && !empty($booking['attachment']['data'])) { // if there is an attachment
+			$cache_key=hash('md5', $booking['attachment']['id']); // hash the cache key
+			$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
+			if (!file_exists($cache_path)) {
+				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments')) {
+					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments');
+				};
+				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1])) {
+					@mkdir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1]);
+				};
+				@file_put_contents($cache_path, $booking['attachment']['filename']."\n".$booking['attachment']['data']); // save the attachment
+			};
+			if (file_exists($cache_path)) { // add the attachment to the feed
+				$arr['X-EMS-ATTACHMENT-ID']=$booking['attachment']['id'];
+			};
 		};
+		// if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
+		// 	$arr['X-LIVEWHALE-SKIP-SYNC']=1;
+		// };
 		if (!empty($_LW->REGISTERED_APPS['ems']['custom']['hidden_by_default'])) { // if importing hidden events, flag them
 			$arr['X-LIVEWHALE-HIDDEN']=1;
 		};
@@ -225,6 +320,9 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 		};
 		if (!empty($booking['udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['udf_description']) && !empty($booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']])) { // if assigning UDF value as event description
 			$arr['description']=$booking['udfs'][$_LW->REGISTERED_APPS['ems']['custom']['udf_description']];
+		};
+		if (!empty($booking['reservation_udfs']) && !empty($_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_description']) && !empty($booking['reservation_udfs'][$_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_description']])) { // if assigning reservation UDF value as event description
+			$arr['description']=$booking['reservation_udfs'][$_LW->REGISTERED_APPS['ems']['custom']['reservation_udf_description']];
 		};
 		if (!empty($booking['contact_info'])) { // add contact info if available
 			$arr['X-EMS-CONTACT-INFO']=$booking['contact_info'];
@@ -249,7 +347,7 @@ public function onGetFeedDataFilter($buffer) { // on parsing of a feed
 global $_LW;
 static $event_types;
 if (!empty($_LW->REGISTERED_APPS['ems']['custom']['event_types_map'])) { // if there is an event type map
-	if (!empty($buffer) && @$buffer['type']=='ical' && strpos(@$buffer['url'], $_LW->CONFIG['LIVE_URL'].'/ems/')!==false && !empty($buffer['items']['default'])) { // if the feed is an EMS ICAL feed with items
+	if (!empty($buffer) && @$buffer['type']=='ical' && strpos(@$buffer['url'], $_LW->CONFIG['LIVE_URL'].'/ems')!==false && !empty($buffer['items']['default'])) { // if the feed is an EMS ICAL feed with items
 		if ($this->initEMS()) { // if EMS loaded
 			if (!isset($this->client->event_types)) { // get the EMS event types
 				$this->client->getEventTypes($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']);
@@ -381,7 +479,7 @@ if ($_LW->page=='groups_edit') { // if on the group editor page
 		};
 	};
 }
-else if ($_LW->page=='events_subscriptions_edit') { // if on the linked calendar editor page
+else if ($_LW->page=='events_subscriptions_edit' && !empty($_SESSION['livewhale']['manage']['gid'])) { // if on the linked calendar editor page
 	if ($this->initEMS()) { // if EMS loaded
 		$ems_group=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.pid='.(int)$_SESSION['livewhale']['manage']['gid'].' AND livewhale_custom_data.name="ems_group"')->firstRow('value')->run(); // get the EMS group for the current LiveWhale group
 		if (!empty($ems_group)) { // get the EMS groups
@@ -420,19 +518,21 @@ $_LW->dbo->sql('UPDATE livewhale_events SET subscription_id=REPLACE(subscription
 public function onBeforeLogin() { // on before login
 global $_LW;
 $ts=strtotime('-1 month'); // set TS for 1 month ago
-if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
-	if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check') || filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check')<$ts) { // once a month
-		touch($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check'); // mark as cleaned
-		if ($res_dirs=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) { // clear cached reservations not updated within the last 1 month
-			foreach($res_dirs as $dir) {
-				if ($dir[0]!='.') {
-					if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
-						if ($files=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
-							foreach($files as $file) {
-								if ($file[0]!='.') {
-									if ($file_ts=@filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file)) {
-										if ($file_ts<$ts) {
-											@unlink($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file);
+foreach(['reservations', 'attachments'] as $type) {
+	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
+		if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check') || filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check')<$ts) { // once a month
+			touch($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check'); // mark as cleaned
+			if ($res_dirs=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) { // clear cached reservations and attachments not updated within the last 1 month
+				foreach($res_dirs as $dir) {
+					if ($dir[0]!='.') {
+						if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
+							if ($files=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
+								foreach($files as $file) {
+									if ($file[0]!='.') {
+										if ($file_ts=@filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file)) {
+											if ($file_ts<$ts) {
+												@unlink($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file);
+											};
 										};
 									};
 								};
@@ -441,6 +541,58 @@ if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
 					};
 				};
 			};
+		};
+	};
+};
+}
+
+public function onAfterSync($type, $subscription_id, $event_id, $mode, $event) { // on linked calendar sync
+global $_LW;
+if ($type=='events' && $mode=='create' && !empty($event['X-EMS-ATTACHMENT-ID'])) { // if event is being created with an attachment
+	$cache_key=hash('md5', $event['X-EMS-ATTACHMENT-ID']); // get the cache key
+	$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
+	if ($gid=$_LW->dbo->query('select', 'gid', 'livewhale_events', 'id='.(int)$event_id)->firstRow('gid')->run()) { // if gid for event obtained
+		if (file_exists($cache_path)) { // if the attachment exists
+			if ($data=@file_get_contents($cache_path)) { // if attachment data obtained
+				$pos=strpos($data, "\n");
+				$filename=substr($data, 0, $pos); // get the tmp filename
+				$content=substr($data, $pos+1); // get the tmp content
+				if ($content=@base64_decode($content)) { // if valid tmp content
+					$tmp_path=$_LW->INCLUDES_DIR_PATH.'/data/uploads/'.$filename; // set the tmp path
+					if (@file_put_contents($tmp_path, $content)) { // if tmp file created
+						$image_id=$_LW->create('images', [
+							'gid'=>(int)$gid,
+							'description'=>$filename,
+							'date'=>$_LW->toDate('m/d/Y'),
+							'path'=>$tmp_path
+						]); // create the image
+						if (strpos($_LW->error, 'already exists in the file library')!==false) {
+							$image_id=$_LW->save_duplicate_id;
+						};
+						if (!empty($image_id)) { // if the image was created
+							$_LW->update('events', $event_id, [ // attach image to event
+								'associated_data'=>[
+									'images'=>[
+										[
+											'id'=>$image_id,
+											'caption'=>'',
+											'is_thumb'=>1,
+											'only_thumb'=>'',
+											'full_crop'=>'',
+											'full_src_region'=>'',
+											'thumb_crop'=>1,
+											'thumb_src_region'=>'',
+											'is_decoration'=>1
+										]
+									]
+								]
+							]);
+						};
+						@unlink($tmp_path); // delete tmp file
+					};
+				};
+			};
+			@unlink($cache_path); // delete attachment file
 		};
 	};
 };

@@ -139,6 +139,12 @@ if ($this->initMazevo()) { // if Mazevo loaded
 		};
 	};
 
+	echo '<h2>Testing combined query:</h2>';
+	if ($response=$this->client->getResponse('/PublicEvent/geteventswithquestions', false, ["start"=>"2024-10-01T00:00:00-06:00",
+    "end"=>"2024-10-11T00:00:00-06:00"])) { // get the response
+		echo '<div style="flex: 1 0; padding: 10px;"><div style="max-height:300px;overflow:scroll;border:1px solid black; padding: 10px;"><pre>'.var_export($response, true).'</pre></div></div>'; // display the event types
+	};
+
 }
 else {
 	echo '<h2>Mazevo connection failed to initialize.</h2>';
@@ -146,7 +152,7 @@ else {
 exit;
 }
 
-public function getBookings($start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false) { // accesses the Mazevo API GetBookings or GetGroupBookings API call
+public function getBookings($start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_id=false) { // accesses the Mazevo API GetBookings or GetGroupBookings API call
 global $_LW;
 if (!isset($this->client)) { // require the client
 	return false;
@@ -157,30 +163,30 @@ if (empty($statuses)) { // use default statuses if none specified
 if (empty($event_types)) { // use default event types if none specified
 	$event_types=$_LW->REGISTERED_APPS['mazevo']['custom']['default_event_types'];
 };
-return $this->client->getBookings($start_date, $end_date, $groups, $buildings, $statuses, $event_types); // perform the API call
+return $this->client->getBookings($start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_id); // perform the API call
 }
 
-public function getBookingsAsICAL($start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
+public function getBookingsAsICAL($start_date, $end_date, $groups=false, $buildings=false, $statuses=false, $event_types=false, $group_id=false) { // formats bookings as ICAL feed (note: do not change parameters or format of parameters -- these affect the hash that sets the per-event uid to track ongoing changes to the same event and preserve native metadata)
 global $_LW;
 $feed=$_LW->getNew('feed'); // get a feed object
 $ical=$feed->createFeed(['title'=>'Mazevo Events'], 'ical'); // create new feed
 $hostname=@parse_url((!empty($_LW->REGISTERED_APPS['mazevo']['custom']['wsdl']) ? $_LW->REGISTERED_APPS['mazevo']['custom']['wsdl'] : (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['rest']) ? $_LW->REGISTERED_APPS['mazevo']['custom']['rest'] : '')), PHP_URL_HOST);
-if ($bookings=$this->getBookings($start_date, $end_date, $groups, $buildings, $statuses, $event_types, true)) { // if bookings obtained
+if ($bookings=$this->getBookings($start_date, $end_date, $groups, $buildings, $statuses, $event_types, $group_id)) { // if bookings obtained
 	foreach($bookings as $booking) { // for each booking
 		$arr=[ // format the event
 			'summary'=>$booking['title'],
 			'dtstart'=>$booking['date_ts'],
 			'dtend'=>(!empty($booking['date2_ts']) ? $booking['date2_ts'] : ''),
-			'description'=>'',
+			'description'=>(!empty($booking['description']) ? $booking['description'] : ''),
 			'uid'=>$booking['booking_id'].'@'.$hostname,
-			'categories'=>$booking['event_type'],
-			'location'=>$booking['location'],
+			'categories'=>(!empty($booking['categories']) ? $booking['categories'] : (!empty($booking['event_type']) ? $booking['event_type'] : '')),
+			'location'=>(!empty($booking['location']) ? $booking['location'] : ''),
 			'X-LIVEWHALE-TYPE'=>'event',
-			'X-LIVEWHALE-TIMEZONE'=>@$booking['timezone'],
-			'X-LIVEWHALE-CANCELED'=>@$booking['canceled'],
-			'X-LIVEWHALE-CONTACT-INFO'=>@$booking['contactName'],
-			'X-MAZEVO-STATUS-ID'=>@$booking['status_id'],
-			'X-MAZEVO-EVENT-TYPE-ID'=>@$booking['event_type_id']
+			'X-LIVEWHALE-TIMEZONE'=>(!empty($booking['timezone']) ? $booking['timezone'] : ''),
+			'X-LIVEWHALE-CANCELED'=>(!empty($booking['canceled']) ? $booking['canceled'] : ''),
+			'X-LIVEWHALE-CONTACT-INFO'=>(!empty($booking['contactName']) ? $booking['contactName'] : ''),
+			'X-MAZEVO-STATUS-ID'=>(!empty($booking['status_id']) ? $booking['status_ud'] : ''),
+			'X-MAZEVO-EVENT-TYPE-ID'=>(!empty($booking['event_type_id']) ? $booking['event_type_id'] : ''),
 		];
 		/*
 		if (@$booking['status_id']==53) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
@@ -195,15 +201,6 @@ if ($bookings=$this->getBookings($start_date, $end_date, $groups, $buildings, $s
 		};
 		if (!empty($booking['contact_name'])) { // add contact name if available
 			$arr['X-MAZEVO-CONTACT-NAME']=$booking['contact_name'];
-		};
-		if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['enable_questions']) && !empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_categories'])) { // if assigning question values as event categories, implode array
-			$arr['categories']=(!empty($booking['question_categories']) ? implode('|', $booking['question_categories']) : $booking['event_type']); // add them to output
-		};
-		if (!empty($_LW->REGISTERED_APPS['mazevo']['custom']['enable_questions']) && !empty($_LW->REGISTERED_APPS['mazevo']['custom']['question_description'])) { // if assigning question values as descriptions, implode array
-			// $arr['description']=$booking['question_description']; // add them to output
-			$description=nl2br(@$booking['question_description'], true);
-		    $description=preg_replace('~<br\s?/>\s*<br\s?/>~i', "\n</p>\n<p>", $description);
-		    $arr['description']=(!empty($description)) ? "<p>\n" . $description . "\n</p>" : '';
 		};
 		$arr=$_LW->callHandlersByType('application', 'onBeforeMazevoFeed', ['buffer'=>$arr, 'booking'=>$booking]); // call handlers
 		foreach($arr as $key=>$val) { // clear empty entries
