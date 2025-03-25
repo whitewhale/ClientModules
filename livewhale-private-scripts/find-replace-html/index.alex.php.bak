@@ -1,0 +1,81 @@
+
+<?php
+
+require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
+
+function doFindReplace($mode) {
+global $_LW;
+$output='';
+if (!empty($_POST['find']) && !empty($_POST['replace']) && in_array($mode, ['preview', 'run'])) {
+	$output.='<hr/>';
+	$html_before=$_POST['find'];
+	$html_after=$_POST['replace'];
+	$html_before=preg_quote(trim($html_before), '~');
+	$html_before=preg_replace(['~\s+~', '~%%~'], ['\s*?', '(.*?)'], $html_before);
+	$html_after=trim($html_after);
+	$count=0;
+	while (strpos($html_after, '%%')!==false) {
+		$count++;
+		$html_after=preg_replace('~%%~', '\\\\'.$count, $html_after, 1);
+	};
+	$_LW->d_ftp->load($_LW->CONFIG['FTP_MODE']);
+	if ($_LW->d_ftp->connect()) {
+		$total_crawled=0;
+		$total_matched=0;
+		$total_updated=0;
+		$output.='<p>Searching with pattern ~'.htmlentities($html_before).'~s</p>';
+		foreach($_LW->dbo->query('select', 'path, elements', 'livewhale_pages', false)->run() as $res2) {
+			$total_crawled++;
+			if (preg_match('~'.$html_before.'~s', $res2['elements'])) {
+				$total_matched++;
+				$output.='<strong>'.$res2['path'].'</strong><br/><br/>';
+				if ($content_before=@file_get_contents($_LW->WWW_DIR_PATH.$res2['path'])) {
+					$content_after=preg_replace('~'.$html_before.'~s', $html_after, $content_before);
+					if ($content_after!=$content_before) {
+						$total_updated++;
+						if ($mode=='preview') {
+							$output.='BEFORE: <pre>'.htmlentities($content_before).'</pre><br/><br/>';
+							$output.='AFTER: <pre>'.htmlentities($content_after).'</pre><br/><br/>';
+						}
+						else if ($mode=='run') {
+							if ($tmp=$_LW->d_ftp->save_upload_file($content_after)) {
+								$_LW->d_ftp->upload_file($tmp, $_LW->CONFIG['FTP_PUB'].$res2['path'], true);
+								@unlink($tmp);
+							};
+						};
+					};
+				};
+			};
+		};
+		$output.='<p>'.$total_crawled.' crawled, '.$total_matched.' matched, '.$total_updated.' to be updated</p>';
+		$_LW->d_ftp->disconnect();
+	};
+};
+return $output;
+}
+
+?>
+<html>
+<body>
+
+<form method="post">
+<?php
+
+echo '<div'.(!empty($_LW->_POST) ? ' class="lw_hidden"' : '').'>Find code:<br/><textarea name="find">'.(!empty($_POST['find']) ? $_LW->setFormatClean($_POST['find']) : '').'</textarea></div>
+<div'.(!empty($_LW->_POST) ? ' class="lw_hidden"' : '').'>Replace with:<br/><textarea name="replace">'.(!empty($_POST['replace']) ? $_LW->setFormatClean($_POST['replace']) : '').'</textarea></div>';
+
+if (empty($_LW->_POST)) {
+	echo '<input type="hidden" name="preview" value="1"/><input type="submit" value="Preview"/>';
+}
+else if (!empty($_LW->_POST['preview'])) {
+	echo '<input type="hidden" name="run" value="1"/><input type="submit" value="Run"/>';
+	echo doFindReplace('preview');
+}
+else if (!empty($_LW->_POST['run'])) {
+	echo doFindReplace('run');
+};
+
+?>
+</form>
+</body>
+</html>
