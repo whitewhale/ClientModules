@@ -96,7 +96,7 @@ protected function isLocalIP($ip) { // checks if an IP points to the localhost
 global $_LW;
 $ips=$_LW->getVariable('lockout_ips'); // get cached IPs for the localhost
 if (empty($ips)) { // if no cached IPs
-	$ips=['172.0.0.1', '::1']; // set base IPs
+	$ips=['172.0.0.1', '::1', '34.196.123.42']; // set base IPs
 	if ($ip=shell_exec('dig +short '.preg_replace('~[^a-zA-Z0-9\-_\.]~', '', $_LW->CONFIG['HTTP_HOST']).' A')) { // add public A record IP
 		if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
 			$ips[]=$ip;
