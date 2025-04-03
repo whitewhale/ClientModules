@@ -323,8 +323,8 @@ if (!empty($disable_functions)) {
 	};
 };
 $php_version=phpversion();
-if (version_compare($php_version, '5.5.0', '<') || version_compare($php_version, '8.1.0', '>=')) {
-	$settings[]='The PHP version now required for new LiveWhale installs is: 5.5 - 8.1.0.';
+if (version_compare($php_version, '5.5.0', '<') || version_compare($php_version, '8.3.0', '>=')) {
+	$settings[]='The PHP version now required for new LiveWhale installs is: 5.5 - 8.3.0.';
 };
 if (!empty($settings)) {
 	echo '<tr><td class="failure">FAIL</td><td>PHP Configuration Settings</td><td>PHP Version: '.$php_version.'<br/>Timezone: '.(ini_get('date.timezone')=='' ? 'blank' : ini_get('date.timezone')).'<br/><br/>The following PHP settings should be corrected:<br/><br/>'.implode('<br/><br/>',$settings).'</td></tr>';
