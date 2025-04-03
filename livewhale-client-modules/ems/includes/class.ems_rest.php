@@ -241,15 +241,17 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							if (!empty($val['id'])) {
 								$booking['reservation_id']=$val['id'];
 							};
-							if (!empty($val['contactName'])) {
+							if (!empty($val['contactName']) && $val['contactName']!=='(none)') { // use contactName if present and get email from Reservation
 								$booking['contact_name']=$val['contactName'];
-							};
-							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
 								if ($reservation=$this->getReservationByID($val['id'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) {
 										$booking['contact_info']=$reservation['contact']['name'].' (<a href="mailto:'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'">'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'</a>)';
 									};
 								};
+							}
+							else if (!empty($val['groupName'])) { // fallback to using groupName and email
+								$booking['contact_name']=$val['groupName'];
+								$booking['contact_info']=$val['groupName'].' (<a href="mailto:'.$_LW->setFormatClean($booking['group']['emailAddress']).'">'.$_LW->setFormatClean($booking['group']['emailAddress']).'</a>)';
 							};
 							break;
 					};
