@@ -208,7 +208,12 @@ if (!empty($DB_HOST) && !empty($DB_USER) && !empty($DB_PASSWORD) && !empty($DB_D
 	if (function_exists('mysqli_init')) {
 		$db=mysqli_init();
 		$db->options(MYSQLI_OPT_CONNECT_TIMEOUT, 3);
-		@$db->real_connect($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_DATABASE);
+		try {
+			@$db->real_connect($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_DATABASE);
+		}
+		catch (Exception $e) {
+			
+		}
 		if (mysqli_connect_errno()) {
 			echo '<tr><td class="failure">FAIL</td><td>Database Access</td><td>MySQLi Error: '.$db->error.'</td></tr>';
 		}
