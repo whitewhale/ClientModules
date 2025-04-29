@@ -313,7 +313,9 @@ if (isset($this->statuses)) { // return cached response if possible
 $this->statuses=$_LW->getVariable('ems_statuses'); // fetch statuses from cache
 if (empty($this->statuses)) { // if cached statuses not available
 	$this->statuses=[];
-	if ($response=$this->getResponse('/statuses')) { // get the response
+	$params=[];
+	$params['includeNonWeb']=true;
+	if ($response=$this->getResponse('/statuses',$params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
 			foreach($response['results'] as $status) {
 				if (!empty($status)) { // sanitize result data
