@@ -36,18 +36,28 @@ foreach($LIVE_URL['REQUEST'] as $val) { // convert request elements to args
 	$count=$count ? 0 : 1;
 };
 if (!empty($params['group'])) { // if there are (LiveWhale) groups specified, convert LiveWhale group(s) to EMS group ID
+	$params['group_ids']=[];
 	if (!is_array($params['group'])) {
 		$params['group']=[$params['group']];
 	};
 	foreach($params['group'] as $key=>$val) {
-		$params['group'][$key]=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_groups', 'livewhale_groups.fullname='.$_LW->escape($val))->innerJoin('livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.name="ems_group" AND livewhale_custom_data.pid=livewhale_groups.id')->firstRow('value')->run();
+		$res=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_groups', 'livewhale_groups.fullname='.$_LW->escape($val))->innerJoin('livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.name="ems_group" AND livewhale_custom_data.pid=livewhale_groups.id')->firstRow('value')->run();
+		if ($res[0]=='a') { // if serialized array
+			// $_LW->logDebug('params groups unserializing ' . $res);
+			$params['group_ids']=array_merge($params['group_ids'],unserialize($res));
+		}
+		else { // if single value
+			$params['group_ids'][]=$res;
+		}
+		// $_LW->logDebug('NEW group_ids = ' . serialize($params['group_ids']));
 		if (empty($params['group'][$key]) && !empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map'])) {
 			// Fall back to pre-set array in config, if exists
-			$params['group'][$key]=array_search(urldecode($val), $_LW->REGISTERED_APPS['ems']['custom']['groups_map']);
+			$params['group_ids'][]=array_search(urldecode($val), $_LW->REGISTERED_APPS['ems']['custom']['groups_map']);
 		}
 	};
+	unset($params['group']); // only use EMS group_ids from here onwards
 };
-$is_single_group=(!empty($params['group']) && sizeof($params['group'])==1); // check if this is a single group request
+$is_single_group=(!empty($params['group_ids']) && sizeof($params['group_ids'])==1); // check if this is a single group request
 $reservation_udfs=[];
 $booking_udfs=[];
 foreach($params as $key=>$val) { // capture all reservation and booking UDFs
@@ -88,7 +98,7 @@ if (!empty($params['custom_reservation_udf_request']) && is_array($_LW->REGISTER
 	$custom_filter=['reservationUDFSearch' => $_LW->REGISTERED_APPS['ems']['custom']['custom_reservation_udf_request'][$params['custom_reservation_udf_request'][0]]]; // pass configured custom filter through to request
 };
 
-if ((empty($is_single_group) || empty($params['group'][0])) && empty($reservation_udfs) && empty($booking_udfs) && empty($custom_filter)) { // however for performance reasons, we are enforcing is_single_group or a UDF request at this time
+if (empty($params['group_ids']) && empty($reservation_udfs) && empty($booking_udfs) && empty($custom_filter)) { // however for performance reasons, we are enforcing is_single_group or a UDF request at this time
 	header('HTTP/1.0 400 Bad Request');
 	die('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html>
@@ -112,7 +122,7 @@ if (!empty($params['start_date'])
 	&& @strtotime($params['start_date'])!==false 
 	&& @strtotime($params['end_date'])!==false) { // if required start and end dates are valid
 	if ($_LW->a_ems->initEMS()) { // if EMS loaded
-		if ($ical=$_LW->a_ems->getBookingsAsICAL($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($params['start_date'])), $_LW->toDate(DATE_W3C, $_LW->toTS($params['end_date'])), (!empty($params['group']) ? $params['group'] : false), (!empty($params['buildings']) ? $params['buildings'] : false), (!empty($params['statusus']) ? $params['statuses'] : false), (!empty($params['event_types']) ? $params['event_types'] : false), (!empty($params['group_types']) ? $params['group_types'] : false), (!empty($is_single_group) ? $params['group'][0] : false), false, (!empty($reservation_udfs) ? $reservation_udfs : false), (!empty($booking_udfs) ? $booking_udfs : false), (!empty($custom_filter) ? $custom_filter : false))) { // fetch and format bookings as ICAL feed
+		if ($ical=$_LW->a_ems->getBookingsAsICAL($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password'], $_LW->toDate(DATE_W3C, $_LW->toTS($params['start_date'])), $_LW->toDate(DATE_W3C, $_LW->toTS($params['end_date'])), (!empty($params['group']) ? $params['group'] : false), (!empty($params['buildings']) ? $params['buildings'] : false), (!empty($params['statusus']) ? $params['statuses'] : false), (!empty($params['event_types']) ? $params['event_types'] : false), (!empty($params['group_types']) ? $params['group_types'] : false), (!empty($params['group_ids']) ? $params['group_ids'] : false), false, (!empty($reservation_udfs) ? $reservation_udfs : false), (!empty($booking_udfs) ? $booking_udfs : false), (!empty($custom_filter) ? $custom_filter : false))) { // fetch and format bookings as ICAL feed
 			$output=$ical;
 		};
 	}

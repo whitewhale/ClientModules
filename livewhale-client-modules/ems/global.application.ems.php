@@ -445,10 +445,26 @@ if ($page=='groups_edit') { // if loading data for the group editor form
 				};
 			};
 		};
+		
+		$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get groups
+		if (!empty($this->client->groups)) { // if groups obtained
+			$selected_ems_groups=(!empty($_LW->_POST['ems_group']) ? (!is_array($_LW->_POST['ems_group']) ? explode(',', $_LW->_POST['ems_group']) : $_LW->_POST['ems_group']) : []);
+			$_LW->json['editor']['values']['ems_group']=[]; // init array of form values
+			$_LW->json['ems_groups']=[]; // init array for multisuggest
+			foreach($this->client->groups as $group) {
+				$ems_group=['id'=>$group['id'], 'title'=>$group['title'] . ' (ID: ' . $group['id'] . ')', 'size'=>1];
+				$_LW->json['ems_groups'][]=$ems_group; // add ems group to multisuggest options
+				if (in_array($group['id'],$selected_ems_groups)) { // if already selected
+					$_LW->json['editor']['values']['ems_group'][]=$ems_group; // add to preselected values on multisuggest
+				};
+			};
+		};
+		
 	};
 };
-if ($page=='groups_edit' || $page=='events_subscriptions_edit') { // add CSS for these pages
+if ($page=='groups_edit' || $page=='events_subscriptions_edit') { // add CSS/JS for these pages
 	$_LW->REGISTERED_CSS[]=$_LW->CONFIG['LIVE_URL'].'/resource/css/ems%5Cems.css';
+	$_LW->REGISTERED_JS[]=$_LW->CONFIG['LIVE_URL'].'/resource/js/ems%5Cems.js';
 };
 }
 
@@ -469,11 +485,7 @@ if ($_LW->page=='groups_edit') { // if on the group editor page
 	if ($this->initEMS()) { // if EMS loaded
 		$this->client->getGroups($_LW->REGISTERED_APPS['ems']['custom']['username'], $_LW->REGISTERED_APPS['ems']['custom']['password']); // get groups
 		if (!empty($this->client->groups)) { // if groups obtained
-			$group_selector='<!-- START EMS GROUP --><div id="groups_ems_wrap" class="fields ems"><label class="header" for="groups_ems_group" id="groups_ems_group_label">EMS Group</label><fieldset><select name="ems_group"><option></option>'; // format group selector
-			foreach($this->client->groups as $group) {
-				$group_selector.='<option value="'.$group['id'].'"'.(@$_LW->_POST['ems_group']==$group['id'] ? ' selected="selected"' : '').'>'.$group['title'].' (ID: '.$group['id'].')</option>';
-			};
-			$group_selector.='</select></fieldset></div><!-- END EMS GROUP -->';
+			$group_selector='<!-- START EMS GROUP --><div id="groups_ems_wrap" class="fields ems"><h3 class="header">EMS Groups</h3><div class="fieldset"><p>Events from these EMS group(s) will be included in the corresponding Linked Calendar for this LiveWhale group.</p><div class="ems_group_suggest"></div></div></div><!-- END EMS GROUP -->'; // format group selector
 			$pos=strpos($buffer, '<!-- START METADATA -->')!==false ? 'METADATA' : 'STATUS';
 			$buffer=str_replace('<!-- START '.$pos.' -->', $group_selector.'<!-- START '.$pos.' -->', $buffer); // inject the group selector
 		};

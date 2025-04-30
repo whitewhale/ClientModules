@@ -130,7 +130,10 @@ if (!empty($groups)) {
 	$payload['groupIds']=$groups;
 };
 if (!empty($group_id)) {
-	$payload['groupIds']=[(int)$group_id];
+	$payload['groupIds']=is_array($group_id) ? $group_id : [$group_id]; // ensure groupIds is array
+	foreach($payload['groupIds'] as $key=>$val) {
+		$payload['groupIds'][$key]=(int)$val; // ensure pure integers, no strings
+	}
 };
 /*
 if (!empty($udf)) {
