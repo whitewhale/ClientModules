@@ -260,7 +260,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 					};
 				};
 			};
-			if (!empty($booking['title']) && !empty($booking['group_title']) && (empty($group_id) || $booking['group_id']==$group_id) && (empty($groups) || (is_array($groups) && in_array($booking['group_title'], $groups)) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && is_array($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && in_array($booking['group_title'], $_LW->REGISTERED_APPS['ems']['custom']['groups_map']))) && (empty($buildings) || in_array($booking['building_id'], $buildings)) && (empty($statuses) || in_array($booking['status_id'], $statuses)) && (empty($event_types) || in_array($booking['event_type_id'], $event_types))) { // if each result is valid
+			if (!empty($booking['title']) && !empty($booking['group_title']) && (empty($group_id) || in_array($booking['group_id'],$group_id)) && (empty($groups) || (is_array($groups) && in_array($booking['group_title'], $groups)) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && is_array($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && in_array($booking['group_title'], $_LW->REGISTERED_APPS['ems']['custom']['groups_map']))) && (empty($buildings) || in_array($booking['building_id'], $buildings)) && (empty($statuses) || in_array($booking['status_id'], $statuses)) && (empty($event_types) || in_array($booking['event_type_id'], $event_types))) { // if each result is valid
 				if (!empty($booking['location']) && !empty($booking['room'])) { // merge room into location
 					$booking['location'].=', '.$booking['room'];
 				};
