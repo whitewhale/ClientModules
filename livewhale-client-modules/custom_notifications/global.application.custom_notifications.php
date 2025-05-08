@@ -1,7 +1,7 @@
 <?php
 
 $_LW->REGISTERED_APPS['custom_notifications']=[
-	'title'=>'Custmo Notifications',
+	'title'=>'Custom Notifications',
 	'handlers'=>['onAfterPublicSubmission', 'onAfterCreate', 'onValidateSuccess'],
 	'custom'=>[
 		'email_list'=>[],
