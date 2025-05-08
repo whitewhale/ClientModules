@@ -175,6 +175,9 @@ if (!empty($booking_udfs) && !empty($_LW->REGISTERED_APPS['ems']['custom']['book
 		$payload['bookingUDFSearch']=array_values($booking_udfs); // #FIXME: try filtering by booking UDF
 	};
 };
+if (!empty($custom_filter)) {
+	$payload=array_merge($payload,$custom_filter); // Add custom filters
+};
 if ($response=$this->getResponse('/bookings/actions/search', $params, $payload)) { // get the response
 	$output=[];
 	if (!empty($response['results'])) { // fetch and format results
