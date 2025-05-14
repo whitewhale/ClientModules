@@ -42,7 +42,7 @@ if (!empty($params['group'])) { // if there are (LiveWhale) groups specified, co
 	};
 	foreach($params['group'] as $key=>$val) {
 		$res=$_LW->dbo->query('select', 'livewhale_custom_data.value', 'livewhale_groups', 'livewhale_groups.fullname='.$_LW->escape($val))->innerJoin('livewhale_custom_data', 'livewhale_custom_data.type="groups" AND livewhale_custom_data.name="ems_group" AND livewhale_custom_data.pid=livewhale_groups.id')->firstRow('value')->run();
-		if ($res[0]=='a') { // if serialized array
+		if (!empty($res) && $res[0]=='a') { // if serialized array
 			// $_LW->logDebug('params groups unserializing ' . $res);
 			$params['group_ids']=array_merge($params['group_ids'],unserialize($res));
 		}
