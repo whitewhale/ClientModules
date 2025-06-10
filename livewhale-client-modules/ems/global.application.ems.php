@@ -22,7 +22,8 @@ $_LW->REGISTERED_APPS['ems']=[
 		'udf_categories'=>'', // if capturing UDFs, set the name of the UDF cooresponding to categories that should be created/assigned to incoming EMS events
 		'udf_description'=>'', // if using UDFs as event description, set the name of the UDF cooresponding to description
 		'reservation_udf_description'=>'', // if using reservation UDFs as event description, set the name of the reservation UDF cooresponding to description
-		'udf_tags'=>'' // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
+		'udf_tags'=>'', // if capturing UDFs, set the name of the UDF cooresponding to tags that should be created/assigned to incoming EMS events
+		'sync_images'=>false // sync images on an hourly basis for both new and previously imported events
 	]
 ]; // configure this module
 
@@ -294,7 +295,7 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 			'X-EMS-EVENT-TYPE-ID'=>(!empty($booking['event_type_id']) ? $booking['event_type_id'] : '')
 		];
 		if (!empty($booking['attachment']['id']) && !empty($booking['attachment']['filename']) && !empty($booking['attachment']['data'])) { // if there is an attachment
-			$cache_key=hash('md5', $booking['attachment']['id']); // hash the cache key
+			$cache_key=hash('md5', $booking['attachment']['data']); // hash the cache key
 			$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
 			if (!file_exists($cache_path)) {
 				if (!is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/attachments')) {
@@ -307,6 +308,7 @@ if ($bookings=$this->getBookings($username, $password, $start_date, $end_date, $
 			};
 			if (file_exists($cache_path)) { // add the attachment to the feed
 				$arr['X-EMS-ATTACHMENT-ID']=$booking['attachment']['id'];
+				$arr['X-EMS-ATTACHMENT-HASH']=$cache_key;
 			};
 		};
 		// if (@$booking['status_id']==5 || @$booking['status_id']==17) { // if this is a pending event, skip syncing (creation of events and updating if already existing)
@@ -563,8 +565,11 @@ foreach(['reservations', 'attachments'] as $type) {
 
 public function onAfterSync($type, $subscription_id, $event_id, $mode, $event) { // on linked calendar sync
 global $_LW;
-if ($type=='events' && $mode=='create' && !empty($event['X-EMS-ATTACHMENT-ID'])) { // if event is being created with an attachment
-	$cache_key=hash('md5', $event['X-EMS-ATTACHMENT-ID']); // get the cache key
+if ($type=='events' && !empty($event['X-EMS-ATTACHMENT-ID']) && !empty($event['X-EMS-ATTACHMENT-HASH'])) { // if event is being synced with an attachment
+	if ($mode=='update' && empty($_LW->REGISTERED_APPS['ems']['custom']['sync_images'])) { // don't sync images for existing events unless the setting is enabled
+		return false;
+	};
+	$cache_key=$event['X-EMS-ATTACHMENT-HASH']; // get the cache key
 	$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/attachments/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
 	if ($gid=$_LW->dbo->query('select', 'gid', 'livewhale_events', 'id='.(int)$event_id)->firstRow('gid')->run()) { // if gid for event obtained
 		if (file_exists($cache_path)) { // if the attachment exists
@@ -575,14 +580,31 @@ if ($type=='events' && $mode=='create' && !empty($event['X-EMS-ATTACHMENT-ID']))
 				if ($content=@base64_decode($content)) { // if valid tmp content
 					$tmp_path=$_LW->INCLUDES_DIR_PATH.'/data/uploads/'.$filename; // set the tmp path
 					if (@file_put_contents($tmp_path, $content)) { // if tmp file created
-						$image_id=$_LW->create('images', [
-							'gid'=>(int)$gid,
-							'description'=>$filename,
-							'date'=>$_LW->toDate('m/d/Y'),
-							'path'=>$tmp_path
-						]); // create the image
-						if (strpos($_LW->error, 'already exists in the file library')!==false) {
-							$image_id=$_LW->save_duplicate_id;
+						$hash=hash('md5', $contents); // get hash of image data
+						$image_id=$_LW->dbo->query('select', 'id', 'livewhale_images', 'hash='.$_LW->escape($hash))->firstRow('id')->run(); // if the image already exists in the library, use it
+						if ($mode=='update' && !empty($image_id)) { // if this is an existing event
+							$existing_image_id=$_LW->dbo->query('select', 'id1', 'livewhale_images2any', 'livewhale_images2any.type="events" AND livewhale_images2any.id2='.(int)$event_id)->firstRow('id1')->run(); // get any existing image used by this event
+							if (!empty($existing_image_id)) { // if this event has an existing attached image
+								if ($existing_image_id==$image_id) { // if the current image from the feed is the same as the previously imported one
+									return false; // skip
+								}
+								else { // else if replacing the existing image with the current image from the feed
+									if (!$_LW->dbo->query('select', '1', 'livewhale_images2any', 'livewhale_images2any.type="events" AND livewhale_images2any.id1='.(int)$existing_image_id.' AND livewhale_images2any.id2!='.(int)$event_id)->exists()->run()) { // if the image being replaced is not used by any other events
+										$_LW->delete('events', $existing_image_id); // delete it as unused
+									};
+								};
+							};
+						};
+						if (empty($image_id)) { // if image doesn't already exist
+							$image_id=$_LW->create('images', [
+								'gid'=>(int)$gid,
+								'description'=>$filename,
+								'date'=>$_LW->toDate('m/d/Y'),
+								'path'=>$tmp_path
+							]); // create the image
+							if (strpos($_LW->error, 'already exists in the file library')!==false) {
+								$image_id=$_LW->save_duplicate_id;
+							};
 						};
 						if (!empty($image_id)) { // if the image was created
 							$_LW->update('events', $event_id, [ // attach image to event
@@ -607,7 +629,6 @@ if ($type=='events' && $mode=='create' && !empty($event['X-EMS-ATTACHMENT-ID']))
 					};
 				};
 			};
-			@unlink($cache_path); // delete attachment file
 		};
 	};
 };
