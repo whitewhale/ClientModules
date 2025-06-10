@@ -125,6 +125,9 @@ if ($this->initEMS()) { // if EMS loaded
 			if ($response=$this->client->getResponse('/reservations/'.(int)$_GET['reservation_id'].'/userdefinedfields', ['pageSize'=>2000])) { // get UDFs
 				echo '<h3>Reservation User Defined Fields</h3><pre>'.var_export($response, true).'</pre>';
 			};
+			if ($response=$this->client->getResponse('/bookings/actions/search', ['pageSize'=>2000], ['reservationIds'=>[(int)$_GET['reservation_id']]])) { // get bookings associated with this reservation
+				echo '<h3>Bookings Attached to this Reservation</h3><pre>'.var_export($response, true).'</pre>';
+			};
 			echo '<br/><br/><a href="?livewhale=ems-debug">&lt; back to EMS debug home</a>';
 			exit;
 		} else { // show booking form
