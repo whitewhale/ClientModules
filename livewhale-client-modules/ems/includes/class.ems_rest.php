@@ -197,7 +197,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 					break;
 				};
 				$page_count++;
-			}
+			};
 		};
 		foreach($response['results'] as $booking) {
 			if (!empty($booking)) { // sanitize result data
@@ -378,7 +378,33 @@ if (empty($this->groups)) { // if cached groups not available
 	$params['pageSize']=2000;
 	if ($response=$this->getResponse('/groups', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
-			foreach($response['results'] as $group) {
+			if (!empty($_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) { // if filtering by group type, get up to 3 pages of results
+				$page_count=1;
+				$page_max=10;
+				if (empty($params['page']) && !empty($response['page']) && !empty($response['pageCount']) && $response['page']<$response['pageCount']) { // get up to $page_max more pages
+					while (true) {
+						$params['page']=$page_count;
+						$more=$this->getResponse('/groups', $params);
+						if (!empty($more['results'])) {
+							$response['results']=array_merge($response['results'], $more['results']);
+						};
+						if (empty($more['results']) || $page_count==$page_max || $more['page']==$more['pageCount']) {
+							break;
+						};
+						$page_count++;
+					};
+				};
+			};
+			foreach($response['results'] as $key=>$group) {
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['default_group_types']) && !empty($group['groupType']) && is_array($group['groupType'])) { // if filtering by group types
+					if (!is_array($_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) {
+						$_LW->REGISTERED_APPS['ems']['custom']['default_group_types']=[$_LW->REGISTERED_APPS['ems']['custom']['default_group_types']];
+					};
+					if (empty($group['groupType']['id']) || !in_array($group['groupType']['id'], $_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) { // filter out groups with invalid types
+						unset($response['results'][$key]);
+						continue;
+					};
+				};
 				if (!empty($group)) { // sanitize result data
 					foreach($group as $key=>$val) {
 						if (!is_array($val)) {
