@@ -197,7 +197,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 					break;
 				};
 				$page_count++;
-			}
+			};
 		};
 		foreach($response['results'] as $booking) {
 			if (!empty($booking)) { // sanitize result data
