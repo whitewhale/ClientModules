@@ -378,9 +378,9 @@ if (empty($this->groups)) { // if cached groups not available
 	$params['pageSize']=2000;
 	if ($response=$this->getResponse('/groups', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
-			if (!empty($_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) { // if filtering by group type, get up to 10 pages of results
+			if (!empty($_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) { // if filtering by group type, get up to 20 pages of results
 				$page_count=1;
-				$page_max=10;
+				$page_max=20;
 				if (empty($params['page']) && !empty($response['page']) && !empty($response['pageCount']) && $response['page']<$response['pageCount']) { // get up to $page_max more pages
 					while (true) {
 						$params['page']=$page_count;
