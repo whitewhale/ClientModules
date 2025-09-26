@@ -545,6 +545,23 @@ return $reservation;
 
 public function getUDFs($username, $password, $parent_id, $parent_type) { // fetches EMS UDFs
 global $_LW;
+static $map;
+if (!isset($map)) {
+	$map=[];
+};
+if (isset($map[$parent_type][$parent_id])) { // return cached response if possible
+	return $map[$parent_type][$parent_id];
+};
+$cache_key=hash('md5', $parent_type.$parent_id); // hash the cache key
+$cache_path=$_LW->INCLUDES_DIR_PATH.'/data/ems/udfs/'.$cache_key[0].$cache_key[1].'/'.$cache_key; // get the cache path
+if (@filemtime($cache_path)>$_SERVER['REQUEST_TIME']-3600) { // return cached response if possible
+	if ($output=@file_get_contents($cache_path)) {
+		if ($output=@unserialize($output)) {
+			$map[$parent_type][$parent_id]=$output;
+			return $output;
+		};
+	};
+};
 $output=[];
 $params=['pageSize'=>2000];
 if (!in_array($parent_type,['bookings', 'reservations'])) {
@@ -577,6 +594,15 @@ if ($response=$this->getResponse('/'.$parent_type.'/'.(int)$parent_id.'/userdefi
 			};
 		};
 	};
+	foreach([$_LW->INCLUDES_DIR_PATH.'/data/ems', $_LW->INCLUDES_DIR_PATH.'/data/ems/udfs', $_LW->INCLUDES_DIR_PATH.'/data/ems/udfs/'.$cache_key[0].$cache_key[1]] as $dir) {
+		if (!is_dir($dir)) {
+			@mkdir($dir);
+		};
+	};
+	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/udfs/'.$cache_key[0].$cache_key[1])) {
+		@file_put_contents($cache_path, serialize($output), LOCK_EX); // file cache the reservation
+	};
+	$map[$parent_type][$parent_id]=$output; // static cache the reservation
 };
 return $output;
 }

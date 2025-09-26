@@ -535,20 +535,20 @@ $_LW->dbo->sql('UPDATE livewhale_events SET subscription_id=REPLACE(subscription
 public function onBeforeLogin() { // on before login
 global $_LW;
 $ts=strtotime('-1 month'); // set TS for 1 month ago
-foreach(['reservations', 'attachments'] as $type) {
-	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) {
-		if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check') || filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check')<$ts) { // once a month
-			touch($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/last_check'); // mark as cleaned
-			if ($res_dirs=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations')) { // clear cached reservations and attachments not updated within the last 1 month
+foreach(['reservations', 'attachments', 'udfs'] as $type) {
+	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'')) {
+		if (!file_exists($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/last_check') || filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/last_check')<$ts) { // once a month
+			touch($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/last_check'); // mark as cleaned
+			if ($res_dirs=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'')) { // clear cached items not updated within the last 1 month
 				foreach($res_dirs as $dir) {
 					if ($dir[0]!='.') {
-						if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
-							if ($files=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir)) {
+						if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/'.$dir)) {
+							if ($files=@scandir($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/'.$dir)) {
 								foreach($files as $file) {
 									if ($file[0]!='.') {
-										if ($file_ts=@filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file)) {
+										if ($file_ts=@filemtime($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/'.$dir.'/'.$file)) {
 											if ($file_ts<$ts) {
-												@unlink($_LW->INCLUDES_DIR_PATH.'/data/ems/reservations/'.$dir.'/'.$file);
+												@unlink($_LW->INCLUDES_DIR_PATH.'/data/ems/'.$type.'/'.$dir.'/'.$file);
 											};
 										};
 									};
