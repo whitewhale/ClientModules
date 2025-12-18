@@ -30,6 +30,9 @@ if (!empty($_LW->is_private_request)) { // if on backend
 			if (!in_array('livewhale', $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // livewhale user must always be allowed
 				$_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'][]='livewhale';
 			};
+			if (!in_array('whitewhale', $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // whitewhale user must always be allowed
+				$_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'][]='whitewhale';
+			};
 			if (!in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if user is a non-approved editor
 				die(header('Location: /')); // redirect to frontend
 			};
@@ -93,7 +96,7 @@ protected function isLocalIP($ip) { // checks if an IP points to the localhost
 global $_LW;
 $ips=$_LW->getVariable('lockout_ips'); // get cached IPs for the localhost
 if (empty($ips)) { // if no cached IPs
-	$ips=['172.0.0.1', '::1']; // set base IPs
+	$ips=['172.0.0.1', '::1', '34.196.123.42']; // set base IPs
 	if ($ip=shell_exec('dig +short '.preg_replace('~[^a-zA-Z0-9\-_\.]~', '', $_LW->CONFIG['HTTP_HOST']).' A')) { // add public A record IP
 		if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
 			$ips[]=$ip;

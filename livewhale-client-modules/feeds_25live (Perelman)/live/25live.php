@@ -3,17 +3,7 @@
 // LiveURL plugin for 25Live ICAL requests.
 
 $events_feeds = [
-	'https://25livepub.collegenet.com/calendars/lw-acad-deadlines.ics',
-	'https://25livepub.collegenet.com/calendars/lw_academic.ics',
-	'https://25livepub.collegenet.com/calendars/lw-athletics.ics',
-	'https://25livepub.collegenet.com/calendars/lw_civic_engagement.ics',
-	'https://25livepub.collegenet.com/calendars/lw_creative_performing_arts.ics',
-	'https://25livepub.collegenet.com/calendars/lw_cultural.ics',
-	'https://25livepub.collegenet.com/calendars/lw_informational.ics',
-	'https://25livepub.collegenet.com/calendars/lw_reception_meal.ics',
-	'https://25livepub.collegenet.com/calendars/lw_special_events.ics',
-	'https://25livepub.collegenet.com/calendars/lw_student_org.ics',
-	'https://25livepub.collegenet.com/calendars/lw_wellness_recreation.ics',
+	'https://25livepub.collegenet.com/calendars/add-to-psom-calendar.ics'
 ];
 
 require $LIVE_URL['DIR'].'/cache.livewhale.php'; // load LiveWhale
@@ -33,9 +23,9 @@ foreach($LIVE_URL['REQUEST'] as $val) { // convert request elements to args
 	$count=$count ? 0 : 1;
 };
 
-if ($params['group']==['other']) {
-	$params['group']=[]; // empty when using group/other
-};
+// if ($params['group']==['other']) {
+// 	$params['group']=[]; // empty when using group/other
+// };
 
 // Use FS /data/ caching instead of set/getVariable
 $output='';
@@ -87,11 +77,14 @@ $exclude_organizations = [];
 $org_gids = [];
 
 if (empty($params['group'])) { // fallback case, check saved 25live/ feeds
+	$_LW->logDebug('catchall refresh 1');
 	foreach($_LW->dbo->query('select', 'id,gid,url', 'livewhale_events_subscriptions', 'url LIKE "%live/25live%"', '')->run() as $res2) { // fetch calendars
 		$orgname = str_replace(['#calendar_subscription',' ','%20'],['','',''],substr($res2['url'], strrpos($res2['url'], '/') + 1)); // extracts orgname from /live/25live/organization/orgname#calendar_subscription
-		$exclude_organizations[] = $orgname;
+		$exclude_organizations[] = strtolower($orgname);
 		$org_gids[$orgname] = ['id'=>$res2['id'], 'gid'=>$res2['gid']]; // save feed id and gid for auto-sharing later
 	};
+	// $_LW->logDebug('catchall refresh 2a:' . serialize($exclude_organizations));
+	// $_LW->logDebug('catchall refresh 2b:' . serialize($org_gids));
 	$_LW->setVariable('25live_calendar_gids', $org_gids, 0); // cache the org_gids list for auto-sharing
 	if (isset($_LW->_GET['test'])) {print_r($exclude_organizations);}
 	if (isset($_LW->_GET['test2'])) {echo '<pre>'; print_r($org_gids);}
@@ -111,10 +104,10 @@ if (!empty($output)) { // if there is calendar output
 			$organization='';
 			if (strpos($val, 'X-TRUMBA-CUSTOMFIELD;NAME="Organization"')!==false) { // convert organization(s) to categories
 				$val=preg_replace('~(X\-TRUMBA\-CUSTOMFIELD;NAME="Organization"[^\n\r]+?)[\n\r]\s+?(?!(?:METHOD|SUMMARY|DESCRIPTION|URL|LOCATION|GEO|UID|DTSTART|DTEND|DTSTAMP|DURATION|STATUS|CANCELLED|CANCELED|RRULE|RDATE|RECURRENCE-ID|ORGANIZER|CONTACT|SEQUENCE|CATEGORIES|CLASS|TRANSP|LAST-MODIFIED|CREATED|PRIORITY|DUE|EXDATE|EXRULE|ATTACH|IMAGE|ATTENDEE|X\-[A-Z0-9\-]+))+~s', '\\1\\2', $val);
-				$val=str_replace([' ','&amp\;'],['','AND'],$val); // remove all spaces from Organization name and replace & with AND
+				$val=str_replace([' ','/','&amp\;'],['','','and'],$val); // remove all spaces and slashes from Organization name and replace & with AND
 				$matches2=[];
 				// echo '<pre>'.$val.'</pre><br><br><br>';
-				preg_match_all('~X\-TRUMBA\-CUSTOMFIELD;NAME="Organization";ID=[0-9]+?;TYPE=SingleLine:([^\n\r]+?)[\n\r]~', $val, $matches2);
+				preg_match_all('~X\-TRUMBA\-CUSTOMFIELD;NAME="Organization";ID=[0-9]+?;TYPE=Enumeration:([^\n\r]+?)[\n\r]~', $val, $matches2);
 				if (!empty($matches2[1])) {
 					$organization = $matches2[1][0];
 				};
@@ -129,9 +122,13 @@ if (!empty($output)) { // if there is calendar output
 				if (isset($_LW->_GET['test'])) {echo 'EVENT REMOVED: org = ' . $organization . '<br>';}
 				$output=str_replace($matches[1][$key], '', $output);
 			};
+			// if (empty($params['group'])) {
+			// 	$_LW->logDebug('25live catch all: checking event in group ' . $organization);
+			// }
 			if (empty($params['group']) && (empty($organization) || in_array(strtolower($organization),$exclude_organizations))) {
 				// when no organization specified, exclude events already included in another saved feed
 				if (isset($_LW->_GET['test'])) {echo 'EVENT REMOVED: org = ' . $organization . '<br>';}
+				// $_LW->logDebug('25live catch all: event removed from group ' .$organization);
 				$output=str_replace($matches[1][$key], '', $output);
 			};
 		};

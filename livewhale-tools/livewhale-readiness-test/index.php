@@ -208,7 +208,12 @@ if (!empty($DB_HOST) && !empty($DB_USER) && !empty($DB_PASSWORD) && !empty($DB_D
 	if (function_exists('mysqli_init')) {
 		$db=mysqli_init();
 		$db->options(MYSQLI_OPT_CONNECT_TIMEOUT, 3);
-		@$db->real_connect($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_DATABASE);
+		try {
+			@$db->real_connect($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_DATABASE);
+		}
+		catch (Exception $e) {
+			
+		}
 		if (mysqli_connect_errno()) {
 			echo '<tr><td class="failure">FAIL</td><td>Database Access</td><td>MySQLi Error: '.$db->error.'</td></tr>';
 		}
@@ -323,8 +328,8 @@ if (!empty($disable_functions)) {
 	};
 };
 $php_version=phpversion();
-if (version_compare($php_version, '5.5.0', '<') || version_compare($php_version, '8.1.0', '>=')) {
-	$settings[]='The PHP version now required for new LiveWhale installs is: 5.5 - 8.1.0.';
+if (version_compare($php_version, '5.5.0', '<') || version_compare($php_version, '8.3.0', '>=')) {
+	$settings[]='The PHP version now required for new LiveWhale installs is: 5.5 - 8.3.0.';
 };
 if (!empty($settings)) {
 	echo '<tr><td class="failure">FAIL</td><td>PHP Configuration Settings</td><td>PHP Version: '.$php_version.'<br/>Timezone: '.(ini_get('date.timezone')=='' ? 'blank' : ini_get('date.timezone')).'<br/><br/>The following PHP settings should be corrected:<br/><br/>'.implode('<br/><br/>',$settings).'</td></tr>';

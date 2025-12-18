@@ -185,7 +185,7 @@ if ($bookings=$this->getBookings($start_date, $end_date, $groups, $buildings, $s
 			'X-LIVEWHALE-TIMEZONE'=>(!empty($booking['timezone']) ? $booking['timezone'] : ''),
 			'X-LIVEWHALE-CANCELED'=>(!empty($booking['canceled']) ? $booking['canceled'] : ''),
 			'X-LIVEWHALE-CONTACT-INFO'=>(!empty($booking['contactName']) ? $booking['contactName'] : ''),
-			'X-MAZEVO-STATUS-ID'=>(!empty($booking['status_id']) ? $booking['status_ud'] : ''),
+			'X-MAZEVO-STATUS-ID'=>(!empty($booking['status_id']) ? $booking['status_id'] : ''),
 			'X-MAZEVO-EVENT-TYPE-ID'=>(!empty($booking['event_type_id']) ? $booking['event_type_id'] : ''),
 		];
 		/*

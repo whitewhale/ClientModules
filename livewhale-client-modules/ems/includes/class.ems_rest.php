@@ -130,7 +130,13 @@ if (!empty($groups)) {
 	$payload['groupIds']=$groups;
 };
 if (!empty($group_id)) {
-	$payload['groupIds']=[(int)$group_id];
+	if (!is_array($group_id)) {
+		$group_id=[$group_id]; // ensure groupIds is array
+	};
+	$payload['groupIds']=$group_id;
+	foreach($payload['groupIds'] as $key=>$val) {
+		$payload['groupIds'][$key]=(int)$val; // ensure pure integers, no strings
+	}
 };
 /*
 if (!empty($udf)) {
@@ -172,6 +178,9 @@ if (!empty($booking_udfs) && !empty($_LW->REGISTERED_APPS['ems']['custom']['book
 		$payload['bookingUDFSearch']=array_values($booking_udfs); // #FIXME: try filtering by booking UDF
 	};
 };
+if (!empty($custom_filter)) {
+	$payload=array_merge($payload,$custom_filter); // Add custom filters
+};
 if ($response=$this->getResponse('/bookings/actions/search', $params, $payload)) { // get the response
 	$output=[];
 	if (!empty($response['results'])) { // fetch and format results
@@ -180,7 +189,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 		if (empty($params['page']) && !empty($response['page']) && !empty($response['pageCount']) && $response['page']<$response['pageCount']) { // get up to $page_max more pages
 			while (true) {
 				$params['page']=$page_count;
-				$more=$this->getResponse('bookings', $params);
+				$more=$this->getResponse('/bookings/actions/search', $params, $payload);
 				if (!empty($more['results'])) {
 					$response['results']=array_merge($response['results'], $more['results']);
 				};
@@ -188,7 +197,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 					break;
 				};
 				$page_count++;
-			}
+			};
 		};
 		foreach($response['results'] as $booking) {
 			if (!empty($booking)) { // sanitize result data
@@ -241,21 +250,32 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 							if (!empty($val['id'])) {
 								$booking['reservation_id']=$val['id'];
 							};
-							if (!empty($val['contactName'])) {
+							if (!empty($val['contactName']) && $val['contactName']!=='(none)') { // use contactName if present and get email from Reservation
 								$booking['contact_name']=$val['contactName'];
-							};
-							if (!empty($val['id']) && !empty($val['webUserId']) && !empty($val['contactName'])) {
 								if ($reservation=$this->getReservationByID($val['id'])) { // fetch email address from reservation, but only fetch once a day per unique webUserId + contactName combo (webUserId factored in, in case there are non-unique contact names)
 									if (!empty($reservation['contact']['emailAddress']) && !empty($reservation['contact']['name'])) {
 										$booking['contact_info']=$reservation['contact']['name'].' (<a href="mailto:'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'">'.$_LW->setFormatClean($reservation['contact']['emailAddress']).'</a>)';
 									};
 								};
+							}
+							else if (!empty($val['groupName'])) { // fallback to using groupName and email
+								$booking['contact_name']=$val['groupName'];
+								$booking['contact_info']=$val['groupName'].' (<a href="mailto:'.$_LW->setFormatClean($booking['group']['emailAddress']).'">'.$_LW->setFormatClean($booking['group']['emailAddress']).'</a>)';
 							};
 							break;
 					};
 				};
 			};
-			if (!empty($booking['title']) && !empty($booking['group_title']) && (empty($group_id) || $booking['group_id']==$group_id) && (empty($groups) || (is_array($groups) && in_array($booking['group_title'], $groups)) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && is_array($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) && in_array($booking['group_title'], $_LW->REGISTERED_APPS['ems']['custom']['groups_map']))) && (empty($buildings) || in_array($booking['building_id'], $buildings)) && (empty($statuses) || in_array($booking['status_id'], $statuses)) && (empty($event_types) || in_array($booking['event_type_id'], $event_types))) { // if each result is valid
+			if (!empty($booking['title']) 
+					&& !empty($booking['group_title']) 
+					&& (empty($group_id) || in_array($booking['group_id'],$group_id)) 
+					&& (empty($groups) || (is_array($groups) && in_array($booking['group_title'], $groups)) || (!empty($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) 
+					&& is_array($_LW->REGISTERED_APPS['ems']['custom']['groups_map']) 
+					&& in_array($booking['group_title'], $_LW->REGISTERED_APPS['ems']['custom']['groups_map']))) 
+					&& (empty($buildings) || in_array($booking['building_id'], $buildings)) 
+					&& (empty($statuses) || in_array($booking['status_id'], $statuses)) 
+					&& (empty($event_types) || in_array($booking['event_type_id'], $event_types))
+				) { // if each result is valid
 				if (!empty($booking['location']) && !empty($booking['room'])) { // merge room into location
 					$booking['location'].=', '.$booking['room'];
 				};
@@ -311,7 +331,9 @@ if (isset($this->statuses)) { // return cached response if possible
 $this->statuses=$_LW->getVariable('ems_statuses'); // fetch statuses from cache
 if (empty($this->statuses)) { // if cached statuses not available
 	$this->statuses=[];
-	if ($response=$this->getResponse('/statuses')) { // get the response
+	$params=[];
+	$params['includeNonWeb']=true;
+	if ($response=$this->getResponse('/statuses',$params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
 			foreach($response['results'] as $status) {
 				if (!empty($status)) { // sanitize result data
@@ -356,7 +378,33 @@ if (empty($this->groups)) { // if cached groups not available
 	$params['pageSize']=2000;
 	if ($response=$this->getResponse('/groups', $params)) { // get the response
 		if (!empty($response['results'])) { // fetch and format results
-			foreach($response['results'] as $group) {
+			if (!empty($_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) { // if filtering by group type, get up to 20 pages of results
+				$page_count=1;
+				$page_max=20;
+				if (empty($params['page']) && !empty($response['page']) && !empty($response['pageCount']) && $response['page']<$response['pageCount']) { // get up to $page_max more pages
+					while (true) {
+						$params['page']=$page_count;
+						$more=$this->getResponse('/groups', $params);
+						if (!empty($more['results'])) {
+							$response['results']=array_merge($response['results'], $more['results']);
+						};
+						if (empty($more['results']) || $page_count==$page_max || $more['page']==$more['pageCount']) {
+							break;
+						};
+						$page_count++;
+					};
+				};
+			};
+			foreach($response['results'] as $key=>$group) {
+				if (!empty($_LW->REGISTERED_APPS['ems']['custom']['default_group_types']) && !empty($group['groupType']) && is_array($group['groupType'])) { // if filtering by group types
+					if (!is_array($_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) {
+						$_LW->REGISTERED_APPS['ems']['custom']['default_group_types']=[$_LW->REGISTERED_APPS['ems']['custom']['default_group_types']];
+					};
+					if (empty($group['groupType']['id']) || !in_array($group['groupType']['id'], $_LW->REGISTERED_APPS['ems']['custom']['default_group_types'])) { // filter out groups with invalid types
+						unset($response['results'][$key]);
+						continue;
+					};
+				};
 				if (!empty($group)) { // sanitize result data
 					foreach($group as $key=>$val) {
 						if (!is_array($val)) {
