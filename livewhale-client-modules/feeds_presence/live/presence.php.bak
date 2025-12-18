@@ -1,0 +1,41 @@
+<?php
+
+// LiveURL plugin for Presence API requests.
+
+if (!empty($LIVE_URL['REQUEST'])) { // if valid request
+	require $LIVE_URL['DIR'].'/livewhale.php'; // load CMS
+	$query=implode('/', $LIVE_URL['REQUEST']);
+	if ($res=@file_get_contents('https://api.presence.io/lclark/v1/organizations/events/'.$query)) { // fetch API response
+		if ($res=@json_decode($res, true)) { // if valid data
+			if (isset($res[0]['name'])) {
+				$feed=$_LW->getNew('feed'); // get a feed object
+				$ical=$feed->createFeed(array('title'=>'Presence Events'), 'ical'); // create new feed
+				foreach($res as $event) { // for each event
+					foreach($event as $key=>$val) { // sanitize data
+						$event[$key]=$_LW->setFormatSanitize($val);
+					};
+					$arr=array( // format the event
+						'summary'=>@$event['name'],
+						'dtstart'=>@strtotime($event['startDateTimeUtc']),
+						'description'=>strip_tags(@$event['description']),
+						'url'=>'https://lclark.presence.io/event/'.@$event['uri'],
+						'uid'=>@$event['uri'].'@api.presence.io',
+						'location'=>@$event['location'],
+						'attach'=>(!empty($event['photoUri']) ? 'https://lclark-cdn.presence.io/event-photos/964edc28-e423-48fc-bcea-c5a3c9c5c8cb/'.$event['photoUri'] : '')
+					);
+					foreach($arr as $key=>$val) { // strip empty values
+						if (empty($val)) {
+							unset($arr[$key]);
+						};
+					};
+					$feed->addFeedItem($ical, $arr, 'ical'); // add event to feed
+				};
+				die($feed->showFeed($ical, 'ical')); // show the feed
+			};
+		};
+	};
+	$_LW->show404(); // fall back on 404
+};
+exit;
+
+?>
