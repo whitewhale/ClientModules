@@ -11,7 +11,8 @@ if (!empty($LIVE_URL['REQUEST'][0])) {
 			if (!empty($host) && !empty($type)) {
 				require $_SERVER['DOCUMENT_ROOT'].'/livewhale/nocache.php';
 				if ($_LW->d_transfer->validateRequestFromDestinationHost($host)) { // if request was from a valid destination host
-					die($_LW->d_transfer->exportContent($type)); // export the content
+					echo $_LW->d_transfer->exportContent($type); // export the content
+					exit;
 				}
 				else { // else give error on invalid authentication
 					die(json_encode(['error'=>'Invalid authentication.']));

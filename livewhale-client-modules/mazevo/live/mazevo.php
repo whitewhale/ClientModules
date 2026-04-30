@@ -88,7 +88,8 @@ if (!empty($params['start_date']) && !empty($params['end_date']) && !empty($para
 		};
 	}
 	else {
-		die($_LW->httpResponse(404, true));
+		$_LW->httpResponse(404, true);
+		exit;
 	};
 };
 header('Content-Type: text/calendar'); // send content encoding header

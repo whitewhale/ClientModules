@@ -45,29 +45,34 @@ if (!empty($LIVE_URL['REQUEST'])) { // if params supplied
 			if ($_LW->a_salesforce->initSalesforce()) { // if Salesforce loaded
 				$ical=$_LW->a_salesforce->getEventsAsICAL($type, $params); // fetch and format events as ICAL feed
 				if ($ical===false) {
-					die($_LW->httpResponse(404, true));
+					$_LW->httpResponse(404, true);
+					exit;
 				}
 				else {
 					$output=$ical;
 				};
 			}
 			else {
-				die($_LW->httpResponse(404, true));
+				$_LW->httpResponse(404, true);
+				exit;
 			};
 		}
 		else {
 			header('X-Salesforce-Error: Invalid params');
-			die($_LW->httpResponse(404, true));
+			$_LW->httpResponse(404, true);
+			exit;
 		};
 	}
 	else {
 		header('X-Salesforce-Error: Invalid type '.rawurlencode($type));
-		die($_LW->httpResponse(404, true));
+		$_LW->httpResponse(404, true);
+		exit;
 	};
 }
 else {
 	header('X-Salesforce-Error: Type and parameters are required');
-	die($_LW->httpResponse(404, true));
+	$_LW->httpResponse(404, true);
+	exit;
 };
 header('Content-Type: text/calendar'); // send content encoding header
 die($output); // show iCAL

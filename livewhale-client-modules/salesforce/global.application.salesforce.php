@@ -226,7 +226,8 @@ return false; // default to returning false in case of error so we issue a 404
 public function debug() { // debug Salesforce connections
 global $_LW;
 if (!$_LW->isLiveWhaleUser()) {
-	die(header('Location: /livewhale/')); // redirect to login page
+	header('Location: /livewhale/'); // redirect to login page
+	exit;
 };
 echo '<div style="max-width: 1400px; margin: 1em auto; padding: 1em;">
 <style>

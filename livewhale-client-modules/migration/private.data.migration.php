@@ -26,7 +26,8 @@ class LiveWhaleDataMigration {
 public function onManagerMigration() { // performs actions before the manager loads for this module
 global $_LW, $title, $summary;
 if (!$_LW->userSetting('core_admin')) { // only allow admins access
-	die($_LW->redirectUrl('/livewhale/'));
+	$_LW->redirectUrl('/livewhale/');
+	exit;
 };
 $title='Migration'; // set title
 if (!$config=$this->getConfig()) { // warn if config not obtained
@@ -118,7 +119,8 @@ else {
 public function onManagerSubmitMigration() { // called upon manager submission
 global $_LW;
 if (!$_LW->userSetting('core_admin')) { // only allow admins access
-	die($_LW->redirectUrl('/livewhale/'));
+	$_LW->redirectUrl('/livewhale/');
+	exit;
 };
 if ($this->config=$this->getConfig()) { // if config obtained
 	if (is_dir($_LW->INCLUDES_DIR_PATH.'/data/migration') && is_writable($_LW->INCLUDES_DIR_PATH.'/data/migration')) { // check for valid data directory

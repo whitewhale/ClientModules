@@ -40,7 +40,8 @@ return (isset($this->client) && $this->client!==false);
 public function debug() { // debug Mazevo connections, such as validating the login credentials after an install
 global $_LW;
 if (!$_LW->isLiveWhaleUser()) {
-	die(header('Location: /livewhale/')); // redirect to login page
+	header('Location: /livewhale/'); // redirect to login page
+	exit;
 };
 echo '<h1>Debugging Mazevo</h1>';
 if ($this->initMazevo()) { // if Mazevo loaded

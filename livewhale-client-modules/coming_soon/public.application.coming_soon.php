@@ -14,7 +14,8 @@ if (empty($_LW->is_private_request)) { // if on frontend
 	if (strpos($_SERVER['REQUEST_URI'], '/my-site/')===0) { // if we're on any of our specified pages
 
 		if (!$_LW->isLiveWhaleUser()) { // if you're not logged in
-			die(header('Location: /my-site-coming-soon')); // redirect you to coming soon page
+			header('Location: /my-site-coming-soon'); // redirect you to coming soon page
+			exit;
 		}
 
 		// otherwise let you through.

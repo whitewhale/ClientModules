@@ -24,7 +24,8 @@ if ($_LW->isLiveWhaleUser()) { // if the user is logged in
 	if (!empty($_SESSION['livewhale']['manage']['is_training'])) { // if user is in training
 		if (!empty($_LW->is_private_request)) { // if user is on the backend
 			if ($_LW->page!='settings' && $_LW->page!='logout' && strpos($_LW->page, 'login_')!==0) { // if not on a login/logout page or settings page
-				die(header('Location: /livewhale/?settings')); // redirect to settings page
+				header('Location: /livewhale/?settings'); // redirect to settings page
+				exit;
 			}
 			else if ($_LW->page=='settings') { // else if on settings page
 				if ($_LW->dbo->query('select', '1', 'livewhale_users', 'id='.(int)$_SESSION['livewhale']['manage']['uid'].' AND password!='.$_LW->escape($_SESSION['livewhale']['manage']['is_training']))->exists()->run()) { // if user has reset their password
@@ -37,7 +38,8 @@ if ($_LW->isLiveWhaleUser()) { // if the user is logged in
 			};
 		}
 		else { // else if user is on frontend
-			die(header('Location: /livewhale/?settings')); // redirect to settings page
+			header('Location: /livewhale/?settings'); // redirect to settings page
+			exit;
 		};
 	};
 };

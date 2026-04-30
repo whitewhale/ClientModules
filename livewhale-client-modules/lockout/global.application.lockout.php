@@ -23,7 +23,8 @@ if (!empty($_LW->is_private_request)) { // if on backend
 		return true;
 	};
 	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['relocate_unknown_users']) && $_LW->page=='login_unknown_user') { // relocate unknown users if configured (i.e. redirect SSO-only users to the homepage)
-		die(header('Location: /'));
+		header('Location: /');
+		exit;
 	};
 	if (!empty($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors']) && is_array($_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if backend request and there are approved_editors
 		if ($_LW->isLiveWhaleUser() || $_LW->isSSOAuthOnlyUser()) { // if there is an active login
@@ -34,7 +35,8 @@ if (!empty($_LW->is_private_request)) { // if on backend
 				$_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'][]='whitewhale';
 			};
 			if (!in_array($_LW->d_login->getAuthenticatedUser($_LW->CONFIG['LOGIN_MODE']), $_LW->REGISTERED_APPS['lockout']['custom']['approved_editors'])) { // if user is a non-approved editor
-				die(header('Location: /')); // redirect to frontend
+				header('Location: /'); // redirect to frontend
+				exit;
 			};
 		};
 	};
@@ -88,7 +90,8 @@ else { // else if on frontend
 			return true;
 			break;
 	};
-	die(header('Location: /livewhale/?login&url='.rawurlencode($_SERVER['REQUEST_URI']))); // else redirect to login
+	header('Location: /livewhale/?login&url='.rawurlencode($_SERVER['REQUEST_URI'])); // else redirect to login
+	exit;
 };
 }
 

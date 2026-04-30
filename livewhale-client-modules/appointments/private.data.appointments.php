@@ -247,7 +247,8 @@ if (!empty($items)) { // loop through updated items
 public function onManagerAppointments() { // on the manager load
 global $_LW, $title;
 if (!$_LW->userSetting('core_globals')) { // disallow access for non-global perm
-	die(header('Location: /livewhale/'));
+	header('Location: /livewhale/');
+	exit;
 };
 $GLOBALS['dropdown_checked']=$this->dropdown('checked_appointments'); // create checked items dropdown menu
 $title='Appointment Slots'; // set title
