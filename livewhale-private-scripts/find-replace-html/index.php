@@ -107,7 +107,6 @@ echo '<div class="row" style="margin-bottom: 1em;">
 	 </xphp>
 		
 	
-	<p><em>Test page: /help/content-layouts/legacy-after/</em></p>
 	<p><strong>Wildcards:</strong> <code>%%</code> (multiple lines), <code>##</code> (same line)</p>
 
 <input type="hidden" name="mode" id="submit-mode"/>

@@ -189,7 +189,7 @@ if ($response=$this->getResponse('/bookings/actions/search', $params, $payload))
 		if (empty($params['page']) && !empty($response['page']) && !empty($response['pageCount']) && $response['page']<$response['pageCount']) { // get up to $page_max more pages
 			while (true) {
 				$params['page']=$page_count;
-				$more=$this->getResponse('bookings', $params);
+				$more=$this->getResponse('/bookings/actions/search', $params, $payload);
 				if (!empty($more['results'])) {
 					$response['results']=array_merge($response['results'], $more['results']);
 				};

@@ -7,12 +7,12 @@ $_LW->REGISTERED_APPS['suggest_to']=[
 	'handlers' => ['onLoad','onOutput'],
 	'custom' => [
 		[
-			'label' => 'University of Chicago homepage',  
+			'label' => 'Main Campus Calendar',  
 			'group_id' => 3,
 		],
 // additional groups can be added here
 //		[
-//			'label' => 'UChicago intranet',   
+//			'label' => 'Homepage Calendar',   
 //			'group_id' => 498
 //		]
 	]

@@ -15,10 +15,9 @@
 			return (group && group.title) ? group.title : '';
 		};
 
-		var $suggest = $('.group_suggest').bind('multisuggestchange', function(e) {
-			var selected = $suggest.multisuggest('getSelected').map(function(obj) { return parseInt(obj.id, 10); });
-
-			$share_checkbox.each(function() {
+		var $suggest = $('.group_suggest').bind('multisuggestchange multiselectchange', function(e) {
+			let func = (e.type === 'multiselectchange') ? 'multiselect' : 'multisuggest';
+			let selected = $suggest[func]('getSelected').map(function(obj) { return parseInt(obj.id, 10); });																																																					 $share_checkbox.each(function() {
 				var $this = $(this);
 				var val = parseInt($this.val(), 10);
 
@@ -29,19 +28,34 @@
 				}
 			});
 		});
-		$share_checkbox.click(function() {
+
+		$share_checkbox.on('click', function() {
 			var $this = $(this);
-			var group_id = $this.val();
+			var group_id = parseInt($this.val());
+			var func_name = $suggest.data('lwMultiselect') !== undefined ? 'multiselect' : 'multisuggest';
 
-			if ($this.prop('checked')) {
-				var selected = $suggest.multisuggest('getSelected');
-				var group_exists = _.includes(selected, group_id);
+			var selected = $suggest[func_name]('getSelected');
+			var group_exists;
 
-				if (!group_exists) {
+			if (func_name === 'multiselect') {
+				group_exists = selected.find(o => parseInt(o.id) === group_id);
+
+				if ($this.prop('checked') && !group_exists) {
+					selected.push({id: group_id});
+				}
+				if (!$this.prop('checked') && group_exists) {
+					selected = selected.filter(o => parseInt(o.id) !== group_id);
+				}
+				$suggest.multiselect('option', 'selected', selected);
+			} else {
+				group_exists = _.includes(selected, group_id);
+
+				if ($this.prop('checked') && !group_exists) {
 					$suggest.multisuggest('addItem', { id: group_id, title: getGroupName(group_id) });
 				}
-			} else {
-				$suggest.multisuggest('removeItem', group_id);
+				if (!$this.prop('checked') && group_exists) {
+					$suggest.multisuggest('removeItem', group_id);
+				}
 			}
 		});
 	}

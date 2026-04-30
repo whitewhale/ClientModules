@@ -57,7 +57,7 @@ if (!empty($params['group'])) { // if there are (LiveWhale) groups specified, co
 	};
 	unset($params['group']); // only use EMS group_ids from here onwards
 };
-$is_single_group=(!empty($params['group_ids']) && sizeof($params['group_ids'])==1); // check if this is a single group request
+$is_group_request=(!empty($params['group_ids']) ? true : false); // check if this is a group request
 $reservation_udfs=[];
 $booking_udfs=[];
 foreach($params as $key=>$val) { // capture all reservation and booking UDFs
@@ -68,15 +68,7 @@ foreach($params as $key=>$val) { // capture all reservation and booking UDFs
 		$booking_udfs[substr($key, 12)]=$val;
 	};
 };
-if (!empty($is_single_group)) { // if this is a single group request
-	if (empty($params['start_date'])) { // default to -1 year if no start_date given
-		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 year'));
-	};
-	if (empty($params['end_date'])) { // default to +1 year if no end_date given
-		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+1 year'));
-	};
-}
-else if (!empty($params['custom_reservation_udf_request']) || !empty($reservation_udfs) || !empty($booking_udfs)) { // if this is a udf request
+if (!empty($params['custom_reservation_udf_request']) || !empty($reservation_udfs) || !empty($booking_udfs)) { // if this is a udf request
 	if (empty($params['start_date'])) { // default to -6 months if no start_date given
 		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-6 months'));
 	};
@@ -84,7 +76,15 @@ else if (!empty($params['custom_reservation_udf_request']) || !empty($reservatio
 		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+6 months'));
 	};
 }
-else { // else if this is not a single group request or a udf request
+else if (!empty($is_group_request)) { // if this is a group request
+	if (empty($params['start_date'])) { // default to -1 year if no start_date given
+		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 year'));
+	};
+	if (empty($params['end_date'])) { // default to +1 year if no end_date given
+		$params['end_date']=$_LW->toDate('Y-m-d', $_LW->toTS('+1 year'));
+	};
+}
+else { // else if this is not a group request or a udf request
 	if (empty($params['start_date'])) { // default to -1 month if no start_date given
 		$params['start_date']=$_LW->toDate('Y-m-d', $_LW->toTS('-1 month'));
 	};
