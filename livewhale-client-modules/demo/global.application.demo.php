@@ -87,12 +87,15 @@ class LiveWhaleApplicationDemo {
 		// Wipe only events this module created (flagged via the "demo_generated" custom field), never a
 		// hand-made event a person happens to have filed under the Sample Content group. Skip the trash
 		// since these get regenerated every cycle and don't need to be recoverable.
+		// $to_wipe is an LWQueryResult -- foreach-able, but not Countable|array, so sizeof()/count() throws
+		// a TypeError on it directly. Tally as we go instead and log the total once the wipe is done.
 		$to_wipe = $_LW->dbo->query('select', 'pid', 'livewhale_custom_data', 'type="events" AND name="demo_generated"')->run();
-		$_LW->logDebug('Demo: populateEvents() wiping '.sizeof($to_wipe).' previously-generated event(s)'); // logged up front so a slow wipe shows progress instead of going silent between this and the next log line
+		$wiped = 0;
 		foreach ($to_wipe as $res2) {
 			$_LW->delete('events', $res2['pid'], false);
+			$wiped++;
 		};
-		$_LW->logDebug('Demo: populateEvents() wipe complete, regenerating from CSV');
+		$_LW->logDebug('Demo: populateEvents() wiped '.$wiped.' previously-generated event(s), regenerating from CSV');
 
 		// Cycle anchor: earliest start_date in the CSV, floored to that week's Monday
 		$earliest_ts = false;
